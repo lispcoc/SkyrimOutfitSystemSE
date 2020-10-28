@@ -78,7 +78,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ConformanceMode>true</ConformanceMode>
       <SDLCheck>false</SDLCheck>
-      <AdditionalOptions>/experimental:external /external:anglebrackets /external:W0 /Zc:alignedNew /Zc:auto /Zc:char8_t /Zc:__cplusplus /Zc:externC /Zc:externConstexpr /Zc:forScope /Zc:hiddenFriend /Zc:implicitNoexcept /Zc:lambda /Zc:noexceptTypes /Zc:preprocessor /Zc:referenceBinding /Zc:rvalueCast /Zc:sizedDealloc /Zc:strictStrings /Zc:ternary /Zc:threadSafeInit /Zc:tlsGuards /Zc:trigraphs /Zc:wchar_t %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/experimental:external /external:anglebrackets /external:W0 /Zc:alignedNew /Zc:auto /Zc:char8_t /Zc:__cplusplus /Zc:externC /Zc:externConstexpr /Zc:forScope /Zc:hiddenFriend /Zc:implicitNoexcept /Zc:lambda /Zc:noexceptTypes /Zc:preprocessor /Zc:referenceBinding /Zc:rvalueCast /Zc:sizedDealloc /Zc:strictStrings /Zc:ternary /Zc:threadSafeInit /Zc:tlsGuards /Zc:trigraphs /Zc:wchar_t  /Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>exports.def</ModuleDefinitionFile>
@@ -123,7 +123,7 @@
       <UseFullPaths>false</UseFullPaths>
       <ConformanceMode>true</ConformanceMode>
       <SDLCheck>false</SDLCheck>
-      <AdditionalOptions>/experimental:external /external:anglebrackets /external:W0 /Zc:alignedNew /Zc:auto /Zc:char8_t /Zc:__cplusplus /Zc:externC /Zc:externConstexpr /Zc:forScope /Zc:hiddenFriend /Zc:implicitNoexcept /Zc:lambda /Zc:noexceptTypes /Zc:preprocessor /Zc:referenceBinding /Zc:rvalueCast /Zc:sizedDealloc /Zc:strictStrings /Zc:ternary /Zc:threadSafeInit /Zc:tlsGuards /Zc:trigraphs /Zc:wchar_t %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/experimental:external /external:anglebrackets /external:W0 /Zc:alignedNew /Zc:auto /Zc:char8_t /Zc:__cplusplus /Zc:externC /Zc:externConstexpr /Zc:forScope /Zc:hiddenFriend /Zc:implicitNoexcept /Zc:lambda /Zc:noexceptTypes /Zc:preprocessor /Zc:referenceBinding /Zc:rvalueCast /Zc:sizedDealloc /Zc:strictStrings /Zc:ternary /Zc:threadSafeInit /Zc:tlsGuards /Zc:trigraphs /Zc:wchar_t  /Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>exports.def</ModuleDefinitionFile>
