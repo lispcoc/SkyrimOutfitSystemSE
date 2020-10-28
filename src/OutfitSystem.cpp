@@ -6,11 +6,11 @@
 
 #include "skse64/GameRTTI.h"
 
-#include "RE/TESObjectARMO.h"
-#include "RE/TESDataHandler.h"
-#include "RE/Actor.h"
-#include "RE/InventoryChanges.h"
-#include "RE/InventoryEntryData.h"
+#include "RE/FormComponents/TESForm/TESObject/TESBoundObject/TESObjectARMO.h"
+#include "RE/FileIO/TESDataHandler.h"
+#include "RE/FormComponents/TESForm/TESObjectREFR/Actor/Actor.h"
+#include "RE/Inventory/InventoryChanges.h"
+#include "RE/Inventory/InventoryEntryData.h"
 #include "ArmorAddonOverrideService.h"
 
 #include "cobb/strings.h"

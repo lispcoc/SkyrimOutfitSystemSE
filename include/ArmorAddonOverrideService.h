@@ -26,7 +26,7 @@ struct Outfit {
    void load(SKSESerializationInterface* intfc, UInt32 version); // can throw ArmorAddonOverrideService::load_error
    void save(SKSESerializationInterface*) const; // can throw ArmorAddonOverrideService::save_error
 };
-constexpr char* g_noOutfitName = "";
+const char* g_noOutfitName = "";
 static Outfit g_noOutfit(g_noOutfitName); // can't be const; prevents us from assigning it to Outfit&s
 
 class ArmorAddonOverrideService {
