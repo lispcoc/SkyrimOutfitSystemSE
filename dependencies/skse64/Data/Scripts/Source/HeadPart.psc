@@ -25,3 +25,6 @@ Function SetValidRaces(FormList vRaces) native
 
 ; Returns whether the head part is an extra part
 bool Function IsExtraPart() native
+
+; Returns the EditorID of the HeadPart
+string Function GetPartName() native

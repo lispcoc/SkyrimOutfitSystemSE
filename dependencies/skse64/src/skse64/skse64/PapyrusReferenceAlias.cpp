@@ -62,10 +62,15 @@ namespace papyrusReferenceAlias
 				}*/
 			}
 
-			_MESSAGE("Forced Reference to %08X", foundReference->formID);
-			if(foundReference) {
+			if(foundReference)
+			{
+				_MESSAGE("Forced Reference to %08X", foundReference->formID);
 				CALL_MEMBER_FN(alias->owner, ForceRefTo)(alias->aliasId, foundReference);
 				return true;
+			}
+			else
+			{
+				_MESSAGE("Forced Reference to <not found>");
 			}
 		}
 

@@ -860,7 +860,7 @@ Function ForceTargetAngle(float afXAngle = 0.0, float afYAngle = 0.0, float afZA
 Function ClearForcedMovement() native
 
 
-; SKSE64 additions built 2019-03-14 18:25:19.543000 UTC
+; SKSE 64 additions built 2020-07-29 17:24:48.495000 UTC
 ; returns the form for the item worn at the specified slotMask
 ; use Armor.GetMaskForSlot() to generate appropriate slotMask
 Form Function GetWornForm(int slotMask) native
