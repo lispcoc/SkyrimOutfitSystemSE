@@ -23,7 +23,7 @@ Function RemoveAddedForm(Form apForm) native
 Function Revert() native
 
 
-; SKSE64 additions built 2019-03-14 18:25:19.543000 UTC
+; SKSE 64 additions built 2020-07-29 17:24:48.495000 UTC
 ; Returns a Form array of this list (Invalid entries will be None)
 Form[] Function ToArray() native
 

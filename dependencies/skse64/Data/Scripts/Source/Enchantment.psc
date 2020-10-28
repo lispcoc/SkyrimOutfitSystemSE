@@ -3,7 +3,7 @@ Scriptname Enchantment extends Form Hidden
 ; Is this enchantment classified as hostile?
 bool Function IsHostile() native
 
-; SKSE64 additions built 2019-03-14 18:25:19.543000 UTC
+; SKSE 64 additions built 2020-07-29 17:24:48.495000 UTC
 ; return the number of the effects
 int Function GetNumEffects() native
 

@@ -1,15 +1,16 @@
+#define XBYAK_NO_OP_NAMES 1
 #include <xbyak/xbyak.h>
 
-#include "RE/InventoryChanges.h"
-#include "RE/InventoryEntryData.h"
-#include "RE/PlayerCharacter.h"
-#include "RE/TESObjectARMO.h"
-#include "RE/TESObjectREFR.h"
+#include "RE/Inventory/InventoryChanges.h"
+#include "RE/Inventory/InventoryEntryData.h"
+#include "RE/FormComponents/TESForm/TESObjectREFR/Actor/Character/PlayerCharacter.h"
+#include "RE/FormComponents/TESForm/TESObject/TESBoundObject/TESObjectARMO.h"
+#include "RE/FormComponents/TESForm/TESObjectREFR/TESObjectREFR.h"
 
 #include "ArmorAddonOverrideService.h"
 #include "skse64_common/BranchTrampoline.h"
 #include "skse64/GameRTTI.h"
-#include "RE/EquipManager.h"
+#include "RE/Inventory/ActorEquipManager.h"
 
 namespace OutfitSystem
 {
@@ -91,6 +92,7 @@ namespace OutfitSystem
                 DontVanillaSkinPlayer_Code code(codeBuf);
                 g_localTrampoline.EndAlloc(code.getCurr());
 
+				_MESSAGE("AVI: Patching vanilla player skinning at addr = %llX. base = %llX", DontVanillaSkinPlayer_Hook.GetUIntPtr(), RelocationManager::s_baseAddr);
                 g_branchTrampoline.Write5Branch(DontVanillaSkinPlayer_Hook.GetUIntPtr(),
                     uintptr_t(code.getCode()));
             }

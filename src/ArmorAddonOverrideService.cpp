@@ -1,5 +1,5 @@
 #include "ArmorAddonOverrideService.h"
-#include "RE/TESObjectARMO.h"
+#include "RE/FormComponents/TESForm/TESObject/TESBoundObject/TESObjectARMO.h"
 #include "skse64/GameForms.h"
 #include "skse64/GameRTTI.h"
 #include "skse64/Serialization.h"
@@ -16,11 +16,11 @@ void _assertRead(bool result, const char* err) {
 bool Outfit::conflictsWith(RE::TESObjectARMO* test) const {
    if (!test)
       return false;
-   const auto mask = test->GetSlotMask();
+   const auto mask = static_cast<uint32_t>(test->GetSlotMask());
    for (auto it = this->armors.cbegin(); it != this->armors.cend(); ++it) {
       RE::TESObjectARMO* armor = *it;
       if (armor)
-         if ((mask & armor->GetSlotMask()) != RE::BGSBipedObjectForm::FirstPersonFlag::kNone)
+         if ((mask & static_cast<uint32_t>(armor->GetSlotMask())) != static_cast<uint32_t>(RE::BGSBipedObjectForm::FirstPersonFlag::kNone))
             return true;
    }
    return false;
@@ -30,7 +30,7 @@ bool Outfit::hasShield() const {
    for (auto it = list.cbegin(); it != list.cend(); ++it) {
       RE::TESObjectARMO* armor = *it;
       if (armor) {
-         if ((armor->flags & RE::TESObjectARMO::RecordFlags::kShield) != 0)
+         if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0)
             return true;
       }
    }

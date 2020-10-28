@@ -32,12 +32,19 @@ class BSTriShape;
 class TESObjectCELL;
 class TESModelTri;
 class BSFaceGenMorphData;
+class TESObjectREFR;
 
 extern RelocPtr<float> g_worldToCamMatrix;
 extern RelocPtr<NiRect<float>> g_viewPort;
 
 typedef bool (* _WorldPtToScreenPt3_Internal)(float * worldToCamMatrix, NiRect<float> * port, NiPoint3 * p_in, float * x_out, float * y_out, float * z_out, float zeroTolerance);
 extern RelocAddr<_WorldPtToScreenPt3_Internal> WorldPtToScreenPt3_Internal;
+
+typedef void * (*_NiAllocate)(size_t size);
+extern RelocAddr<_NiAllocate> NiAllocate;
+
+typedef void(*_NiFree)(void * ptr);
+extern RelocAddr<_NiFree> NiFree;
 
 // 10
 class NiRefObject
@@ -118,7 +125,7 @@ public:
 
 	
 	MEMBER_FN_PREFIX(NiObject);
-	DEFINE_MEMBER_FN(DeepCopy, NiStream *, 0x00C524F0, NiObject ** result);
+	DEFINE_MEMBER_FN(DeepCopy, NiStream *, 0x00C529A0, NiObject ** result);
 };
 STATIC_ASSERT(sizeof(NiObject) == 0x10);
 
@@ -205,8 +212,7 @@ public:
 	float		unkEC;					// EC
 	float		unkF0;					// F0
 	UInt32		m_flags;				// F4 - bitfield
-	float		unkF8;					// F8
-	UInt32		unkFC;					// FC
+	TESObjectREFR*	m_owner;			// F8
 	float		unk100;					// 100 - New in SE? init's to 1.0
 	UInt32		unk104;					// 104 - New in SE? init'd to 0
 	UInt8		unk108;					// 108
@@ -215,7 +221,7 @@ public:
 
 	MEMBER_FN_PREFIX(NiAVObject);
 	// 3239A102C6E8818F0FBFEF58A1B6EA724A237258+26
-	DEFINE_MEMBER_FN(UpdateNode, void, 0x00C566A0, ControllerUpdateContext * ctx);
+	DEFINE_MEMBER_FN(UpdateNode, void, 0x00C56B50, ControllerUpdateContext * ctx);
 };
 STATIC_ASSERT(offsetof(NiAVObject, m_localTransform) == 0x48);
 STATIC_ASSERT(offsetof(NiAVObject, m_worldTransform) == 0x7C);

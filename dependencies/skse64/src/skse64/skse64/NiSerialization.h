@@ -21,9 +21,9 @@ public:
 	virtual bool	SavePath(const char * path);
 
 	MEMBER_FN_PREFIX(NiStream);
-	DEFINE_MEMBER_FN(ctor, NiStream *, 0x00C591E0);
-	DEFINE_MEMBER_FN(dtor, void, 0x00C59440);
-	DEFINE_MEMBER_FN(AddObject, void, 0x00C59630, NiObject * object);
+	DEFINE_MEMBER_FN(ctor, NiStream *, 0x00C59690);
+	DEFINE_MEMBER_FN(dtor, void, 0x00C598F0);
+	DEFINE_MEMBER_FN(AddObject, void, 0x00C59AE0, NiObject * object);
 
 //	void	** _vtbl;								// 000
 	UInt64	pad004[(0x218 - 0x008) >> 3];			// 008
@@ -45,6 +45,10 @@ public:
 	UInt64						unk418[(0x518 - 0x418) >> 3]; // 418
 	char						unk518[MAX_PATH];	// 518
 };
+STATIC_ASSERT(offsetof(NiStream, m_objects) == 0x218);
+STATIC_ASSERT(offsetof(NiStream, m_objectSizes) == 0x238);
+STATIC_ASSERT(offsetof(NiStream, m_rootObjects) == 0x258);
+STATIC_ASSERT(offsetof(NiStream, m_stringTable) == 0x278);
 
 // 638
 class BSStream : public NiStream
@@ -67,11 +71,7 @@ public:
 	// vtbl 001117394
 
 	MEMBER_FN_PREFIX(DeepCopyStream);
-	DEFINE_MEMBER_FN(SaveStream, bool, 0x00C59A60, char ** buffer, UInt32 * length);
-	DEFINE_MEMBER_FN(LoadStream, bool, 0x00C59A10, char * buffer, UInt32 length);
+	DEFINE_MEMBER_FN(SaveStream, bool, 0x00C59F10, char ** buffer, UInt32 * length);
+	DEFINE_MEMBER_FN(LoadStream, bool, 0x00C59EC0, char * buffer, UInt32 length);
 };
 
-//STATIC_ASSERT(offsetof(NiStream, m_objects) == 0x1F4);
-//STATIC_ASSERT(offsetof(NiStream, m_objectSizes) == 0x20C);
-//STATIC_ASSERT(offsetof(NiStream, m_rootObjects) == 0x224);
-//STATIC_ASSERT(offsetof(NiStream, m_stringTable) == 0x23C);

@@ -74,7 +74,7 @@ Function SetPlayerExpelled(bool abIsExpelled = true) native
 ; Sets this faction's reaction towards the other
 Function SetReaction(Faction akOther, int aiNewValue) native
 
-; SKSE64 additions built 2019-03-14 18:25:19.543000 UTC
+; SKSE 64 additions built 2020-07-29 17:24:48.495000 UTC
 
 int property kFaction_HiddenFromNPC				= 0x00000001 AutoReadOnly
 int property kFaction_SpecialCombat				= 0x00000002 AutoReadOnly

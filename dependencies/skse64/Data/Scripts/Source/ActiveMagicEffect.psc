@@ -358,7 +358,7 @@ Event OnVampirismStateChanged(bool abIsVampire)
 EndEvent
 
 
-; SKSE64 additions built 2019-03-14 18:25:19.543000 UTC
+; SKSE 64 additions built 2020-07-29 17:24:48.495000 UTC
 ; Additional useful effect information
 float Function GetDuration() native
 float Function GetTimeElapsed() native

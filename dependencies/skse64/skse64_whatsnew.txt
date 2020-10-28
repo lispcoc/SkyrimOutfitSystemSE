@@ -1,3 +1,27 @@
+2.0.19
+- fixed trampoline to be actually hooked up
+- fixed incorrect scaling mode for custom menus
+
+2.0.18
+- made PapyrusArgs.h not rely on MSVC extensions (thanks to matzibeater)
+- added trampoline interface for plugins to request a memory block for hooks within SKSE's 64kb * 2 block
+	- please use this space wisely, do not request more space than you need!
+	- skse.log will print how much space a plugin requested
+- added GetPluginInfo to SKSEInterface to query other plugin's info by name
+- co-saves with the same name will now be deleted before written
+- fixed serialization bug when resolving handles
+- added Location.GetParent
+
+2.0.17
+- support for runtime 1.5.97
+- fix Game.GetNthLightModDependency
+- HeadPart.GetPartName
+- dispatch SKSECrosshairRefEvent when defocusing an object
+
+2.0.16
+- support for runtime 1.5.80
+- fix potential crash in ReferenceAlias.ForceRefToWornItem
+
 2.0.15
 - re-enable crosshair ref hook (fixed underlying problem)
 - fixed Game.GetModByName, GetLightModByName crashing if a requested mod is not installed
