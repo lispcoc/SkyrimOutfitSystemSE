@@ -47,7 +47,7 @@ void Outfit::load(SKSESerializationInterface* intfc, UInt32 version) {
       _assertRead(ReadData(intfc, &formID), "Failed to read an outfit's armor.");
       UInt32 fixedID;
       if (intfc->ResolveFormId(formID, &fixedID)) {
-         auto armor = reinterpret_cast<RE::TESObjectARMO*>(DYNAMIC_CAST(LookupFormByID(fixedID), TESForm, TESObjectARMO));
+         auto armor = reinterpret_cast<RE::TESObjectARMO*>(Runtime_DynamicCast((void*) LookupFormByID(fixedID), RTTI_TESForm, RTTI_TESObjectARMO));
          if (armor)
             this->armors.insert(armor);
       }
