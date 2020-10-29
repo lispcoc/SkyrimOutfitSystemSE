@@ -334,3 +334,7 @@ ASALocalRun/
 .localhistory/
 
 x64
+dependencies/skse64/src/common/x64_v142
+executables
+vcpkg_installed
+x64_v142

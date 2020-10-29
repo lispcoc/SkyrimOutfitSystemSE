@@ -5,12 +5,17 @@
 #include "skse64/PapyrusVM.h"
 
 #include "skse64/GameRTTI.h"
+#include "skse64/GameFormComponents.h"
+#include "skse64/GameObjects.h"
+#include "skse64/GameReferences.h"
 
 #include "RE/FormComponents/TESForm/TESObject/TESBoundObject/TESObjectARMO.h"
 #include "RE/FileIO/TESDataHandler.h"
 #include "RE/FormComponents/TESForm/TESObjectREFR/Actor/Actor.h"
+#include "RE/AI/AIProcess.h"
 #include "RE/Inventory/InventoryChanges.h"
 #include "RE/Inventory/InventoryEntryData.h"
+
 #include "ArmorAddonOverrideService.h"
 
 #include "cobb/strings.h"
@@ -24,11 +29,13 @@
         SInt32 GetOutfitNameMaxLength(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
             return ArmorAddonOverrideService::ce_outfitNameMaxLength;
         }
-        VMResultArray<RE::TESObjectARMO*> GetCarriedArmor(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, RE::Actor* target) {
+        VMResultArray<TESObjectARMO*> GetCarriedArmor(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, Actor* target_skse) {
             VMResultArray<RE::TESObjectARMO*> result;
+            auto target = (RE::Actor*) (target_skse);
             if (target == nullptr) {
                 registry->LogError("Cannot retrieve data for a None actor.", stackId);
-                return result;
+                VMResultArray<TESObjectARMO*> empty;
+                return empty;
             }
             //
             class _Visitor : public RE::InventoryChanges::IItemChangeVisitor {
@@ -37,11 +44,12 @@
                 // shield, then we need to grab the equipped shield's worn-flags.
                 //
             public:
-                virtual ReturnType Visit(RE::InventoryEntryData* data) override {
-                    const auto form = data->type;
+                virtual bool Visit(RE::InventoryEntryData* data) override {
+                    // Return true to continue, or else false to break.
+                    const auto form = data->object;
                     if (form && form->formType == RE::FormType::Armor)
                         this->list.push_back(reinterpret_cast<RE::TESObjectARMO*>(form));
-                    return ReturnType::kContinue;
+                    return true;
                 };
 
                 VMResultArray<RE::TESObjectARMO*>& list;
@@ -53,13 +61,20 @@
                 _Visitor visitor(result);
                 inventory->ExecuteVisitor(&visitor);
             }
-            return result;
+            VMResultArray<TESObjectARMO*> converted_result;
+            converted_result.reserve(result.size());
+            for (const auto ptr : result) {
+                converted_result.push_back((TESObjectARMO*)ptr);
+            }
+            return converted_result;
         }
-        VMResultArray<RE::TESObjectARMO*> GetWornItems(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, RE::Actor* target) {
+        VMResultArray<TESObjectARMO*> GetWornItems(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, Actor* target_skse) {
             VMResultArray<RE::TESObjectARMO*> result;
+            auto target = (RE::Actor*) (target_skse);
             if (target == nullptr) {
                 registry->LogError("Cannot retrieve data for a None actor.", stackId);
-                return result;
+                VMResultArray<TESObjectARMO*> empty;
+                return empty;
             }
             //
             class _Visitor : public RE::InventoryChanges::IItemChangeVisitor {
@@ -68,11 +83,11 @@
                 // shield, then we need to grab the equipped shield's worn-flags.
                 //
             public:
-                virtual ReturnType Visit(RE::InventoryEntryData* data) override {
-                    auto form = data->type;
+                virtual bool Visit(RE::InventoryEntryData* data) override {
+                    auto form = data->object;
                     if (form && form->formType == RE::FormType::Armor)
                         this->list.push_back(reinterpret_cast<RE::TESObjectARMO*>(form));
-                    return ReturnType::kContinue;
+                    return true;
                 };
 
                 VMResultArray<RE::TESObjectARMO*>& list;
@@ -84,11 +99,17 @@
                 _Visitor visitor(result);
                 inventory->ExecuteVisitorOnWorn(&visitor);
             }
-            return result;
+            VMResultArray<TESObjectARMO*> converted_result;
+            converted_result.reserve(result.size());
+            for (const auto ptr : result) {
+                converted_result.push_back((TESObjectARMO*)ptr);
+            }
+            return converted_result;
         }
-        void RefreshArmorFor(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, RE::Actor* target) {
+        void RefreshArmorFor(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, Actor* target_skse) {
+            auto target = (RE::Actor*) (target_skse);
             ERROR_AND_RETURN_IF(target == nullptr, "Cannot refresh armor on a None actor.", registry, stackId);
-            auto pm = target->processManager;
+            auto pm = target->currentProcess;
             if (pm) {
                 //
                 // "SetEquipFlag" tells the process manager that the actor's 
@@ -97,7 +118,8 @@
                 // should see a call near the start of EquipManager's func-
                 // tion to equip an item.
                 //
-                pm->SetEquipFlag(RE::ActorProcessManager::Flag::kUnk01);
+                // NOTE: AIProcess is also called as ActorProcessManager
+                pm->SetEquipFlag(RE::AIProcess::Flag::kUnk01);
                 pm->UpdateEquipment(target);
             }
         }
@@ -110,7 +132,7 @@
                 void setup(std::string nameFilter, bool mustBePlayable) {
                     auto  data = RE::TESDataHandler::GetSingleton();
                     auto& list = data->GetFormArray(RE::FormType::Armor);
-                    const auto  size = list.GetSize();
+                    const auto  size = list.size();
                     this->names.reserve(size);
                     this->armors.reserve(size);
                     for (UInt32 i = 0; i < size; i++) {
@@ -119,11 +141,12 @@
                             auto armor = static_cast<RE::TESObjectARMO*>(form);
                             if (armor->templateArmor) // filter out predefined enchanted variants, to declutter the list
                                 continue;
-                            if (mustBePlayable && !!(armor->flags & 4))
+                            if (mustBePlayable && !!(armor->formFlags & RE::TESObjectARMO::RecordFlags::kNonPlayable))
                                 continue;
                             std::string armorName;
                             {  // get name
-                                TESFullName* tfn = DYNAMIC_CAST(armor, TESObjectARMO, TESFullName);
+                                // TESFullName* tfn = DYNAMIC_CAST(armor, TESObjectARMO, TESFullName);
+                                TESFullName* tfn = (TESFullName*)Runtime_DynamicCast((void*)armor, RTTI_TESObjectARMO, RTTI_TESFullName);
                                 if (tfn)
                                     armorName = tfn->name.data;
                             }
@@ -153,12 +176,17 @@
             void Prep(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString filter, bool mustBePlayable) {
                 data.setup(filter.data, mustBePlayable);
             }
-            VMResultArray<RE::TESObjectARMO*> GetForms(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
+            VMResultArray<TESObjectARMO*> GetForms(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
                 VMResultArray<RE::TESObjectARMO*> result;
                 auto& list = data.armors;
                 for (auto it = list.begin(); it != list.end(); it++)
                     result.push_back(*it);
-                return result;
+                VMResultArray<TESObjectARMO*> converted_result;
+                converted_result.reserve(result.size());
+                for (const auto ptr : result) {
+                    converted_result.push_back((TESObjectARMO*)ptr);
+                }
+                return converted_result;
             }
             VMResultArray<BSFixedString> GetNames(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
                 VMResultArray<BSFixedString> result;
@@ -204,7 +232,8 @@
                                 data.bodySlots.push_back(i);
                                 data.armors.push_back(armor);
                                 { // name
-                                    TESFullName* pFullName = DYNAMIC_CAST(armor, TESObjectARMO, TESFullName);
+                                    // TESFullName* pFullName = DYNAMIC_CAST(armor, TESObjectARMO, TESFullName);
+                                    TESFullName* pFullName = (TESFullName*) Runtime_DynamicCast((void*) armor, RTTI_TESObjectARMO, RTTI_TESFullName);
                                     if (pFullName)
                                         data.armorNames.push_back(pFullName->name.data);
                                     else
@@ -218,12 +247,17 @@
                     registry->LogWarning("The specified outfit does not exist.", stackId);
                 }
             }
-            VMResultArray<RE::TESObjectARMO*> GetArmorForms(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
+            VMResultArray<TESObjectARMO*> GetArmorForms(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
                 VMResultArray<RE::TESObjectARMO*> result;
                 auto& list = data.armors;
                 for (auto it = list.begin(); it != list.end(); it++)
                     result.push_back(*it);
-                return result;
+                VMResultArray<TESObjectARMO*> converted_result;
+                converted_result.reserve(result.size());
+                for (const auto ptr : result) {
+                    converted_result.push_back((TESObjectARMO*)ptr);
+                }
+                return converted_result;
             }
             VMResultArray<BSFixedString> GetArmorNames(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
                 VMResultArray<BSFixedString> result;
@@ -343,7 +377,8 @@
             }
         }
         //
-        void AddArmorToOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name, RE::TESObjectARMO* armor) {
+        void AddArmorToOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name, TESObjectARMO* armor_skse) {
+            auto armor = (RE::TESObjectARMO*) (armor_skse);
             ERROR_AND_RETURN_IF(armor == nullptr, "Cannot add a None armor to an outfit.", registry, stackId);
             auto& service = ArmorAddonOverrideService::GetInstance();
             try {
@@ -354,7 +389,8 @@
                 registry->LogWarning("The specified outfit does not exist.", stackId);
             }
         }
-        bool ArmorConflictsWithOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, RE::TESObjectARMO* armor, BSFixedString name) {
+        bool ArmorConflictsWithOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, TESObjectARMO* armor_skse, BSFixedString name) {
+            auto armor = (RE::TESObjectARMO*) (armor_skse);
             if (armor == nullptr) {
                 registry->LogWarning("A None armor can't conflict with anything in an outfit.", stackId);
                 return false;
@@ -383,7 +419,7 @@
             auto& service = ArmorAddonOverrideService::GetInstance();
             service.deleteOutfit(name.data);
         }
-        VMResultArray<RE::TESObjectARMO*> GetOutfitContents(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name) {
+        VMResultArray<TESObjectARMO*> GetOutfitContents(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name) {
             VMResultArray<RE::TESObjectARMO*> result;
             auto& service = ArmorAddonOverrideService::GetInstance();
             try {
@@ -395,7 +431,12 @@
             catch (std::out_of_range) {
                 registry->LogWarning("The specified outfit does not exist.", stackId);
             }
-            return result;
+            VMResultArray<TESObjectARMO*> converted_result;
+            converted_result.reserve(result.size());
+            for (const auto ptr : result) {
+                converted_result.push_back((TESObjectARMO*)ptr);
+            }
+            return converted_result;
         }
         BSFixedString GetSelectedOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
             auto& service = ArmorAddonOverrideService::GetInstance();
@@ -415,7 +456,8 @@
                 result.push_back(it->c_str());
             return result;
         }
-        void RemoveArmorFromOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name, RE::TESObjectARMO* armor) {
+        void RemoveArmorFromOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name, TESObjectARMO* armor_skse) {
+            auto armor = (RE::TESObjectARMO*) (armor_skse);
             ERROR_AND_RETURN_IF(armor == nullptr, "Cannot remove a None armor from an outfit.", registry, stackId);
             auto& service = ArmorAddonOverrideService::GetInstance();
             try {
@@ -426,7 +468,8 @@
                 registry->LogWarning("The specified outfit does not exist.", stackId);
             }
         }
-        void RemoveConflictingArmorsFrom(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, RE::TESObjectARMO* armor, BSFixedString name) {
+        void RemoveConflictingArmorsFrom(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, TESObjectARMO* armor_skse, BSFixedString name) {
+            auto armor = (RE::TESObjectARMO*) (armor_skse);
             ERROR_AND_RETURN_IF(armor == nullptr, "A None armor can't conflict with anything in an outfit.", registry, stackId);
             auto& service = ArmorAddonOverrideService::GetInstance();
             try {
@@ -438,7 +481,7 @@
                     RE::TESObjectARMO* existing = *it;
                     if (existing) {
                         const auto mask = existing->GetSlotMask();
-                        if ((mask & candidateMask) != RE::BGSBipedObjectForm::FirstPersonFlag::kNone)
+                        if ((static_cast<uint32_t>(mask) & static_cast<uint32_t>(candidateMask)) != static_cast<uint32_t>(RE::BGSBipedObjectForm::FirstPersonFlag::kNone))
                             conflicts.push_back(existing);
                     }
                 }
@@ -473,15 +516,24 @@
             auto& service = ArmorAddonOverrideService::GetInstance();
             return service.hasOutfit(name.data);
         }
-        void OverwriteOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name, VMArray<RE::TESObjectARMO*> armors) {
+        void OverwriteOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name, VMArray<TESObjectARMO*> armors_skse) {
             auto& service = ArmorAddonOverrideService::GetInstance();
+            // Convert input array.
+            VMResultArray<RE::TESObjectARMO*> armors;
+            armors.reserve(armors_skse.Length());
+            for (std::size_t i = 0; i < armors_skse.Length(); i++) {
+                TESObjectARMO* ptr;
+                armors_skse.Get(&ptr, i);
+                armors.push_back((RE::TESObjectARMO*)ptr);
+            }
+            // End convert
             try {
                 auto& outfit = service.getOrCreateOutfit(name.data);
                 outfit.armors.clear();
-                auto count = armors.Length();
+                auto count = armors.size();
                 for (UInt32 i = 0; i < count; i++) {
                     RE::TESObjectARMO* ptr = nullptr;
-                    armors.Get(&ptr, i);
+                    ptr = armors.at(i);
                     if (ptr)
                         outfit.armors.insert(ptr);
                 }
@@ -510,19 +562,19 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         registry
         ));
     registry->SetFunctionFlags("SkyrimOutfitSystemNativeFuncs", "GetOutfitNameMaxLength", VMClassRegistry::kFunctionFlag_NoWait);
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<RE::TESObjectARMO*>, RE::Actor*>(
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<TESObjectARMO*>, Actor*>(
         "GetCarriedArmor",
         "SkyrimOutfitSystemNativeFuncs",
         GetCarriedArmor,
         registry
         ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<RE::TESObjectARMO*>, RE::Actor*>(
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<TESObjectARMO*>, Actor*>(
         "GetWornItems",
         "SkyrimOutfitSystemNativeFuncs",
         GetWornItems,
         registry
         ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, RE::Actor*>(
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, Actor*>(
         "RefreshArmorFor",
         "SkyrimOutfitSystemNativeFuncs",
         RefreshArmorFor,
@@ -536,7 +588,7 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
             ArmorFormSearchUtils::Prep,
             registry
             ));
-        registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, VMResultArray<RE::TESObjectARMO*>>(
+        registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, VMResultArray<TESObjectARMO*>>(
             "GetArmorSearchResultForms",
             "SkyrimOutfitSystemNativeFuncs",
             ArmorFormSearchUtils::GetForms,
@@ -562,7 +614,7 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
             BodySlotListing::Prep,
             registry
             ));
-        registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, VMResultArray<RE::TESObjectARMO*>>(
+        registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, VMResultArray<TESObjectARMO*>>(
             "GetOutfitBodySlotListingArmorForms",
             "SkyrimOutfitSystemNativeFuncs",
             BodySlotListing::GetArmorForms,
@@ -595,10 +647,10 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
             registry
             ));
         registry->SetFunctionFlags("SkyrimOutfitSystemNativeFuncs", "NaturalSort_ASCII", VMClassRegistry::kFunctionFlag_NoWait);
-        registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<BSFixedString>, VMArray<BSFixedString>, VMArray<RE::TESObjectARMO*>, bool>(
+        registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<BSFixedString>, VMArray<BSFixedString>, VMArray<TESObjectARMO*>, bool>(
             "NaturalSortPairArmor_ASCII",
             "SkyrimOutfitSystemNativeFuncs",
-            StringSorts::NaturalSortPair_ASCII<RE::TESObjectARMO*>,
+            StringSorts::NaturalSortPair_ASCII<TESObjectARMO*>,
             registry
             ));
         registry->SetFunctionFlags("SkyrimOutfitSystemNativeFuncs", "NaturalSortPairArmor_ASCII", VMClassRegistry::kFunctionFlag_NoWait);
@@ -620,13 +672,13 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         registry->SetFunctionFlags("SkyrimOutfitSystemNativeFuncs", "ToHex", VMClassRegistry::kFunctionFlag_NoWait);
     }
     //
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, RE::TESObjectARMO*>(
+    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, TESObjectARMO*>(
         "AddArmorToOutfit",
         "SkyrimOutfitSystemNativeFuncs",
         AddArmorToOutfit,
         registry
         ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, RE::TESObjectARMO*, BSFixedString>(
+    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, TESObjectARMO*, BSFixedString>(
         "ArmorConflictsWithOutfit",
         "SkyrimOutfitSystemNativeFuncs",
         ArmorConflictsWithOutfit,
@@ -644,7 +696,7 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         DeleteOutfit,
         registry
         ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<RE::TESObjectARMO*>, BSFixedString>(
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<TESObjectARMO*>, BSFixedString>(
         "GetOutfitContents",
         "SkyrimOutfitSystemNativeFuncs",
         GetOutfitContents,
@@ -668,13 +720,13 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         ListOutfits,
         registry
         ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, RE::TESObjectARMO*>(
+    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, TESObjectARMO*>(
         "RemoveArmorFromOutfit",
         "SkyrimOutfitSystemNativeFuncs",
         RemoveArmorFromOutfit,
         registry
         ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, RE::TESObjectARMO*, BSFixedString>(
+    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, TESObjectARMO*, BSFixedString>(
         "RemoveConflictingArmorsFrom",
         "SkyrimOutfitSystemNativeFuncs",
         RemoveConflictingArmorsFrom,
@@ -692,7 +744,7 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         OutfitExists,
         registry
         ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, VMArray<RE::TESObjectARMO*>>(
+    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, VMArray<TESObjectARMO*>>(
         "OverwriteOutfit",
         "SkyrimOutfitSystemNativeFuncs",
         OverwriteOutfit,

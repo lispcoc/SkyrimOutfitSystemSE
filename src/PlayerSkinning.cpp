@@ -6,8 +6,10 @@
 #include "RE/FormComponents/TESForm/TESObjectREFR/Actor/Character/PlayerCharacter.h"
 #include "RE/FormComponents/TESForm/TESObject/TESBoundObject/TESObjectARMO.h"
 #include "RE/FormComponents/TESForm/TESObjectREFR/TESObjectREFR.h"
+#include "RE/FormComponents/TESForm/TESForm.h"
 
 #include "ArmorAddonOverrideService.h"
+#include "skse64_common/Relocation.h"
 #include "skse64_common/BranchTrampoline.h"
 #include "skse64/GameRTTI.h"
 #include "RE/Inventory/ActorEquipManager.h"
@@ -35,7 +37,7 @@ namespace OutfitSystem
         bool _stdcall ShouldOverride(RE::TESObjectARMO* armor, RE::TESObjectREFR* target) {
             if (!ShouldOverrideSkinning(target))
                 return false;
-            if ((armor->flags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
+            if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
                 auto& svc = ArmorAddonOverrideService::GetInstance();
                 auto& outfit = svc.currentOutfit();
                 if (!outfit.hasShield()) {
@@ -108,16 +110,16 @@ namespace OutfitSystem
             // shield, then we need to grab the equipped shield's worn-flags.
             //
         public:
-            virtual ReturnType Visit(RE::InventoryEntryData* data) override {
-                auto form = data->type;
+            virtual bool Visit(RE::InventoryEntryData* data) override {
+                auto form = data->object;
                 if (form && form->formType == RE::FormType::Armor) {
                     auto armor = reinterpret_cast<RE::TESObjectARMO*>(form);
-                    if ((armor->flags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
+                    if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
                         this->mask |= static_cast<UInt32>(armor->GetSlotMask());
                         this->hasShield = true;
                     }
                 }
-                return ReturnType::kContinue;
+                return true; // Return true to "continue visiting".
             };
 
             UInt32 mask = 0;
@@ -140,7 +142,7 @@ namespace OutfitSystem
             for (auto armor : armors)
             {
                 if (armor) {
-                    if ((armor->flags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
+                    if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
                         if (!shield)
                             continue;
                     }
@@ -219,16 +221,16 @@ namespace OutfitSystem
             // shield, then we need to grab the equipped shield's worn-flags.
             //
         public:
-            virtual ReturnType Visit(RE::InventoryEntryData* data) override {
-                auto form = data->type;
+            virtual bool Visit(RE::InventoryEntryData* data) override {
+                auto form = data->object;
                 if (form && form->formType == RE::FormType::Armor) {
                     auto armor = reinterpret_cast<RE::TESObjectARMO*>(form);
-                    if ((armor->flags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
+                    if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
                         this->result = true;
-                        return ReturnType::kBreak; // halt visitor early
+                        return false; // False halt visitor early
                     }
                 }
-                return ReturnType::kContinue;
+                return true; // True to continue visiting
             };
             bool result = false;
         };
@@ -236,7 +238,7 @@ namespace OutfitSystem
         void Custom(RE::Actor* target, RE::ActorWeightModel * actorWeightModel) {
             if (!actorWeightModel)
                 return;
-            auto base = reinterpret_cast<RE::TESNPC*>(DYNAMIC_CAST(target->baseForm, TESForm, TESNPC));
+            auto base = reinterpret_cast<RE::TESNPC*>(Runtime_DynamicCast(static_cast<RE::TESForm*>(target->data.objectReference), RTTI_TESForm, RTTI_TESNPC));
             if (!base)
                 return;
             auto race = base->race;
@@ -246,7 +248,7 @@ namespace OutfitSystem
             for (auto it = armors.cbegin(); it != armors.cend(); ++it) {
                 RE::TESObjectARMO* armor = *it;
                 if (armor) {
-                    if ((armor->flags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
+                    if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
                         //
                         // We should only apply a shield's armor-addons if the player has 
                         // a shield equipped.
@@ -358,12 +360,12 @@ namespace OutfitSystem
             // visitor to check for conflicts?
             //
         public:
-            virtual ReturnType Visit(RE::InventoryEntryData* data) override {
-                auto form = data->type;
+            virtual bool Visit(RE::InventoryEntryData* data) override {
+                auto form = data->object;
                 if (form && form->formType == RE::FormType::Armor) {
                     auto armor = reinterpret_cast<RE::TESObjectARMO*>(form);
                     if (armor->TestBodyPartByIndex(this->conflictIndex)) {
-                        auto em = RE::EquipManager::GetSingleton();
+                        auto em = RE::ActorEquipManager::GetSingleton();
                         //
                         // TODO: The third argument to this call is meant to be a BaseExtraList*, 
                         // and Bethesda supplies one when calling from Unk_120. Can we get away 
@@ -376,10 +378,10 @@ namespace OutfitSystem
                         // I was unable to stack the helmets with each other or with other helmets, 
                         // suggesting that the BaseExtraList may not be strictly necessary.
                         //
-                        em->UnEquipItem(this->target, form, nullptr, 1, nullptr, false, false, true, false, nullptr);
+                        em->UnequipObject(this->target, form, nullptr, 1, nullptr, false, false, true, false, nullptr);
                     }
                 }
-                return ReturnType::kContinue;
+                return true; // True to continue visiting
             };
 
             RE::Actor* target;
@@ -448,7 +450,7 @@ namespace OutfitSystem
                         pop(rcx);
 
                         L(j_Exit);
-                        xor(al, al);
+                        xor_(al, al);
 
                         L(j_Out);
                         jmp(ptr[rip]);

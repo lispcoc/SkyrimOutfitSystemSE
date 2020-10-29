@@ -1,0 +1,11 @@
+{
+    "name": "skyrimoutfitsystem",
+    "version-string": "1.0.0",
+    "description": "Skyrim Outfit System for Skyrim Special Edition",
+    "supports": "windows & x64",
+    "dependencies": [
+      "span-lite",
+      "spdlog"
+    ]
+  }
+  

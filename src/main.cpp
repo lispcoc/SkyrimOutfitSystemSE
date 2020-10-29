@@ -9,7 +9,6 @@
 #include "OutfitSystem.h"
 #include "PlayerSkinning.h"
 
-
 static PluginHandle g_pluginHandle = kPluginHandle_Invalid;
 static SKSEPapyrusInterface* g_Papyrus = nullptr;
 static SKSEMessagingInterface* g_Messaging = nullptr;
@@ -42,7 +41,7 @@ bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
         return false;
     }
 
-    if (a_skse->runtimeVersion != RUNTIME_VERSION_1_5_73)
+    if (a_skse->runtimeVersion != RUNTIME_VERSION_1_5_97)
     {
         _FATALERROR("[FATAL ERROR] Unsupported runtime version %08X!\n", a_skse->runtimeVersion);
         return false;
@@ -112,7 +111,8 @@ bool SKSEPlugin_Load(const SKSEInterface* a_skse)
     }
     {  // Papyrus registrations
         g_Papyrus = (SKSEPapyrusInterface*)a_skse->QueryInterface(kInterface_Papyrus);
-        _RegisterAndEchoPapyrus(OutfitSystem::RegisterPapyrus, "SkyrimOutfitSystemNativeFuncs");
+        char name[] = "SkyrimOutfitSystemNativeFuncs";
+        _RegisterAndEchoPapyrus(OutfitSystem::RegisterPapyrus, name);
     }
     return true;
 }
