@@ -34,6 +34,8 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "")
 endif()
 
+set(DEFAULT_CXX_EXCEPTION_HANDLING "/EHsc")
+
 ################################################################################
 # Global linker options
 ################################################################################
@@ -61,16 +63,6 @@ function(use_package TARGET PACKAGE VERSION)
                     "Package \"${PACKAGE}\" with version \"${VERSION}\" "
                     "for target \"${TARGET}\" is ignored!")
 endfunction()
-
-################################################################################
-# Common utils
-################################################################################
-include(CMake/Utils.cmake)
-
-################################################################################
-# Additional Global Settings(add specific info there)
-################################################################################
-include(CMake/GlobalSettingsInclude.cmake OPTIONAL)
 
 ################################################################################
 # Use solution folders feature
@@ -107,7 +99,6 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/StorableObject.cpp
 )
 
-use_props(SkyrimOutfitSystemSE "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
 set(ROOT_NAMESPACE SkyrimOutfitSystemSE)
 
 set_target_properties(SkyrimOutfitSystemSE PROPERTIES
