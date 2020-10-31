@@ -73,9 +73,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Sub-projects
 ################################################################################
 add_subdirectory(dependencies/CommonLibSSE)
-add_subdirectory(dependencies/skse64/src/common)
-add_subdirectory(dependencies/skse64/src/skse64/skse64)
-add_subdirectory(dependencies/skse64/src/skse64/skse64_common)
+add_subdirectory(dependencies)
 
 ################################################################################
 # Target
