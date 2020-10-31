@@ -57,7 +57,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE
-        ./skse64/src/common/IPrefix.h
+        ../include/SKSE_PCH.h
         )
 
 ################################################################################
@@ -153,7 +153,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         )
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE
-        ./skse64/src/common/IPrefix.h
+        ../include/SKSE_PCH.h
         )
 
 ################################################################################
@@ -265,7 +265,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         )
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE
-        ./skse64/src/common/IPrefix.h
+        ../include/SKSE_PCH.h
         )
 
 ################################################################################
