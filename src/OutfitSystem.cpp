@@ -44,12 +44,12 @@
                 // shield, then we need to grab the equipped shield's worn-flags.
                 //
             public:
-                virtual bool Visit(RE::InventoryEntryData* data) override {
+                virtual ReturnType Visit(RE::InventoryEntryData* data) override {
                     // Return true to continue, or else false to break.
                     const auto form = data->object;
                     if (form && form->formType == RE::FormType::Armor)
                         this->list.push_back(reinterpret_cast<RE::TESObjectARMO*>(form));
-                    return true;
+                    return ReturnType::kContinue;
                 };
 
                 VMResultArray<RE::TESObjectARMO*>& list;
@@ -83,11 +83,11 @@
                 // shield, then we need to grab the equipped shield's worn-flags.
                 //
             public:
-                virtual bool Visit(RE::InventoryEntryData* data) override {
+                virtual ReturnType Visit(RE::InventoryEntryData* data) override {
                     auto form = data->object;
                     if (form && form->formType == RE::FormType::Armor)
                         this->list.push_back(reinterpret_cast<RE::TESObjectARMO*>(form));
-                    return true;
+                    return ReturnType::kContinue;
                 };
 
                 VMResultArray<RE::TESObjectARMO*>& list;
