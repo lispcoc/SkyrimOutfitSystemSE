@@ -341,3 +341,4 @@ x64_v142
 cmake-*
 
 dependencies/skse64/*
+build
