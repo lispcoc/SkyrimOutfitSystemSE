@@ -88,6 +88,7 @@ add_subdirectory(dependencies)
 ################################################################################
 add_library(SkyrimOutfitSystemSE SHARED
     include/version.h
+    src/version.rc
     include/SOS_PCH.h
     src/main.cpp
     include/cobb/strings.h
