@@ -143,6 +143,7 @@ set_target_properties(CommonLibSSE PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIM
 # Compile definitions
 ################################################################################
 target_compile_definitions(SkyrimOutfitSystemSE PRIVATE
+    "SKYRIM_RUNTIME=${SKYRIM_RUNTIME}"
 )
 
 ################################################################################

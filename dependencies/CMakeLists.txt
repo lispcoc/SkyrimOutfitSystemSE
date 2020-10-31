@@ -1,3 +1,9 @@
+# Check that we have the correct SKSE
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/skse64/skse64_${SKYRIM_RUNTIME}.dll")
+else()
+    message(FATAL_ERROR "Could not find SKSE for Skyrim version ${SKYRIM_RUNTIME}! Make sure you have skse64_${SKYRIM_RUNTIME}.dll")
+endif()
+
 ################################################################################
 ################################################################################
 ## common_vc14
