@@ -110,7 +110,7 @@ namespace OutfitSystem
             // shield, then we need to grab the equipped shield's worn-flags.
             //
         public:
-            virtual bool Visit(RE::InventoryEntryData* data) override {
+            virtual ReturnType Visit(RE::InventoryEntryData* data) override {
                 auto form = data->object;
                 if (form && form->formType == RE::FormType::Armor) {
                     auto armor = reinterpret_cast<RE::TESObjectARMO*>(form);
@@ -119,7 +119,7 @@ namespace OutfitSystem
                         this->hasShield = true;
                     }
                 }
-                return true; // Return true to "continue visiting".
+                return ReturnType::kContinue; // Return true to "continue visiting".
             };
 
             UInt32 mask = 0;
@@ -221,16 +221,16 @@ namespace OutfitSystem
             // shield, then we need to grab the equipped shield's worn-flags.
             //
         public:
-            virtual bool Visit(RE::InventoryEntryData* data) override {
+            virtual ReturnType Visit(RE::InventoryEntryData* data) override {
                 auto form = data->object;
                 if (form && form->formType == RE::FormType::Armor) {
                     auto armor = reinterpret_cast<RE::TESObjectARMO*>(form);
                     if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
                         this->result = true;
-                        return false; // False halt visitor early
+                        return ReturnType::kBreak; // False halt visitor early
                     }
                 }
-                return true; // True to continue visiting
+                return ReturnType::kContinue; // True to continue visiting
             };
             bool result = false;
         };
@@ -360,7 +360,7 @@ namespace OutfitSystem
             // visitor to check for conflicts?
             //
         public:
-            virtual bool Visit(RE::InventoryEntryData* data) override {
+            virtual ReturnType Visit(RE::InventoryEntryData* data) override {
                 auto form = data->object;
                 if (form && form->formType == RE::FormType::Armor) {
                     auto armor = reinterpret_cast<RE::TESObjectARMO*>(form);
@@ -381,7 +381,7 @@ namespace OutfitSystem
                         em->UnequipObject(this->target, form, nullptr, 1, nullptr, false, false, true, false, nullptr);
                     }
                 }
-                return true; // True to continue visiting
+                return ReturnType::kContinue; // True to continue visiting
             };
 
             RE::Actor* target;
