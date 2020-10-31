@@ -339,3 +339,5 @@ executables
 vcpkg_installed
 x64_v142
 cmake-*
+
+dependencies/skse64/*
