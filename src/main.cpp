@@ -9,6 +9,8 @@
 #include "OutfitSystem.h"
 #include "PlayerSkinning.h"
 
+#define DllExport   __declspec( dllexport )
+
 static PluginHandle g_pluginHandle = kPluginHandle_Invalid;
 static SKSEPapyrusInterface* g_Papyrus = nullptr;
 static SKSEMessagingInterface* g_Messaging = nullptr;
@@ -21,7 +23,7 @@ void Callback_Serialization_Save(SKSESerializationInterface* intfc);
 void Callback_Serialization_Load(SKSESerializationInterface* intfc);
 
 extern "C" {
-bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
+DllExport bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
 {
     gLog.OpenRelative(CSIDL_MYDOCUMENTS, "\\My Games\\Skyrim Special Edition\\SKSE\\SkyrimOutfitSystemSE.log");
     gLog.SetPrintLevel(IDebugLog::kLevel_DebugMessage);
@@ -94,7 +96,7 @@ void _RegisterAndEchoPapyrus(SKSEPapyrusInterface::RegisterFunctions callback, c
         _MESSAGE("Papyrus registration %s for %s.", "FAILED", module);
 };
 
-bool SKSEPlugin_Load(const SKSEInterface* a_skse)
+DllExport bool SKSEPlugin_Load(const SKSEInterface* a_skse)
 {
     _MESSAGE("loading");
     {  // Patches:
