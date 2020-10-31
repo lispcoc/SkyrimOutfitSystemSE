@@ -9,6 +9,7 @@
     <Imports>
         <Import>.\mod_files\scripts\source</Import>
         <Import>.\dependencies\skyui_sdk\Scripts\Source</Import>
+        <Import>.\dependencies\ui_extensions\scripts\source</Import>
         <Import>.\dependencies\skse64\Data\Scripts\Source</Import>
         <Import>C:\Program Files (x86)\Steam\steamapps\common\Skyrim Special Edition\Data\Source\Scripts</Import>
     </Imports>
