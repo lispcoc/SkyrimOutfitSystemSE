@@ -1,0 +1,3 @@
+[submodule "dependencies/CommonLibSSE"]
+	path = dependencies/CommonLibSSE
+	url = git@github.com:thekineticeffect/CommonLibSSE.git
