@@ -4,6 +4,14 @@ set(CMAKE_SYSTEM_VERSION 8.1 CACHE STRING "" FORCE)
 
 project(SkyrimOutfitSystemSE CXX)
 
+set(SKYRIM_RUNTIME 1_5_97)
+
+if(${SKYRIM_RUNTIME} STREQUAL "1_5_97")
+    set(SKSE_RUNTIME_VERSION 0x01050610)
+elseif(${SKYRIM_RUNTIME} STREQUAL "1_5_73")
+    set(SKSE_RUNTIME_VERSION 0x01050490)
+endif()
+
 ################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
 ################################################################################
