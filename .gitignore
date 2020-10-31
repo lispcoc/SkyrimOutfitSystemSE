@@ -342,3 +342,5 @@ cmake-*
 
 dependencies/skse64/*
 build
+*.pex
+*.dll
