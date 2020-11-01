@@ -14,6 +14,9 @@ Event OnEffectStart(Actor akCaster, Actor akTarget)
    UIExtensions.OpenMenu("UIListMenu")
    String result = menu.GetResultString()
    Debug.Trace("User selected outfit: " + result)
+   If result == "" ; Cover the case where the user backs out of the menu
+      result = "[DISMISS]"
+   Endif
    If result == "[NO OUTFIT]"
       result = ""
    Endif
