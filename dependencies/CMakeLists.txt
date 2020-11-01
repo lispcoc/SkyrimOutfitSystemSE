@@ -214,7 +214,9 @@ add_custom_command(
         ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.cpp
         ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.h
         ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/versiondb.h
-        COMMAND $<TARGET_FILE:addrheader> ${SKYRIM_RUNTIME} ${CMAKE_SOURCE_DIR}/dependencies/AddressLibrary/ ${CMAKE_CURRENT_BINARY_DIR}/
+
+        COMMAND $<TARGET_FILE:addrheader> ${SKYRIM_RUNTIME} ${CMAKE_SOURCE_DIR}/dependencies/AddressLibrary/ ${CMAKE_CURRENT_BINARY_DIR}/ ${CMAKE_SOURCE_DIR}/dependencies//skse64/src/
+
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/offsets_${SKYRIM_RUNTIME}.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/addrlib_offsets.h
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/lookup.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/lookup.h
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/lookup.cpp ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/lookup.cpp

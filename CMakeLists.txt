@@ -247,5 +247,6 @@ target_include_directories(addrheader PRIVATE
         )
 
 target_compile_options(addrheader PRIVATE
+        /std:c++17;
         ${DEFAULT_CXX_EXCEPTION_HANDLING}
         )
