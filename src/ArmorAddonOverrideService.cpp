@@ -52,6 +52,11 @@ void Outfit::load(SKSESerializationInterface* intfc, UInt32 version) {
             this->armors.insert(armor);
       }
    }
+   if (version >= ArmorAddonOverrideService::kSaveVersionV1) {
+       _assertRead(ReadData(intfc, &isFavorite), "Failed to read an outfit's favorite status.");
+   } else {
+       this->isFavorite = false;
+   }
 }
 void Outfit::save(SKSESerializationInterface* intfc) const {
    using namespace Serialization;
@@ -65,6 +70,7 @@ void Outfit::save(SKSESerializationInterface* intfc) const {
          formID = armor->formID;
       _assertWrite(WriteData(intfc, &formID), "Failed to write an outfit's armors.");
    }
+   _assertWrite(WriteData(intfc, &isFavorite), "Failed to write an outfit's favorite status.");
 }
 
 void ArmorAddonOverrideService::_validateNameOrThrow(const char* outfitName) {
@@ -117,6 +123,13 @@ void ArmorAddonOverrideService::deleteOutfit(const char* name) {
    if (this->currentOutfitName == name)
       this->currentOutfitName = g_noOutfitName;
 }
+
+void ArmorAddonOverrideService::setFavorite(const char* name, bool favorite) {
+   auto outfit = this->outfits.find(name);
+   if (outfit != this->outfits.end())
+      outfit->second.isFavorite = favorite;
+}
+
 void ArmorAddonOverrideService::modifyOutfit(const char* name, std::vector<RE::TESObjectARMO*>& add, std::vector<RE::TESObjectARMO*>& remove, bool createIfMissing) {
    try {
       Outfit& target = this->getOutfit(name);
@@ -170,12 +183,12 @@ bool ArmorAddonOverrideService::shouldOverride() const noexcept {
       return false;
    return true;
 }
-void ArmorAddonOverrideService::getOutfitNames(std::vector<std::string>& out) const {
+void ArmorAddonOverrideService::getOutfitNames(std::vector<std::string>& out, bool favoritesOnly) const {
    out.clear();
    auto& list = this->outfits;
    out.reserve(list.size());
    for (auto it = list.cbegin(); it != list.cend(); ++it)
-      out.push_back(it->second.name);
+      if (!favoritesOnly || it->second.isFavorite) out.push_back(it->second.name);
 }
 void ArmorAddonOverrideService::setEnabled(bool flag) noexcept {
    this->enabled = flag;

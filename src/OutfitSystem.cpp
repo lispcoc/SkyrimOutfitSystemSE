@@ -438,6 +438,18 @@
             }
             return converted_result;
         }
+        bool GetOutfitFavoriteStatus(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name) {
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            bool result = false;
+            try {
+                auto& outfit = service.getOutfit(name.data);
+                result = outfit.isFavorite;
+            }
+            catch (std::out_of_range) {
+                registry->LogWarning("The specified outfit does not exist.", stackId);
+            }
+            return result;
+        }
         BSFixedString GetSelectedOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
             auto& service = ArmorAddonOverrideService::GetInstance();
             return service.currentOutfit().name.c_str();
@@ -446,11 +458,11 @@
             auto& service = ArmorAddonOverrideService::GetInstance();
             return service.enabled;
         }
-        VMResultArray<BSFixedString> ListOutfits(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
+        VMResultArray<BSFixedString> ListOutfits(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, bool favoritesOnly) {
             auto& service = ArmorAddonOverrideService::GetInstance();
             VMResultArray<BSFixedString> result;
             std::vector<std::string> intermediate;
-            service.getOutfitNames(intermediate);
+            service.getOutfitNames(intermediate, favoritesOnly);
             result.reserve(intermediate.size());
             for (auto it = intermediate.begin(); it != intermediate.end(); ++it)
                 result.push_back(it->c_str());
@@ -511,6 +523,10 @@
                 return false;
             }
             return true;
+        }
+        void SetOutfitFavoriteStatus(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name, bool favorite) {
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            service.setFavorite(name.data, favorite);
         }
         bool OutfitExists(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name) {
             auto& service = ArmorAddonOverrideService::GetInstance();
@@ -702,6 +718,18 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         GetOutfitContents,
         registry
         ));
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, bool, BSFixedString>(
+        "GetOutfitFavoriteStatus",
+        "SkyrimOutfitSystemNativeFuncs",
+        GetOutfitFavoriteStatus,
+        registry
+    ));
+    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, bool>(
+        "SetOutfitFavoriteStatus",
+        "SkyrimOutfitSystemNativeFuncs",
+        SetOutfitFavoriteStatus,
+        registry
+    ));
     registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, bool>(
         "IsEnabled",
         "SkyrimOutfitSystemNativeFuncs",
@@ -714,7 +742,7 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         GetSelectedOutfit,
         registry
         ));
-    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, VMResultArray<BSFixedString>>(
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<BSFixedString>, bool>(
         "ListOutfits",
         "SkyrimOutfitSystemNativeFuncs",
         ListOutfits,

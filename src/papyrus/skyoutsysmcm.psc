@@ -232,14 +232,7 @@ EndFunction
       ;
       SkyOutSysQuickslotManager kQM = GetQuickslotManager()
       AddHeaderOption("$SkyOutSys_MCMHeader_Quickslots")
-      Int iCount = kQM.GetQuickslotCount()
       AddToggleOptionST("OPT_QuickslotsEnabled", "$SkyOutSys_Text_EnableQuickslots", kQM.GetEnabled())
-      Int iIterator = 0
-      While iIterator < iCount
-         String sQuickslotted = kQM.GetQuickslot(iIterator)
-         AddMenuOptionST("OPT_QuickslotEntry" + iIterator, "$SkyOutSys_Text_Quickslot{" + (iIterator + 1) + "}", sQuickslotted)
-         iIterator = iIterator + 1
-      EndWhile
    EndFunction
    ;
    State OPT_Enabled
@@ -344,7 +337,6 @@ EndFunction
             AddHeaderOption("$SkyOutSys_MCMHeader_GeneralActions")
             AddInputOptionST("OutfitContext_New", "$SkyOutSys_OContext_New", "")
             AddInputOptionST("OutfitContext_NewFromWorn", "$SkyOutSys_OContext_NewFromWorn", "")
-            AddEmptyOption()
             ;
             Int iContextFlags = OPTION_FLAG_HIDDEN
             If _sOutfitShowingContextMenu
@@ -355,6 +347,11 @@ EndFunction
                AddTextOptionST("OutfitContext_Toggle", "$SkyOutSys_OContext_ToggleOff", "", iContextFlags)
             Else
                AddTextOptionST("OutfitContext_Toggle", "$SkyOutSys_OContext_ToggleOn", "", iContextFlags)
+            EndIf
+            If SkyrimOutfitSystemNativeFuncs.GetOutfitFavoriteStatus(_sOutfitShowingContextMenu)
+               AddTextOptionST("OutfitContext_Favorite", "$SkyOutSys_OContext_ToggleFavoriteOff", "", iContextFlags)
+            Else
+               AddTextOptionST("OutfitContext_Favorite", "$SkyOutSys_OContext_ToggleFavoriteOn", "", iContextFlags)
             EndIf
             AddTextOptionST ("OutfitContext_Edit",   "$SkyOutSys_OContext_Edit",   "", iContextFlags)
             AddInputOptionST("OutfitContext_Rename", "$SkyOutSys_OContext_Rename", "", iContextFlags)
@@ -422,6 +419,17 @@ EndFunction
                SkyrimOutfitSystemNativeFuncs.SetSelectedOutfit("")
             Else
                SkyrimOutfitSystemNativeFuncs.SetSelectedOutfit(_sOutfitShowingContextMenu)
+            EndIf
+            RefreshCache()
+            ForcePageReset()
+         EndEvent
+      EndState
+      State OutfitContext_Favorite
+         Event OnSelectST()
+            If SkyrimOutfitSystemNativeFuncs.GetOutfitFavoriteStatus(_sOutfitShowingContextMenu)
+               SkyrimOutfitSystemNativeFuncs.SetOutfitFavoriteStatus(_sOutfitShowingContextMenu, false)
+            Else
+               SkyrimOutfitSystemNativeFuncs.SetOutfitFavoriteStatus(_sOutfitShowingContextMenu, true)
             EndIf
             RefreshCache()
             ForcePageReset()
