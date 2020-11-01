@@ -78,6 +78,7 @@ int main(int argc, char *argv[]) {
     std::ofstream output(std::string(argv[3]) + "\\offsets_" + argv[1] + ".h");
     auto db = vdb.GetOffsetMap();
     output << "#pragma once\n"
+              "#include <skse64_common/eternal.hpp>"
               "\n"
               "namespace Offsets {\n"
               "\t// Generated code from addrheader\n"
