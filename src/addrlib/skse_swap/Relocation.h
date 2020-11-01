@@ -1,5 +1,7 @@
 #pragma once
 
+#include "lookup.h"
+
 class RelocationManager
 {
 public:
@@ -14,9 +16,8 @@ class RelocPtr
 {
 public:
 	RelocPtr(uintptr_t offset)
-		:m_offset(offset + RelocationManager::s_baseAddr)
+		:m_offset(runtime_offset_lookup(offset) + RelocationManager::s_baseAddr)
 	{
-		//
 	}
 
 	operator T *() const
@@ -59,7 +60,7 @@ class RelocAddr
 {
 public:
 	RelocAddr(uintptr_t offset)
-		:m_offset(reinterpret_cast <BlockConversionType *>(offset + RelocationManager::s_baseAddr))
+		:m_offset(reinterpret_cast <BlockConversionType *>(runtime_offset_lookup(offset) + RelocationManager::s_baseAddr))
 	{
 		//
 	}
