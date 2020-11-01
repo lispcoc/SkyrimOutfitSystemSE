@@ -235,3 +235,17 @@ target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     spdlog::spdlog
 )
 
+################################################################################
+# Address Library header generator
+################################################################################
+add_executable(addrheader
+        src/addrlib/main.cpp
+        )
+
+target_include_directories(addrheader PRIVATE
+        dependencies/AddressLibrary/
+        )
+
+target_compile_options(addrheader PRIVATE
+        ${DEFAULT_CXX_EXCEPTION_HANDLING}
+        )
