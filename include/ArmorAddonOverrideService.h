@@ -12,13 +12,14 @@ namespace RE {
 
 struct Outfit {
    Outfit() {}; // we shouldn't need this, really, but std::unordered_map is a brat
-   Outfit(const char* n) : name(n) {};
+   Outfit(const char* n) : name(n), isFavorite(false) {};
    Outfit(const Outfit& other) = default;
-   Outfit(const char* n, const Outfit& other) : name(n) {
+   Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false) {
       this->armors = other.armors;
    }
    std::string name; // can't be const; prevents assigning to Outfit vars
    std::set<RE::TESObjectARMO*> armors;
+   bool isFavorite;
 
    bool conflictsWith(RE::TESObjectARMO*) const;
    bool hasShield() const;
@@ -33,7 +34,7 @@ class ArmorAddonOverrideService {
    public:
       typedef Outfit Outfit;
       static constexpr UInt32 signature = 'AAOS';
-      enum { kSaveVersion = 1 };
+      enum { kSaveVersionV1 = 1, kSaveVersionV2 = 2 };
       //
       static constexpr UInt32 ce_outfitNameMaxLength = 256; // SKSE caps serialized std::strings and const char*s to 256 bytes.
       //
@@ -79,12 +80,13 @@ class ArmorAddonOverrideService {
       Outfit& currentOutfit();
       bool hasOutfit(const char* name) const;
       void deleteOutfit(const char* name);
+      void setFavorite(const char* name, bool favorite);
       void modifyOutfit(const char* name, std::vector<RE::TESObjectARMO*>& add, std::vector<RE::TESObjectARMO*>& remove, bool createIfMissing = false); // can throw bad_name if (createIfMissing)
       void renameOutfit(const char* oldName, const char* newName); // throws name_conflict if the new name is already taken; can throw bad_name; throws std::out_of_range if the oldName doesn't exist
       void setOutfit(const char* name);
       //
       bool shouldOverride() const noexcept;
-      void getOutfitNames(std::vector<std::string>& out) const;
+      void getOutfitNames(std::vector<std::string>& out, bool favoritesOnly = false) const;
       void setEnabled(bool) noexcept;
       //
       void refreshCurrentIfChanged(const char* testName);
