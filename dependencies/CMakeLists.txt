@@ -207,14 +207,35 @@ endif()
 ################################################################################
 # Dependencies
 ################################################################################
+# Perform the relocation patch processing
+add_custom_command(
+        OUTPUT
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/addrlib_offsets.h
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.cpp
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.h
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/versiondb.h
+        COMMAND $<TARGET_FILE:addrheader> ${SKYRIM_RUNTIME} ${CMAKE_SOURCE_DIR}/dependencies/AddressLibrary/ ${CMAKE_CURRENT_BINARY_DIR}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/offsets_${SKYRIM_RUNTIME}.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/addrlib_offsets.h
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Relocation.cpp ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.cpp
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Relocation.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.h
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dependencies/AddressLibrary/versiondb.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/versiondb.h
+        DEPENDS addrheader ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Relocation.cpp ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Relocation.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/versiondb.h
+)
+
+add_custom_target(skse64_common_patch DEPENDS
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/addrlib_offsets.h
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.cpp
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.h
+)
+
 add_dependencies(${PROJECT_NAME}
-        common_vc14
-        )
+        common_vc14 skse64_common_patch
+)
 
 # Link with other targets.
 target_link_libraries(${PROJECT_NAME} PUBLIC
         common_vc14
-        )
+)
 
 ################################################################################
 ################################################################################
