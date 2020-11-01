@@ -1,5 +1,21 @@
 {
     // created by vscode papyrus-lang papyrus.skyrimSpecialEdition.generateProject
     "version": "2.0.0",
-    "tasks": []
+    "tasks": [
+        {
+            "label": "Copy files to mod folder",
+            "type": "shell",
+            "command": "cp -Force -r c:\\Users\\m\\source\\repos\\SkyrimOutfitSystemSE\\mod_files\\* 'C:\\Users\\m\\AppData\\Local\\ModOrganizer\\SkyrimSE1\\mods\\Skyrim Outfit System Rebuild\\'",
+            "problemMatcher": []
+        },
+        {
+            "type": "pyro",
+            "projectFile": "skyrimse.ppj",
+            "gamePath": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\",
+            "problemMatcher": [
+                "$PapyrusCompiler"
+            ],
+            "label": "pyro: Compile Project (skyrimse.ppj)"
+        }
+    ]
 }
