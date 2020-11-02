@@ -29,8 +29,7 @@ namespace OutfitSystem
         return svc.currentOutfit().armors;
     }
 
-    // E8 ? ? ? ? FF C3 41 3B 5E 10 72 95 
-    RelocAddr<void *> TESObjectARMO_ApplyArmorAddon(0x00228AD0, false);  // 1_5_73
+    REL::ID TESObjectARMO_ApplyArmorAddon(17392); // 0x00228AD0 in 1.5.73
 
     namespace DontVanillaSkinPlayer
     {
@@ -47,12 +46,14 @@ namespace OutfitSystem
             return true;
         }
 
-        // 48 8B CD E8 ? ? ? ? 40 B7 01 40 0F B6 C7 
-        RelocAddr<uintptr_t> DontVanillaSkinPlayer_Hook(0x00364652, false);  // 1_5_73
+        REL::ID DontVanillaSkinPlayer_Hook_ID(24232);
+        std::uintptr_t DontVanillaSkinPlayer_Hook(DontVanillaSkinPlayer_Hook_ID.address() + 0x302); // 0x00364652 in 1.5.73
 
         void Apply()
         {
             _MESSAGE("Patching vanilla player skinning");
+            _MESSAGE("TESObjectARMO_ApplyArmorAddon = %p", TESObjectARMO_ApplyArmorAddon.address() - RelocationManager::s_baseAddr);
+            _MESSAGE("DontVanillaSkinPlayer_Hook = %p", DontVanillaSkinPlayer_Hook - RelocationManager::s_baseAddr);
             {
                 struct DontVanillaSkinPlayer_Code : Xbyak::CodeGenerator
                 {
@@ -80,10 +81,10 @@ namespace OutfitSystem
                         call(ptr[rip+f_ApplyArmorAddon]);
                         L(j_Out);
                         jmp(ptr[rip]);
-                        dq(DontVanillaSkinPlayer_Hook.GetUIntPtr() + 0x5);
+                        dq(DontVanillaSkinPlayer_Hook + 0x5);
 
                         L(f_ApplyArmorAddon);
-                        dq(TESObjectARMO_ApplyArmorAddon.GetUIntPtr());
+                        dq(TESObjectARMO_ApplyArmorAddon.address());
 
                         L(f_ShouldOverride);
                         dq(uintptr_t(ShouldOverride));
@@ -94,8 +95,8 @@ namespace OutfitSystem
                 DontVanillaSkinPlayer_Code code(codeBuf);
                 g_localTrampoline.EndAlloc(code.getCurr());
 
-				_MESSAGE("AVI: Patching vanilla player skinning at addr = %llX. base = %llX", DontVanillaSkinPlayer_Hook.GetUIntPtr(), RelocationManager::s_baseAddr);
-                g_branchTrampoline.Write5Branch(DontVanillaSkinPlayer_Hook.GetUIntPtr(),
+				_MESSAGE("AVI: Patching vanilla player skinning at addr = %llX. base = %llX", DontVanillaSkinPlayer_Hook, RelocationManager::s_baseAddr);
+                g_branchTrampoline.Write5Branch(DontVanillaSkinPlayer_Hook,
                     uintptr_t(code.getCode()));
             }
             _MESSAGE("Done");
@@ -153,14 +154,16 @@ namespace OutfitSystem
             return mask;
         }
 
-        // (+0x7C) E8 ? ? ? ? 45 33 C0 0F 28 CE 
-        RelocAddr<uintptr_t> ShimWornFlags_Hook(0x00362F0C, false);  // 1_5_73
-        // E8 ? ? ? ? 8B 8D ? ? ? ? 33 F6 
-        RelocAddr<void *> InventoryChanges_GetWornMask(0x001D9040, false);  // 1_5_73
+        REL::ID ShimWornFlags_Hook_ID(24220);
+        std::uintptr_t ShimWornFlags_Hook(ShimWornFlags_Hook_ID.address() + 0x7C); // 0x00362F0C in 1.5.73
+
+        REL::ID InventoryChanges_GetWornMask(15806); // 0x001D9040 in 1.5.73
 
         void Apply()
         {
             _MESSAGE("Patching shim worn flags");
+            _MESSAGE("ShimWornFlags_Hook = %p", ShimWornFlags_Hook - RelocationManager::s_baseAddr);
+            _MESSAGE("InventoryChanges_GetWornMask = %p", InventoryChanges_GetWornMask.address() - RelocationManager::s_baseAddr);
             {
                 struct ShimWornFlags_Code : Xbyak::CodeGenerator
                 {
@@ -189,13 +192,13 @@ namespace OutfitSystem
 
                         L(j_Out);
                         jmp(ptr[rip]);
-                        dq(ShimWornFlags_Hook.GetUIntPtr() + 0x5);
+                        dq(ShimWornFlags_Hook + 0x5);
 
                         L(f_ShouldOverrideSkinning);
                         dq(uintptr_t(ShouldOverrideSkinning));
 
                         L(f_GetWornMask);
-                        dq(InventoryChanges_GetWornMask.GetUIntPtr());
+                        dq(InventoryChanges_GetWornMask.address());
 
                         L(f_OverrideWornFlags);
                         dq(uintptr_t(OverrideWornFlags));
@@ -206,7 +209,7 @@ namespace OutfitSystem
                 ShimWornFlags_Code code(codeBuf);
                 g_localTrampoline.EndAlloc(code.getCurr());
 
-                g_branchTrampoline.Write5Branch(ShimWornFlags_Hook.GetUIntPtr(),
+                g_branchTrampoline.Write5Branch(ShimWornFlags_Hook,
                     uintptr_t(code.getCode()));
             }
             _MESSAGE("Done");
@@ -269,14 +272,16 @@ namespace OutfitSystem
             }
         }
 
-        // (+0x81) E8 ? ? ? ? 48 8B 0D ? ? ? ? 48 3B F9 75 1B 
-        RelocAddr<uintptr_t> CustomSkinPlayer_Hook(0x00364301, false);
-        // E8 ? ? ? ? 0F B6 6C 24 ? 40 84 ED 
-        RelocAddr<void *> InventoryChanges_ExecuteVisitorOnWorn(0x001E51D0, false);
+        REL::ID CustomSkinPlayer_Hook_ID(24231);
+        std::uintptr_t CustomSkinPlayer_Hook(CustomSkinPlayer_Hook_ID.address() + 0x81); // 0x00364301 in 1.5.73
+
+        REL::ID InventoryChanges_ExecuteVisitorOnWorn(15856); // 0x001E51D0 in 1.5.73
 
         void Apply()
         {
             _MESSAGE("Patching custom skin player");
+            _MESSAGE("CustomSkinPlayer_Hook = %p", CustomSkinPlayer_Hook - RelocationManager::s_baseAddr);
+            _MESSAGE("InventoryChanges_ExecuteVisitorOnWorn = %p", InventoryChanges_ExecuteVisitorOnWorn.address() - RelocationManager::s_baseAddr);
             {
                 struct CustomSkinPlayer_Code : Xbyak::CodeGenerator
                 {
@@ -312,13 +317,13 @@ namespace OutfitSystem
 
                         L(j_Out);
                         jmp(ptr[rip]);
-                        dq(CustomSkinPlayer_Hook.GetUIntPtr() + 0x5);
+                        dq(CustomSkinPlayer_Hook + 0x5);
 
                         L(f_Custom);
                         dq(uintptr_t(Custom));
 
                         L(f_ExecuteVisitorOnWorn);
-                        dq(InventoryChanges_ExecuteVisitorOnWorn.GetUIntPtr());
+                        dq(InventoryChanges_ExecuteVisitorOnWorn.address());
 
                         L(f_ShouldOverrideSkinning);
                         dq(uintptr_t(ShouldOverrideSkinning));
@@ -329,17 +334,17 @@ namespace OutfitSystem
                 CustomSkinPlayer_Code code(codeBuf);
                 g_localTrampoline.EndAlloc(code.getCurr());
 
-                g_branchTrampoline.Write5Branch(CustomSkinPlayer_Hook.GetUIntPtr(),
+                g_branchTrampoline.Write5Branch(CustomSkinPlayer_Hook,
                     uintptr_t(code.getCode()));
             }
             _MESSAGE("Done");
         }
     }
 
-    // (+0x97) E8 ? ? ? ? 84 C0 74 2D 4C 8B 06 
-    RelocAddr<uintptr_t> FixEquipConflictCheck_Hook(0x0060CAC7, false);
-    // its the above function
-    RelocAddr<void *> BGSBipedObjectForm_TestBodyPartByIndex(0x001820A0, false);
+    REL::ID FixEquipConflictCheck_Hook_ID(36979);
+    std::uintptr_t FixEquipConflictCheck_Hook(FixEquipConflictCheck_Hook_ID.address() + 0x97); // 0x0060CAC7 in 1.5.73
+
+    REL::ID BGSBipedObjectForm_TestBodyPartByIndex(14026); // 0x001820A0 in 1.5.73
 
     namespace FixEquipConflictCheck
     {
@@ -412,6 +417,8 @@ namespace OutfitSystem
         void Apply()
         {
             _MESSAGE("Patching fix for equip conflict check");
+            _MESSAGE("FixEquipConflictCheck_Hook = %p", FixEquipConflictCheck_Hook - RelocationManager::s_baseAddr);
+            _MESSAGE("BGSBipedObjectForm_TestBodyPartByIndex = %p", BGSBipedObjectForm_TestBodyPartByIndex.address() - RelocationManager::s_baseAddr);
             {
                 struct FixEquipConflictCheck_Code : Xbyak::CodeGenerator
                 {
@@ -454,10 +461,10 @@ namespace OutfitSystem
 
                         L(j_Out);
                         jmp(ptr[rip]);
-                        dq(FixEquipConflictCheck_Hook.GetUIntPtr() + 0x5);
+                        dq(FixEquipConflictCheck_Hook + 0x5);
 
                         L(f_TestBodyPartByIndex);
-                        dq(BGSBipedObjectForm_TestBodyPartByIndex.GetUIntPtr());
+                        dq(BGSBipedObjectForm_TestBodyPartByIndex.address());
 
                         L(f_ShouldOverride);
                         dq(uintptr_t(ShouldOverride));
@@ -471,7 +478,7 @@ namespace OutfitSystem
                 FixEquipConflictCheck_Code code(codeBuf);
                 g_localTrampoline.EndAlloc(code.getCurr());
 
-                g_branchTrampoline.Write5Branch(FixEquipConflictCheck_Hook.GetUIntPtr(),
+                g_branchTrampoline.Write5Branch(FixEquipConflictCheck_Hook,
                                                 uintptr_t(code.getCode()));
             }
             _MESSAGE("Done");
