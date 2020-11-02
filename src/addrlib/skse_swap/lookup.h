@@ -31,13 +31,14 @@ inline uintptr_t runtime_offset_lookup(uintptr_t offset) {
     bool found = s_versionDbBuilt->FindIdByOffset(offset, id);
     if (!found) {
         char error[100];
-        sprintf_s(error, "Could not find offset %lli", offset);
-        _MESSAGE("Could not find offset %lli", offset);
+        sprintf_s(error, "Could not find offset %p", (void*) offset);
+        _ERROR("Could not find offset %p", (void*) offset);
+        _ERROR("I AM CRASHING THE GAME");
         int* p = 0;
         *p;
         // throw std::runtime_error(error);
     } else {
-        _MESSAGE("Mapped offset %lli", offset);
+        // _MESSAGE("Mapped offset %p", offset);
     }
     uintptr_t result;
     s_versionDbCurrent->FindOffsetById(id, result);
