@@ -30,7 +30,7 @@ namespace OutfitSystem
     }
 
     // E8 ? ? ? ? FF C3 41 3B 5E 10 72 95 
-    RelocAddr<void *> TESObjectARMO_ApplyArmorAddon(0x00228AD0);  // 1_5_73
+    RelocAddr<void *> TESObjectARMO_ApplyArmorAddon(0x00228AD0, false);  // 1_5_73
 
     namespace DontVanillaSkinPlayer
     {
@@ -48,7 +48,7 @@ namespace OutfitSystem
         }
 
         // 48 8B CD E8 ? ? ? ? 40 B7 01 40 0F B6 C7 
-        RelocAddr<uintptr_t> DontVanillaSkinPlayer_Hook(0x00364652);  // 1_5_73
+        RelocAddr<uintptr_t> DontVanillaSkinPlayer_Hook(0x00364652, false);  // 1_5_73
 
         void Apply()
         {
@@ -154,9 +154,9 @@ namespace OutfitSystem
         }
 
         // (+0x7C) E8 ? ? ? ? 45 33 C0 0F 28 CE 
-        RelocAddr<uintptr_t> ShimWornFlags_Hook(0x00362F0C);  // 1_5_73
+        RelocAddr<uintptr_t> ShimWornFlags_Hook(0x00362F0C, false);  // 1_5_73
         // E8 ? ? ? ? 8B 8D ? ? ? ? 33 F6 
-        RelocAddr<void *> InventoryChanges_GetWornMask(0x001D9040);  // 1_5_73
+        RelocAddr<void *> InventoryChanges_GetWornMask(0x001D9040, false);  // 1_5_73
 
         void Apply()
         {
@@ -270,9 +270,9 @@ namespace OutfitSystem
         }
 
         // (+0x81) E8 ? ? ? ? 48 8B 0D ? ? ? ? 48 3B F9 75 1B 
-        RelocAddr<uintptr_t> CustomSkinPlayer_Hook(0x00364301);
+        RelocAddr<uintptr_t> CustomSkinPlayer_Hook(0x00364301, false);
         // E8 ? ? ? ? 0F B6 6C 24 ? 40 84 ED 
-        RelocAddr<void *> InventoryChanges_ExecuteVisitorOnWorn(0x001E51D0);
+        RelocAddr<void *> InventoryChanges_ExecuteVisitorOnWorn(0x001E51D0, false);
 
         void Apply()
         {
@@ -337,9 +337,9 @@ namespace OutfitSystem
     }
 
     // (+0x97) E8 ? ? ? ? 84 C0 74 2D 4C 8B 06 
-    RelocAddr<uintptr_t> FixEquipConflictCheck_Hook(0x0060CAC7);
+    RelocAddr<uintptr_t> FixEquipConflictCheck_Hook(0x0060CAC7, false);
     // its the above function
-    RelocAddr<void *> BGSBipedObjectForm_TestBodyPartByIndex(0x001820A0);
+    RelocAddr<void *> BGSBipedObjectForm_TestBodyPartByIndex(0x001820A0, false);
 
     namespace FixEquipConflictCheck
     {

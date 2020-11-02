@@ -22,6 +22,16 @@ void Callback_Messaging_SKSE(SKSEMessagingInterface::Message* message);
 void Callback_Serialization_Save(SKSESerializationInterface* intfc);
 void Callback_Serialization_Load(SKSESerializationInterface* intfc);
 
+void WaitForDebugger(void)
+{
+    while(!IsDebuggerPresent())
+    {
+        Sleep(10);
+    }
+
+    Sleep(1000 * 2);
+}
+
 extern "C" {
 DllExport bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
 {
@@ -43,7 +53,7 @@ DllExport bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
         return false;
     }
 
-    if (a_skse->runtimeVersion != CURRENT_RELEASE_RUNTIME)
+    if (a_skse->runtimeVersion > MAKE_EXE_VERSION(1, 5, 97) || a_skse->runtimeVersion < MAKE_EXE_VERSION(1, 5, 73))
     {
         _FATALERROR("[FATAL ERROR] Unsupported runtime version %08X!\n", a_skse->runtimeVersion);
         return false;
