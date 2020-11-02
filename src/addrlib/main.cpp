@@ -116,28 +116,31 @@ int main(int argc, char *argv[]) {
     std::ofstream output(std::string(argv[3]) + "\\offsets_" + argv[1] + ".h");
     std::ofstream output_txt(std::string(argv[3]) + "\\offsets_" + argv[1] + ".txt");
     auto db = vdb.GetOffsetMap();
-    output << "#pragma once\n"
-              "#include <skse64_common/eternal.hpp>"
-              "\n"
-              "namespace Offsets {\n"
-              "\t// Generated code from addrheader\n"
-              "\tconstexpr const auto addrMap = mapbox::eternal::map<uintptr_t, uintptr_t>({" << "\n";
+//    output << "#pragma once\n"
+//              "#include <skse64_common/eternal.hpp>"
+//              "\n"
+//              "namespace Offsets {\n"
+//              "\t// Generated code from addrheader\n"
+//              "\tconstexpr const auto addrMap = mapbox::eternal::map<uintptr_t, uintptr_t>({" << "\n";
     char buffer[1000];
     auto last_iter = --db.cend();
     std::map<unsigned long long, unsigned long long> reverse_map;
     for (auto record = db.cbegin(); record != db.cend(); ++record) {
-        sprintf(buffer, "\t\t{ %lli, %lli }", record->second, record->first);
-        if (record != last_iter) {
-            output << buffer << "," << "\n";
-        } else {
-            output << buffer << "\n";
-        }
+//        sprintf(buffer, "\t\t{ %lli, %lli }", record->second, record->first);
+//        if (record != last_iter) {
+//            output << buffer << "," << "\n";
+//        } else {
+//            output << buffer << "\n";
+//        }
         sprintf(buffer, "%lli %lli\n", record->second, record->first);
         output_txt << buffer;
         reverse_map[record->second] = record->first;
     }
-    output << "\t});\n"
-              "}\n" << std::endl;
+//    output << "\t});\n"
+//              "}\n" << std::endl;
+    output << "#define BUILT_AGAINST_SKYRIM_MAJOR " << major << "\n";
+    output << "#define BUILT_AGAINST_SKYRIM_MINOR " << minor << "\n";
+    output << "#define BUILT_AGAINST_SKYRIM_REVISION " << revision << "\n";
     output.close();
     output_txt << std::endl;
     output_txt.close();

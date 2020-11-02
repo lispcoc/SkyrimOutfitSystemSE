@@ -15,8 +15,8 @@ template <typename T>
 class RelocPtr
 {
 public:
-	RelocPtr(uintptr_t offset)
-		:m_offset(runtime_offset_lookup(offset) + RelocationManager::s_baseAddr)
+	RelocPtr(uintptr_t offset, bool useAddrLib = true)
+		:m_offset((useAddrLib ? runtime_offset_lookup(offset) : offset) + RelocationManager::s_baseAddr)
 	{
 	}
 
@@ -59,8 +59,8 @@ template <typename T>
 class RelocAddr
 {
 public:
-	RelocAddr(uintptr_t offset)
-		:m_offset(reinterpret_cast <BlockConversionType *>(runtime_offset_lookup(offset) + RelocationManager::s_baseAddr))
+	RelocAddr(uintptr_t offset, bool useAddrLib = true)
+		:m_offset(reinterpret_cast <BlockConversionType *>((useAddrLib ? runtime_offset_lookup(offset) : offset) + RelocationManager::s_baseAddr))
 	{
 		//
 	}

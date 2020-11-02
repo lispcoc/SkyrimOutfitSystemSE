@@ -5,10 +5,11 @@
 #ifndef SKYRIMOUTFITSYSTEMSE_LOOKUP_H
 #define SKYRIMOUTFITSYSTEMSE_LOOKUP_H
 
-// #include "addrlib_offsets.h"
+#include "addrlib_offsets.h"
 #include "versiondb.h"
 
-extern VersionDb* s_versionDb;
+extern VersionDb* s_versionDbBuilt;
+extern VersionDb* s_versionDbCurrent;
 
 // template<uintptr_t offset> inline uintptr_t offset_lookup() {
 //     if (!s_versionDb) {
@@ -20,19 +21,26 @@ extern VersionDb* s_versionDb;
 // }
 
 inline uintptr_t runtime_offset_lookup(uintptr_t offset) {
-    if (!s_versionDb) {
-        s_versionDb = new VersionDb();
-        s_versionDb->Load();
+    if (!s_versionDbBuilt || !s_versionDbCurrent) {
+        s_versionDbBuilt = new VersionDb();
+        s_versionDbBuilt->Load(BUILT_AGAINST_SKYRIM_MAJOR, BUILT_AGAINST_SKYRIM_MINOR, BUILT_AGAINST_SKYRIM_REVISION, 0);
+        s_versionDbCurrent = new VersionDb();
+        s_versionDbCurrent->Load();
     }
     uintptr_t id;
-    bool found = s_versionDb->FindIdByOffset(offset, id);
+    bool found = s_versionDbBuilt->FindIdByOffset(offset, id);
     if (!found) {
         char error[100];
         sprintf_s(error, "Could not find offset %lli", offset);
-        throw std::runtime_error(error);
+        _MESSAGE("Could not find offset %lli", offset);
+        int* p = 0;
+        *p;
+        // throw std::runtime_error(error);
+    } else {
+        _MESSAGE("Mapped offset %lli", offset);
     }
     uintptr_t result;
-    s_versionDb->FindOffsetById(id, result);
+    s_versionDbCurrent->FindOffsetById(id, result);
     return result;
 }
 
