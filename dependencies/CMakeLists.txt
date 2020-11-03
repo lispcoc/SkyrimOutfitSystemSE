@@ -6,6 +6,41 @@ endif()
 
 ################################################################################
 ################################################################################
+## relocation patch
+################################################################################
+################################################################################
+# Perform the relocation patch processing
+add_custom_command(
+        OUTPUT
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/addrlib_offsets.h
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/lookup.h
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/lookup.cpp
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/versiondb.h
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/eternal.hpp
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.cpp
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.h
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Utilities.h
+
+        COMMAND $<TARGET_FILE:addrheader> ${SKYRIM_RUNTIME} ${CMAKE_SOURCE_DIR}/dependencies/AddressLibrary/ ${CMAKE_CURRENT_BINARY_DIR}/ ${CMAKE_SOURCE_DIR}/dependencies//skse64/src/
+
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/offsets_${SKYRIM_RUNTIME}.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/addrlib_offsets.h
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/lookup.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/lookup.h
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/lookup.cpp ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/lookup.cpp
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dependencies/AddressLibrary/versiondb.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/versiondb.h
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dependencies/mapbox_eternal/include/mapbox/eternal.hpp ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/eternal.hpp
+
+        # TODO: We are not fixing up the NiRTTI files. If you ever need to use those, you'll need to add them here too...
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Relocation.cpp ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.cpp
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Relocation.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.h
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Utilities.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Utilities.h
+
+        DEPENDS addrheader ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Relocation.cpp ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Relocation.h ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Utilities.h
+        ${CMAKE_SOURCE_DIR}/dependencies/AddressLibrary/versiondb.h ${CMAKE_SOURCE_DIR}/dependencies/mapbox_eternal/include/mapbox/eternal.hpp
+        ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/lookup.h ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/lookup.cpp
+)
+
+################################################################################
+################################################################################
 ## common_vc14
 ################################################################################
 ################################################################################
@@ -120,7 +155,16 @@ set(PROJECT_NAME skse64_common)
 ################################################################################
 file(GLOB HEADER_FILES ./skse64/src/skse64/skse64_common/*.h)
 file(GLOB SRC_FILES ./skse64/src/skse64/skse64_common/*.cpp)
-set(ALL_FILES ${HEADER_FILES} ${SRC_FILES})
+set(EXTRA_FILES
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/addrlib_offsets.h
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/lookup.h
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/lookup.cpp
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/versiondb.h
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/eternal.hpp
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.cpp
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.h
+        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Utilities.h)
+set(ALL_FILES ${HEADER_FILES} ${SRC_FILES} ${EXTRA_FILES})
 
 ################################################################################
 # Target
@@ -207,40 +251,8 @@ endif()
 ################################################################################
 # Dependencies
 ################################################################################
-# Perform the relocation patch processing
-add_custom_command(
-        OUTPUT
-        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/addrlib_offsets.h
-        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.cpp
-        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.h
-        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/versiondb.h
-
-        COMMAND $<TARGET_FILE:addrheader> ${SKYRIM_RUNTIME} ${CMAKE_SOURCE_DIR}/dependencies/AddressLibrary/ ${CMAKE_CURRENT_BINARY_DIR}/ ${CMAKE_SOURCE_DIR}/dependencies//skse64/src/
-
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/offsets_${SKYRIM_RUNTIME}.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/addrlib_offsets.h
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/lookup.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/lookup.h
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/lookup.cpp ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/lookup.cpp
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dependencies/AddressLibrary/versiondb.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/versiondb.h
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dependencies/mapbox_eternal/include/mapbox/eternal.hpp ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/eternal.hpp
-
-        # TODO: We are not fixing up the NiRTTI files. If you ever need to use those, you'll need to add them here too...
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Relocation.cpp ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.cpp
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Relocation.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.h
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Utilities.h ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Utilities.h
-
-        DEPENDS addrheader ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Relocation.cpp ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Relocation.h ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/Utilities.h
-                           ${CMAKE_SOURCE_DIR}/dependencies/AddressLibrary/versiondb.h ${CMAKE_SOURCE_DIR}/dependencies/mapbox_eternal/include/mapbox/eternal.hpp
-                           ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/lookup.h ${CMAKE_SOURCE_DIR}/src/addrlib/skse_swap/lookup.cpp
-)
-
-add_custom_target(skse64_common_patch DEPENDS
-        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/addrlib_offsets.h
-        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.cpp
-        ${CMAKE_SOURCE_DIR}/dependencies/skse64/src/skse64/skse64_common/Relocation.h
-)
-
 add_dependencies(${PROJECT_NAME}
-        common_vc14 skse64_common_patch
+        common_vc14
 )
 
 # Link with other targets.
