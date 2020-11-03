@@ -1,6 +1,6 @@
 [submodule "dependencies/CommonLibSSE"]
 	path = dependencies/CommonLibSSE
-	url = git@github.com:thekineticeffect/CommonLibSSE.git
+	url = https://github.com/thekineticeffect/CommonLibSSE.git
 [submodule "dependencies/mapbox_eternal"]
 	path = dependencies/mapbox_eternal
 	url = https://github.com/mapbox/eternal.git
