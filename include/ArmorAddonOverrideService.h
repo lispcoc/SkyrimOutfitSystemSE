@@ -10,6 +10,12 @@ namespace RE {
    class TESObjectARMO;
 }
 
+enum class LocationType: std::uint32_t {
+    World,
+    Town,
+    Dungeon
+};
+
 struct Outfit {
    Outfit() {}; // we shouldn't need this, really, but std::unordered_map is a brat
    Outfit(const char* n) : name(n), isFavorite(false) {};
@@ -66,6 +72,9 @@ class ArmorAddonOverrideService {
       bool enabled = true;
       cobb::istring currentOutfitName = g_noOutfitName;
       std::unordered_map<cobb::istring, Outfit> outfits;
+      // Location-based switching
+      bool locationBasedAutoswitchEnabled = false;
+      std::map<LocationType, cobb::istring> locationOutfits;
       //
       static ArmorAddonOverrideService& GetInstance() {
          static ArmorAddonOverrideService instance;
@@ -84,6 +93,12 @@ class ArmorAddonOverrideService {
       void modifyOutfit(const char* name, std::vector<RE::TESObjectARMO*>& add, std::vector<RE::TESObjectARMO*>& remove, bool createIfMissing = false); // can throw bad_name if (createIfMissing)
       void renameOutfit(const char* oldName, const char* newName); // throws name_conflict if the new name is already taken; can throw bad_name; throws std::out_of_range if the oldName doesn't exist
       void setOutfit(const char* name);
+      //
+      void setLocationBasedAutoswitchEnabled(bool) noexcept;
+      void setOutfitUsingLocation(LocationType location);
+      void setLocationOutfit(LocationType location, const char* name);
+      void unsetLocationOutfit(LocationType location);
+      std::optional<cobb::istring> getLocationOutfit(LocationType location);
       //
       bool shouldOverride() const noexcept;
       void getOutfitNames(std::vector<std::string>& out, bool favoritesOnly = false) const;
