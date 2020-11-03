@@ -73,7 +73,7 @@ class ArmorAddonOverrideService {
       cobb::istring currentOutfitName = g_noOutfitName;
       std::unordered_map<cobb::istring, Outfit> outfits;
       // Location-based switching
-      bool locationBasedAutoswitchEnabled = false;
+      bool locationBasedAutoSwitchEnabled = false;
       std::map<LocationType, cobb::istring> locationOutfits;
       //
       static ArmorAddonOverrideService& GetInstance() {
@@ -94,7 +94,7 @@ class ArmorAddonOverrideService {
       void renameOutfit(const char* oldName, const char* newName); // throws name_conflict if the new name is already taken; can throw bad_name; throws std::out_of_range if the oldName doesn't exist
       void setOutfit(const char* name);
       //
-      void setLocationBasedAutoswitchEnabled(bool) noexcept;
+      void setLocationBasedAutoSwitchEnabled(bool) noexcept;
       void setOutfitUsingLocation(LocationType location);
       void setLocationOutfit(LocationType location, const char* name);
       void unsetLocationOutfit(LocationType location);

@@ -15,6 +15,9 @@
 #include "RE/AI/AIProcess.h"
 #include "RE/Inventory/InventoryChanges.h"
 #include "RE/Inventory/InventoryEntryData.h"
+#include "RE/FormComponents/TESForm/BGSLocation.h"
+#include "RE/FormComponents/TESForm/BGSKeyword/BGSKeyword.h"
+#include "RE/Misc/Misc.h"
 
 #include "ArmorAddonOverrideService.h"
 
@@ -567,6 +570,51 @@
             auto& service = ArmorAddonOverrideService::GetInstance();
             service.setOutfit(name.data);
         }
+        void SetLocationBasedAutoSwitchEnabled(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, bool) {
+
+        }
+        bool GetLocationBasedAutoSwitchEnabled(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
+            return false;
+        }
+        void SetOutfitUsingLocation(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse) {
+            // Location can be NULL.
+            std::set<std::string> keywords;
+            if (location_skse) {
+                auto location = (RE::BGSLocation*) location_skse;
+                std::uint32_t max = location->GetNumKeywords();
+                for (std::uint32_t i = 0; i < max; i++) {
+                    RE::BGSKeyword* keyword = location->GetKeywordAt(i).value();
+                    char message[100];
+                    _MESSAGE("Location has Keyword %s", keyword->GetFormEditorID());
+                    sprintf(message, "Location has Keyword %s", keyword->GetFormEditorID());
+                    RE::DebugNotification(message, nullptr, false);
+                    keywords.insert(keyword->GetFormEditorID());
+                }
+            }
+            // Location Type Logic
+            std::string type;
+            if (keywords.empty()) {
+                type = "worldcell";
+            } else if (keywords.count("LocTypeHabitation")) {
+                type = "town";
+            } else if (keywords.count("LocTypeDungeon")) {
+                type = "dungeon";
+            } else {
+                type = "worldcell";
+            }
+            char message[100];
+            sprintf(message, "This location is a %s.", type.c_str());
+            RE::DebugNotification(message, nullptr, false);
+        }
+        void SetLocationOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, UInt32 location, BSFixedString name) {
+
+        }
+        void UnsetLocationOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, UInt32 location) {
+
+        }
+        BSFixedString GetLocationOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, UInt32 location) {
+            return "";
+        }
     }
 
 
@@ -788,6 +836,42 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         "SetSelectedOutfit",
         "SkyrimOutfitSystemNativeFuncs",
         SetSelectedOutfit,
+        registry
+        ));
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, bool>(
+        "SetLocationBasedAutoSwitchEnabled",
+        "SkyrimOutfitSystemNativeFuncs",
+        SetLocationBasedAutoSwitchEnabled,
+        registry
+        ));
+    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, bool>(
+        "GetLocationBasedAutoSwitchEnabled",
+        "SkyrimOutfitSystemNativeFuncs",
+        GetLocationBasedAutoSwitchEnabled,
+        registry
+    ));
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, BGSLocation*>(
+        "SetOutfitUsingLocation",
+        "SkyrimOutfitSystemNativeFuncs",
+        SetOutfitUsingLocation,
+        registry
+        ));
+    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, UInt32, BSFixedString>(
+        "SetLocationOutfit",
+        "SkyrimOutfitSystemNativeFuncs",
+        SetLocationOutfit,
+        registry
+        ));
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, UInt32>(
+        "UnsetLocationOutfit",
+        "SkyrimOutfitSystemNativeFuncs",
+        UnsetLocationOutfit,
+        registry
+        ));
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, BSFixedString, UInt32>(
+        "GetLocationOutfit",
+        "SkyrimOutfitSystemNativeFuncs",
+        GetLocationOutfit,
         registry
         ));
     return true;
