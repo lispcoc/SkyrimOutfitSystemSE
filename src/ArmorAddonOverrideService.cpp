@@ -122,6 +122,13 @@ void ArmorAddonOverrideService::deleteOutfit(const char* name) {
    this->outfits.erase(name);
    if (this->currentOutfitName == name)
       this->currentOutfitName = g_noOutfitName;
+   // If the outfit is assigned as a location outfit, remove it there as well.
+   for (auto it = locationOutfits.begin(); it != locationOutfits.end(); ++it) {
+       if (it->second == name) {
+           locationOutfits.erase(it);
+           break;
+       }
+   }
 }
 
 void ArmorAddonOverrideService::setFavorite(const char* name, bool favorite) {
@@ -161,6 +168,13 @@ void ArmorAddonOverrideService::renameOutfit(const char* oldName, const char* ne
       this->outfits.erase(oldName);
       if (this->currentOutfitName == oldName)
          this->currentOutfitName = newName;
+       // If the outfit is assigned as a location outfit, remove it there as well.
+       for (auto & locationOutfit : locationOutfits) {
+           if (locationOutfit.second == oldName) {
+               locationOutfits[locationOutfit.first] = newName;
+               break;
+           }
+       }
    }
 }
 void ArmorAddonOverrideService::setOutfit(const char* name) {
@@ -176,6 +190,39 @@ void ArmorAddonOverrideService::setOutfit(const char* name) {
       this->currentOutfitName = g_noOutfitName;
    }
 }
+
+void ArmorAddonOverrideService::setLocationBasedAutoswitchEnabled(bool newValue) noexcept {
+    locationBasedAutoswitchEnabled = newValue;
+}
+
+void ArmorAddonOverrideService::setOutfitUsingLocation(LocationType location) {
+    if (locationBasedAutoswitchEnabled) {
+        auto it = locationOutfits.find(location);
+        if (it != locationOutfits.end()) {
+            this->setOutfit(it->second.c_str());
+        }
+    }
+}
+
+void ArmorAddonOverrideService::setLocationOutfit(LocationType location, const char* name) {
+    if (!std::string(name).empty()) { // Can never set outfit to the "" outfit. Use unsetLocationOutfit instead.
+        locationOutfits[location] = name;
+    }
+}
+
+void ArmorAddonOverrideService::unsetLocationOutfit(LocationType location) {
+    locationOutfits.erase(location);
+}
+
+std::optional<cobb::istring> ArmorAddonOverrideService::getLocationOutfit(LocationType location) {
+    auto it = locationOutfits.find(location);
+    if (it != locationOutfits.end()) {
+        return std::optional<cobb::istring>(it->second);
+    } else {
+        return std::optional<cobb::istring>();
+    }
+}
+
 bool ArmorAddonOverrideService::shouldOverride() const noexcept {
    if (!this->enabled)
       return false;
