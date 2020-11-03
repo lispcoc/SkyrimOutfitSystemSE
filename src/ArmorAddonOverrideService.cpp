@@ -191,12 +191,12 @@ void ArmorAddonOverrideService::setOutfit(const char* name) {
    }
 }
 
-void ArmorAddonOverrideService::setLocationBasedAutoswitchEnabled(bool newValue) noexcept {
-    locationBasedAutoswitchEnabled = newValue;
+void ArmorAddonOverrideService::setLocationBasedAutoSwitchEnabled(bool newValue) noexcept {
+    locationBasedAutoSwitchEnabled = newValue;
 }
 
 void ArmorAddonOverrideService::setOutfitUsingLocation(LocationType location) {
-    if (locationBasedAutoswitchEnabled) {
+    if (locationBasedAutoSwitchEnabled) {
         auto it = locationOutfits.find(location);
         if (it != locationOutfits.end()) {
             this->setOutfit(it->second.c_str());

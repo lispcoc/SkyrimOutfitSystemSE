@@ -1,6 +1,9 @@
 Scriptname SkyOutSysQuickslotEffect extends activemagiceffect
 
 Event OnEffectStart(Actor akCaster, Actor akTarget)
+
+   SkyrimOutfitSystemNativeFuncs.SetOutfitUsingLocation(akCaster.GetCurrentLocation())
+
    String[] sLMenuItems = SkyrimOutfitSystemNativeFuncs.ListOutfits(favoritesOnly = true)
    sLMenuItems = SkyrimOutfitSystemNativeFuncs.NaturalSort_ASCII(sLMenuItems)
    UIListMenu menu = UIExtensions.GetMenu("UIListMenu") as UIListMenu
