@@ -570,11 +570,11 @@
             auto& service = ArmorAddonOverrideService::GetInstance();
             service.setOutfit(name.data);
         }
-        void SetLocationBasedAutoSwitchEnabled(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, bool) {
-
+        void SetLocationBasedAutoSwitchEnabled(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, bool value) {
+            ArmorAddonOverrideService::GetInstance().setLocationBasedAutoSwitchEnabled(value);
         }
         bool GetLocationBasedAutoSwitchEnabled(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
-            return false;
+            return ArmorAddonOverrideService::GetInstance().locationBasedAutoSwitchEnabled;
         }
         void SetOutfitUsingLocation(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse) {
             // Location can be NULL.
@@ -584,36 +584,59 @@
                 std::uint32_t max = location->GetNumKeywords();
                 for (std::uint32_t i = 0; i < max; i++) {
                     RE::BGSKeyword* keyword = location->GetKeywordAt(i).value();
+
+                    /*
                     char message[100];
-                    _MESSAGE("Location has Keyword %s", keyword->GetFormEditorID());
-                    sprintf(message, "Location has Keyword %s", keyword->GetFormEditorID());
+                    _MESSAGE("SOS: Location has Keyword %s", keyword->GetFormEditorID());
+                    sprintf(message, "SOS: Location has keyword %s", keyword->GetFormEditorID());
                     RE::DebugNotification(message, nullptr, false);
+                    */
+
                     keywords.insert(keyword->GetFormEditorID());
                 }
             }
             // Location Type Logic
-            std::string type;
+            std::string type_str;
+            LocationType type;
             if (keywords.empty()) {
-                type = "worldcell";
+                type_str = "worldcell";
+                type = LocationType::World;
             } else if (keywords.count("LocTypeHabitation")) {
-                type = "town";
+                type_str = "town";
+                type = LocationType::Town;
             } else if (keywords.count("LocTypeDungeon")) {
-                type = "dungeon";
+                type_str = "dungeon";
+                type = LocationType::Dungeon;
             } else {
-                type = "worldcell";
+                type_str = "worldcell";
+                type = LocationType::World;
             }
+
             char message[100];
-            sprintf(message, "This location is a %s.", type.c_str());
+            sprintf_s(message, "SOS: This location is a %s.", type_str.c_str());
             RE::DebugNotification(message, nullptr, false);
+
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            service.setOutfitUsingLocation(type);
         }
         void SetLocationOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, UInt32 location, BSFixedString name) {
-
+            if (strcmp(name.data, "")) {
+                // Location outfit assignment is never allowed to be empty string. Use unset instead.
+                return;
+            }
+            return ArmorAddonOverrideService::GetInstance().setLocationOutfit(LocationType(location), name.data);
         }
         void UnsetLocationOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, UInt32 location) {
-
+            return ArmorAddonOverrideService::GetInstance().unsetLocationOutfit(LocationType(location));
         }
         BSFixedString GetLocationOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, UInt32 location) {
-            return "";
+            auto outfit = ArmorAddonOverrideService::GetInstance().getLocationOutfit(LocationType(location));
+            if (outfit.has_value()) {
+                return BSFixedString(outfit.value().c_str());
+            } else {
+                // Empty string means "no outfit assigned" for this location type.
+                return BSFixedString("");
+            }
         }
     }
 
