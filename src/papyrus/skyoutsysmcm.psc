@@ -163,9 +163,10 @@ EndFunction
    EndEvent
    Event OnMenuOpenST()
       String sState = GetState()
-      If StringUtil.Substring(sState, 0, 18) == "OPT_QuickslotEntry"
-         Int iQuickslotIndex = StringUtil.Substring(sState, 18) as Int
-         String[] sMenu = PrependStringToArray(_sOutfitNames, "$SkyOutSys_QuickslotEdit_Cancel")
+      If StringUtil.Substring(sState, 0, 19) == "OPT_AutoswitchEntry"
+         Int iQuickslotIndex = StringUtil.Substring(sState, 19) as Int
+         String[] sMenu = PrependStringToArray(_sOutfitNames, "$SkyOutSys_AutoswitchEdit_None")
+         sMenu = PrependStringToArray(sMenu, "$SkyOutSys_AutoswitchEdit_Cancel")
          SetMenuDialogOptions(sMenu)
          SetMenuDialogStartIndex(0)
          SetMenuDialogDefaultIndex(0)
@@ -174,9 +175,28 @@ EndFunction
    EndEvent
    Event OnMenuAcceptST(Int aiIndex)
       String sState = GetState()
+      If StringUtil.Substring(sState, 0, 19) == "OPT_AutoswitchEntry"
+         aiIndex = aiIndex - 2
+         If aiIndex == -2 ; user canceled
+            Return
+         EndIf
+         Int iAutoswitchIndex = StringUtil.Substring(sState, 19) as Int
+         If aiIndex == -1 ; user wants no outfit
+            SkyrimOutfitSystemNativeFuncs.UnsetLocationOutfit(iAutoswitchIndex)
+         Else ; set the requested outfit
+            String sOutfitName = _sOutfitNames[aiIndex]
+            SkyrimOutfitSystemNativeFuncs.SetLocationOutfit(iAutoswitchIndex, sOutfitName)
+         EndIf
+         SetMenuOptionValueST(SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(iAutoswitchIndex))
+         Return
+      EndIf
    EndEvent
    Event OnHighlightST()
       String sState = GetState()
+      If StringUtil.Substring(sState, 0, 19) == "OPT_AutoswitchEntry"
+         SetInfoText("$SkyOutSys_Desc_Autoswitch")
+         Return
+      EndIf
       If StringUtil.Substring(sState, 0, 16) == "OutfitList_Item_"
          SetInfoText("$SkyOutSys_MCMInfoText_Outfit")
          Return
@@ -188,20 +208,45 @@ EndFunction
    EndEvent
    Event OnDefaultST()
       String sState = GetState()
+      If StringUtil.Substring(sState, 0, 19) == "OPT_AutoswitchEntry"
+         Int iAutoswitchIndex = StringUtil.Substring(sState, 19) as Int
+         Bool bDelete = ShowMessage("$SkyOutSys_Confirm_UnsetAutoswitch_Text", True, "$SkyOutSys_Confirm_UnsetAutoswitch_Yes", "$SkyOutSys_Confirm_UnsetAutoswitch_No")
+         If bDelete
+            SkyrimOutfitSystemNativeFuncs.UnsetLocationOutfit(iAutoswitchIndex)
+            SetMenuOptionValueST("")
+         EndIf
+         Return
+      EndIf
    EndEvent
 ;/EndBlock/;
 
 ;/Block/; ; Options
    Function ShowOptions()
-      SetCursorFillMode(TOP_TO_BOTTOM)
-      AddToggleOptionST("OPT_Enabled", "$Enabled", SkyrimOutfitSystemNativeFuncs.IsEnabled())
-      AddEmptyOption()
-      ;
-      ; Quickslots:
-      ;
-      SkyOutSysQuickslotManager kQM = GetQuickslotManager()
-      AddHeaderOption("$SkyOutSys_MCMHeader_Quickslots")
-      AddToggleOptionST("OPT_QuickslotsEnabled", "$SkyOutSys_Text_EnableQuickslots", kQM.GetEnabled())
+      ;/Block/; ; Left column
+         SetCursorFillMode(TOP_TO_BOTTOM)
+         SetCursorPosition(0)
+         AddToggleOptionST("OPT_Enabled", "$Enabled", SkyrimOutfitSystemNativeFuncs.IsEnabled())
+         AddEmptyOption()
+         ;
+         ; Quickslots:
+         ;
+         SkyOutSysQuickslotManager kQM = GetQuickslotManager()
+         AddHeaderOption("$SkyOutSys_MCMHeader_Quickslots")
+         AddToggleOptionST("OPT_QuickslotsEnabled", "$SkyOutSys_Text_EnableQuickslots", kQM.GetEnabled())
+      ;/EndBlock/;
+      ;/Block/; ; Right column
+         SetCursorPosition(1)
+         AddHeaderOption("$SkyOutSys_MCMHeader_Autoswitch")
+         Int iCount = SkyrimOutfitSystemNativeFuncs.GetAutoSwitchLocationCount()
+         AddToggleOptionST("OPT_AutoswitchEnabled", "$SkyOutSys_Text_EnableAutoswitch", SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
+         Int iIterator = 0
+         While iIterator < iCount
+            String sLocationOutfit = SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(iIterator)
+            AddMenuOptionST("OPT_AutoswitchEntry" + iIterator, "$SkyOutSys_Text_Autoswitch" + iIterator, sLocationOutfit)
+            iIterator = iIterator + 1
+         EndWhile
+      ;/EndBlock/;
+
    EndFunction
    ;
    State OPT_Enabled
@@ -219,6 +264,15 @@ EndFunction
       EndEvent
       Event OnHighlightST()
          SetInfoText("$SkyOutSys_Desc_EnableQuickslots")
+      EndEvent
+   EndState
+   State OPT_AutoswitchEnabled
+      Event OnSelectST()
+         SkyrimOutfitSystemNativeFuncs.SetLocationBasedAutoSwitchEnabled(!SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
+         SetToggleOptionValueST(SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
+      EndEvent
+      Event OnHighlightST()
+         SetInfoText("$SkyOutSys_Desc_EnableAutoswitch")
       EndEvent
    EndState
 ;/EndBlock/;
