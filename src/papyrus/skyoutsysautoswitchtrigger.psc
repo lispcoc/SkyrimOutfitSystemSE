@@ -1,7 +1,18 @@
 Scriptname SkyOutSysAutoSwitchTrigger extends ReferenceAlias
 
+Auto State Listening
 Event OnLocationChange(Location akOldLoc, Location akNewLoc)
-    Debug.Notification("SOS: Running OnLocationChange")
-    Debug.Trace("SOS: Running OnLocationChange")
-    SkyrimOutfitSystemNativeFuncs.SetOutfitUsingLocation(akNewLoc)
+    ; Debug.Trace("SOS: Running OnLocationChange")
+    GoToState("Waiting")
+    Utility.Wait(10.0)
+    SkyrimOutfitSystemNativeFuncs.SetOutfitUsingLocation(Game.GetPlayer().GetCurrentLocation())
+    SkyrimOutfitSystemNativeFuncs.RefreshArmorFor(Game.GetPlayer())
+    GoToState("Listening")
 endEvent
+EndState
+
+State Waiting
+Event OnLocationChange(Location akOldLoc, Location akNewLoc)
+    ; Ignore changes while we're waiting
+endEvent
+EndState

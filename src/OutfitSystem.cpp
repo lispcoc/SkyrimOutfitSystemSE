@@ -623,7 +623,7 @@
             service.setOutfitUsingLocation(type);
         }
         void SetLocationOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, UInt32 location, BSFixedString name) {
-            if (strcmp(name.data, "")) {
+            if (strcmp(name.data, "") == 0) {
                 // Location outfit assignment is never allowed to be empty string. Use unset instead.
                 return;
             }
