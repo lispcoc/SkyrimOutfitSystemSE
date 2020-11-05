@@ -576,6 +576,9 @@
         bool GetLocationBasedAutoSwitchEnabled(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
             return ArmorAddonOverrideService::GetInstance().locationBasedAutoSwitchEnabled;
         }
+        UInt32 GetAutoSwitchLocationCount(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
+            return 3;
+        }
         void SetOutfitUsingLocation(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse) {
             // Location can be NULL.
             std::set<std::string> keywords;
@@ -872,6 +875,12 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         "SkyrimOutfitSystemNativeFuncs",
         GetLocationBasedAutoSwitchEnabled,
         registry
+    ));
+    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, UInt32>(
+            "GetAutoSwitchLocationCount",
+            "SkyrimOutfitSystemNativeFuncs",
+            GetAutoSwitchLocationCount,
+            registry
     ));
     registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, BGSLocation*>(
         "SetOutfitUsingLocation",
