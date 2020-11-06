@@ -604,7 +604,10 @@
             if (keywords.empty()) {
                 type_str = "worldcell";
                 type = LocationType::World;
-            } else if (keywords.count("LocTypeHabitation")) {
+            } else if (
+                keywords.count("LocTypeHabitation") ||
+                keywords.count("LocTypeDwelling") ||
+                keywords.count("TGBusiness")) {
                 type_str = "town";
                 type = LocationType::Town;
             } else if (keywords.count("LocTypeDungeon")) {
