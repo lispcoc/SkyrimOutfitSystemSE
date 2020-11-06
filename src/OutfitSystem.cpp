@@ -587,9 +587,9 @@
         UInt32 GetAutoSwitchLocationCount(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
             return 3;
         }
-        void SetOutfitUsingLocation(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse) {
-            // NOTE: Location can be NULL.
-            auto location = (RE::BGSLocation*) location_skse;
+        LocationType identifyLocation(RE::BGSLocation* location) {
+            // Just a helper function to classify a location.
+            // TODO: Think of a better place than this since we're not exposing it to Papyrus.
             std::optional<LocationType> classifiedLocation;
             while (location) {
                 std::set<std::string> keywords;
@@ -610,18 +610,27 @@
                 }
                 location = location->parentLoc;
             }
-
+            return classifiedLocation.value_or(LocationType::World);
+        }
+        UInt32 IdentifyLocationType(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse) {
+            return static_cast<UInt32>(identifyLocation((RE::BGSLocation*) location_skse));
+        }
+        void SetOutfitUsingLocation(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse) {
+            // NOTE: Location can be NULL.
             auto& service = ArmorAddonOverrideService::GetInstance();
 
-            // Debug notifications for location classification.
             if (service.locationBasedAutoSwitchEnabled) {
-                const char* locationName = locationTypeStrings[static_cast<std::uint32_t>(classifiedLocation.value_or(LocationType::World))];
+                auto location = identifyLocation((RE::BGSLocation*) location_skse);
+                // Debug notifications for location classification.
+                /*
+                const char* locationName = locationTypeStrings[static_cast<std::uint32_t>(location)];
                 char message[100];
                 sprintf_s(message, "SOS: This location is a %s.", locationName);
                 RE::DebugNotification(message, nullptr, false);
+                */
+                service.setOutfitUsingLocation(location);
             }
 
-            service.setOutfitUsingLocation(classifiedLocation.value_or(LocationType::World));
         }
         void SetLocationOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, UInt32 location, BSFixedString name) {
             if (strcmp(name.data, "") == 0) {
@@ -878,10 +887,16 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         registry
     ));
     registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, UInt32>(
-            "GetAutoSwitchLocationCount",
-            "SkyrimOutfitSystemNativeFuncs",
-            GetAutoSwitchLocationCount,
-            registry
+        "GetAutoSwitchLocationCount",
+        "SkyrimOutfitSystemNativeFuncs",
+        GetAutoSwitchLocationCount,
+        registry
+    ));
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, UInt32, BGSLocation*>(
+        "IdentifyLocationType",
+        "SkyrimOutfitSystemNativeFuncs",
+        IdentifyLocationType,
+        registry
     ));
     registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, BGSLocation*>(
         "SetOutfitUsingLocation",

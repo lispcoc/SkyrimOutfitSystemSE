@@ -183,11 +183,12 @@ EndFunction
          Int iAutoswitchIndex = StringUtil.Substring(sState, 19) as Int
          If aiIndex == -1 ; user wants no outfit
             SkyrimOutfitSystemNativeFuncs.UnsetLocationOutfit(iAutoswitchIndex)
+            SetMenuOptionValueST("$SkyOutSys_AutoswitchEdit_None")
          Else ; set the requested outfit
             String sOutfitName = _sOutfitNames[aiIndex]
             SkyrimOutfitSystemNativeFuncs.SetLocationOutfit(iAutoswitchIndex, sOutfitName)
+            SetMenuOptionValueST(SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(iAutoswitchIndex))
          EndIf
-         SetMenuOptionValueST(SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(iAutoswitchIndex))
          Return
       EndIf
    EndEvent
@@ -239,12 +240,17 @@ EndFunction
          AddHeaderOption("$SkyOutSys_MCMHeader_Autoswitch")
          Int iCount = SkyrimOutfitSystemNativeFuncs.GetAutoSwitchLocationCount()
          AddToggleOptionST("OPT_AutoswitchEnabled", "$SkyOutSys_Text_EnableAutoswitch", SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
-         Int iIterator = 0
-         While iIterator < iCount
-            String sLocationOutfit = SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(iIterator)
-            AddMenuOptionST("OPT_AutoswitchEntry" + iIterator, "$SkyOutSys_Text_Autoswitch" + iIterator, sLocationOutfit)
-            iIterator = iIterator + 1
-         EndWhile
+         If SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled()
+            Int iIterator = 0
+            While iIterator < iCount
+               String sLocationOutfit = SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(iIterator)
+               If sLocationOutfit == ""
+                  sLocationOutfit = "$SkyOutSys_AutoswitchEdit_None"
+               EndIf
+               AddMenuOptionST("OPT_AutoswitchEntry" + iIterator, "$SkyOutSys_Text_Autoswitch" + iIterator, sLocationOutfit)
+               iIterator = iIterator + 1
+            EndWhile
+         EndIf
       ;/EndBlock/;
 
    EndFunction
@@ -270,6 +276,7 @@ EndFunction
       Event OnSelectST()
          SkyrimOutfitSystemNativeFuncs.SetLocationBasedAutoSwitchEnabled(!SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
          SetToggleOptionValueST(SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
+         ForcePageReset()
       EndEvent
       Event OnHighlightST()
          SetInfoText("$SkyOutSys_Desc_EnableAutoswitch")

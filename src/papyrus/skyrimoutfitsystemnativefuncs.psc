@@ -80,6 +80,7 @@ Bool     Function OutfitExists      (String asOutfitName) Global Native
          Function SetLocationBasedAutoSwitchEnabled (Bool abEnabled) Global Native
 Bool     Function GetLocationBasedAutoSwitchEnabled () Global Native
 Int      Function GetAutoSwitchLocationCount () Global Native
+Int      Function IdentifyLocationType (Location alLocation) Global Native
          Function SetOutfitUsingLocation (Location alLocation) Global Native
          Function SetLocationOutfit (Int aiLocationType, String asOutfitName) Global Native
          Function UnsetLocationOutfit (Int aiLocationType) Global Native
