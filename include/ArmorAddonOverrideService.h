@@ -15,6 +15,7 @@ enum class LocationType: std::uint32_t {
     Town,
     Dungeon
 };
+static const char * locationTypeStrings[] = { "overworld", "town", "dungeon" };
 
 struct Outfit {
    Outfit() {}; // we shouldn't need this, really, but std::unordered_map is a brat
@@ -99,6 +100,7 @@ class ArmorAddonOverrideService {
       void setLocationOutfit(LocationType location, const char* name);
       void unsetLocationOutfit(LocationType location);
       std::optional<cobb::istring> getLocationOutfit(LocationType location);
+      static std::optional<LocationType> checkLocationType(const std::set<std::string>& keywords);
       //
       bool shouldOverride() const noexcept;
       void getOutfitNames(std::vector<std::string>& out, bool favoritesOnly = false) const;

@@ -1,6 +1,11 @@
 #include "OutfitSystem.h"
 
+#pragma warning( push )
+#pragma warning( disable : 4267 ) // SKSE has some integer conversion when returning arrays. Returned arrays should be limited to 32-bit size().
+#pragma warning( disable : 5053 ) // SKSE uses explicit(<expr>) vendor extension.
 #include "skse64/PapyrusNativeFunctions.h"
+#pragma warning( pop )
+
 #include "skse64/PapyrusObjects.h"
 #include "skse64/PapyrusVM.h"
 
@@ -9,6 +14,8 @@
 #include "skse64/GameObjects.h"
 #include "skse64/GameReferences.h"
 
+#pragma warning( push )
+#pragma warning( disable : 5053 ) // CommonLibSSE uses explicit(<expr>) vendor extension.
 #include "RE/FormComponents/TESForm/TESObject/TESBoundObject/TESObjectARMO.h"
 #include "RE/FileIO/TESDataHandler.h"
 #include "RE/FormComponents/TESForm/TESObjectREFR/Actor/Actor.h"
@@ -18,6 +25,7 @@
 #include "RE/FormComponents/TESForm/BGSLocation.h"
 #include "RE/FormComponents/TESForm/BGSKeyword/BGSKeyword.h"
 #include "RE/Misc/Misc.h"
+#pragma warning( pop )
 
 #include "ArmorAddonOverrideService.h"
 
@@ -542,7 +550,7 @@
             armors.reserve(armors_skse.Length());
             for (std::size_t i = 0; i < armors_skse.Length(); i++) {
                 TESObjectARMO* ptr;
-                armors_skse.Get(&ptr, i);
+                armors_skse.Get(&ptr, static_cast<UInt32>(i));
                 armors.push_back((RE::TESObjectARMO*)ptr);
             }
             // End convert
@@ -580,52 +588,40 @@
             return 3;
         }
         void SetOutfitUsingLocation(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse) {
-            // Location can be NULL.
-            std::set<std::string> keywords;
-            if (location_skse) {
-                auto location = (RE::BGSLocation*) location_skse;
+            // NOTE: Location can be NULL.
+            auto location = (RE::BGSLocation*) location_skse;
+            std::optional<LocationType> classifiedLocation;
+            while (location) {
+                std::set<std::string> keywords;
                 std::uint32_t max = location->GetNumKeywords();
                 for (std::uint32_t i = 0; i < max; i++) {
                     RE::BGSKeyword* keyword = location->GetKeywordAt(i).value();
-
                     /*
                     char message[100];
                     _MESSAGE("SOS: Location has Keyword %s", keyword->GetFormEditorID());
                     sprintf(message, "SOS: Location has keyword %s", keyword->GetFormEditorID());
                     RE::DebugNotification(message, nullptr, false);
                     */
-
-                    keywords.insert(keyword->GetFormEditorID());
+                    keywords.emplace(keyword->GetFormEditorID());
                 }
+                classifiedLocation = ArmorAddonOverrideService::checkLocationType(keywords);
+                if (classifiedLocation.has_value()) {
+                    break;
+                }
+                location = location->parentLoc;
             }
-            // Location Type Logic
-            std::string type_str;
-            LocationType type;
-            if (keywords.empty()) {
-                type_str = "worldcell";
-                type = LocationType::World;
-            } else if (
-                keywords.count("LocTypeHabitation") ||
-                keywords.count("LocTypeDwelling") ||
-                keywords.count("TGBusiness")) {
-                type_str = "town";
-                type = LocationType::Town;
-            } else if (keywords.count("LocTypeDungeon")) {
-                type_str = "dungeon";
-                type = LocationType::Dungeon;
-            } else {
-                type_str = "worldcell";
-                type = LocationType::World;
-            }
-
-            /*
-            char message[100];
-            sprintf_s(message, "SOS: This location is a %s.", type_str.c_str());
-            RE::DebugNotification(message, nullptr, false);
-            */
 
             auto& service = ArmorAddonOverrideService::GetInstance();
-            service.setOutfitUsingLocation(type);
+
+            // Debug notifications for location classification.
+            if (service.locationBasedAutoSwitchEnabled) {
+                const char* locationName = locationTypeStrings[static_cast<std::uint32_t>(classifiedLocation.value_or(LocationType::World))];
+                char message[100];
+                sprintf_s(message, "SOS: This location is a %s.", locationName);
+                RE::DebugNotification(message, nullptr, false);
+            }
+
+            service.setOutfitUsingLocation(classifiedLocation.value_or(LocationType::World));
         }
         void SetLocationOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, UInt32 location, BSFixedString name) {
             if (strcmp(name.data, "") == 0) {
