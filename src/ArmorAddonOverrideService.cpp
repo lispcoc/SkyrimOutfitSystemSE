@@ -1,5 +1,8 @@
 #include "ArmorAddonOverrideService.h"
+#pragma warning( push )
+#pragma warning( disable : 5053 ) // CommonLibSSE uses explicit(<expr>) vendor extension.
 #include "RE/FormComponents/TESForm/TESObject/TESBoundObject/TESObjectARMO.h"
+#pragma warning( pop )
 #include "skse64/GameForms.h"
 #include "skse64/GameRTTI.h"
 #include "skse64/Serialization.h"
@@ -61,7 +64,7 @@ void Outfit::load(SKSESerializationInterface* intfc, UInt32 version) {
 void Outfit::save(SKSESerializationInterface* intfc) const {
    using namespace Serialization;
    //
-   UInt32 size = this->armors.size();
+   UInt32 size = static_cast<UInt32>(this->armors.size());
    _assertWrite(WriteData(intfc, &size), "Failed to write the outfit's armor count.");
    for (auto it = this->armors.cbegin(); it != this->armors.cend(); ++it) {
       UInt32 formID = 0;
@@ -112,7 +115,7 @@ Outfit& ArmorAddonOverrideService::currentOutfit() {
 };
 bool ArmorAddonOverrideService::hasOutfit(const char* name) const {
    try {
-      this->outfits.at(name);
+      static_cast<void>(this->outfits.at(name));
       return true;
    } catch (std::out_of_range) {
       return false;
@@ -160,7 +163,7 @@ void ArmorAddonOverrideService::modifyOutfit(const char* name, std::vector<RE::T
 void ArmorAddonOverrideService::renameOutfit(const char* oldName, const char* newName) {
    _validateNameOrThrow(newName);
    try {
-      this->outfits.at(newName);
+      static_cast<void>(this->outfits.at(newName));
       throw name_conflict("");
    } catch (std::out_of_range) {
       Outfit& renamed = (this->outfits[newName] = this->outfits.at(oldName)); // don't try-catch this "at" call; let the caller catch the exception
@@ -223,6 +226,15 @@ std::optional<cobb::istring> ArmorAddonOverrideService::getLocationOutfit(Locati
     }
 }
 
+std::optional<LocationType> ArmorAddonOverrideService::checkLocationType(const std::set<std::string>& keywords) {
+    if (keywords.count("LocTypeHabitation")) {
+        return std::optional<LocationType>(LocationType::Town);
+    } else if (keywords.count("LocTypeDungeon")) {
+        return std::optional<LocationType>(LocationType::Dungeon);
+    }
+    return std::optional<LocationType>();
+}
+
 bool ArmorAddonOverrideService::shouldOverride() const noexcept {
    if (!this->enabled)
       return false;
@@ -280,7 +292,7 @@ void ArmorAddonOverrideService::load(SKSESerializationInterface* intfc, UInt32 v
    this->setOutfit(selectedOutfitName.c_str());
    if (version >= ArmorAddonOverrideService::kSaveVersionV3) {
        _assertWrite(ReadData(intfc, &this->locationBasedAutoSwitchEnabled), "Failed to read the autoswitch enable state.");
-       UInt32 autoswitchSize = this->locationOutfits.size();
+       UInt32 autoswitchSize = static_cast<UInt32>(this->locationOutfits.size());
        _assertRead(ReadData(intfc, &autoswitchSize), "Failed to read the number of autoswitch slots.");
        for (UInt32 i = 0; i < autoswitchSize; i++) {
            // get location outfit
@@ -315,12 +327,12 @@ void ArmorAddonOverrideService::save(SKSESerializationInterface* intfc) {
       // a cobb::istring, and SKSE only templated WriteData for std::string in 
       // specific; other basic_string classes break it.
       //
-      UInt32 size      = this->currentOutfitName.size();
+      UInt32 size      = static_cast<UInt32>(this->currentOutfitName.size());
       const char* name = this->currentOutfitName.c_str();
       _assertWrite(WriteData(intfc, &size), "Failed to write the selected outfit name.");
       _assertWrite(intfc->WriteRecordData(name, size), "Failed to write the selected outfit name.");
    }
-   UInt32 size = this->outfits.size();
+   UInt32 size = static_cast<UInt32>(this->outfits.size());
    _assertWrite(WriteData(intfc, &size), "Failed to write the outfit count.");
    for (auto it = this->outfits.cbegin(); it != this->outfits.cend(); ++it) {
       auto& name = it->second.name;
@@ -330,13 +342,13 @@ void ArmorAddonOverrideService::save(SKSESerializationInterface* intfc) {
       outfit.save(intfc);
    }
     _assertWrite(WriteData(intfc, &this->locationBasedAutoSwitchEnabled), "Failed to write the autoswitch enable state.");
-   UInt32 autoswitchSize = this->locationOutfits.size();
+   UInt32 autoswitchSize = static_cast<UInt32>(this->locationOutfits.size());
     _assertWrite(WriteData(intfc, &autoswitchSize), "Failed to write the autoswitch count.");
     for (auto it = this->locationOutfits.cbegin(); it != this->locationOutfits.cend(); ++it) {
         auto& locationId = it->first;
         _assertWrite(WriteData(intfc, &locationId), "Failed to write a location ID.");
         //
-        UInt32      outfitNameSize = it->second.size();
+        UInt32      outfitNameSize = static_cast<UInt32>(it->second.size());
         const char* outfitName     = it->second.c_str();
         _assertWrite(WriteData(intfc, &outfitNameSize), "Failed to write autoswitch location outfit name.");
         _assertWrite(intfc->WriteRecordData(outfitName, outfitNameSize), "Failed to write autoswitch location outfit name.");
