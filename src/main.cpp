@@ -147,7 +147,7 @@ void Callback_Messaging_SKSE(SKSEMessagingInterface::Message* message) {
 void Callback_Serialization_Save(SKSESerializationInterface* intfc) {
     _MESSAGE("Writing savedata...");
     //
-    if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV2)) {
+    if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV3)) {
         try {
             auto& service = ArmorAddonOverrideService::GetInstance();
             service.save(intfc);

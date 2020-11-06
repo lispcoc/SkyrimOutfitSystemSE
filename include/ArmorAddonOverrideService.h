@@ -40,7 +40,7 @@ class ArmorAddonOverrideService {
    public:
       typedef Outfit Outfit;
       static constexpr UInt32 signature = 'AAOS';
-      enum { kSaveVersionV1 = 1, kSaveVersionV2 = 2 };
+      enum { kSaveVersionV1 = 1, kSaveVersionV2 = 2, kSaveVersionV3 = 3 };
       //
       static constexpr UInt32 ce_outfitNameMaxLength = 256; // SKSE caps serialized std::strings and const char*s to 256 bytes.
       //

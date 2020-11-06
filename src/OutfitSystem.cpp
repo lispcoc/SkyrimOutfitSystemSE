@@ -615,9 +615,11 @@
                 type = LocationType::World;
             }
 
+            /*
             char message[100];
             sprintf_s(message, "SOS: This location is a %s.", type_str.c_str());
             RE::DebugNotification(message, nullptr, false);
+            */
 
             auto& service = ArmorAddonOverrideService::GetInstance();
             service.setOutfitUsingLocation(type);

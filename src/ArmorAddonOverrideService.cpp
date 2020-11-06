@@ -278,6 +278,32 @@ void ArmorAddonOverrideService::load(SKSESerializationInterface* intfc, UInt32 v
       outfit.load(intfc, version);
    }
    this->setOutfit(selectedOutfitName.c_str());
+   if (version >= ArmorAddonOverrideService::kSaveVersionV3) {
+       _assertWrite(ReadData(intfc, &this->locationBasedAutoSwitchEnabled), "Failed to read the autoswitch enable state.");
+       UInt32 autoswitchSize = this->locationOutfits.size();
+       _assertRead(ReadData(intfc, &autoswitchSize), "Failed to read the number of autoswitch slots.");
+       for (UInt32 i = 0; i < autoswitchSize; i++) {
+           // get location outfit
+           //
+           // we can't call WriteData directly on this->currentOutfitName because it's
+           // a cobb::istring, and SKSE only templated WriteData for std::string in
+           // specific; other basic_string classes break it.
+           //
+           LocationType autoswitchSlot;
+           _assertRead(ReadData(intfc, &autoswitchSlot), "Failed to read the an autoswitch slot ID.");
+           UInt32 locationOutfitNameSize = 0;
+           char locationOutfitName[257];
+           memset(locationOutfitName, '\0', sizeof(locationOutfitName));
+           _assertRead(ReadData(intfc, &locationOutfitNameSize), "Failed to read the an autoswitch outfit name.");
+           _assertRead(locationOutfitNameSize < 257, "The autoswitch outfit name is too long.");
+           if (locationOutfitNameSize) {
+               _assertRead(intfc->ReadRecordData(locationOutfitName, locationOutfitNameSize), "Failed to read the selected outfit name.");
+               this->locationOutfits.emplace(autoswitchSlot, locationOutfitName);
+           }
+       }
+   } else {
+       this->locationOutfits = std::map<LocationType, cobb::istring>();
+   }
 }
 void ArmorAddonOverrideService::save(SKSESerializationInterface* intfc) {
    using namespace Serialization;
@@ -303,6 +329,18 @@ void ArmorAddonOverrideService::save(SKSESerializationInterface* intfc) {
       auto& outfit = it->second;
       outfit.save(intfc);
    }
+    _assertWrite(WriteData(intfc, &this->locationBasedAutoSwitchEnabled), "Failed to write the autoswitch enable state.");
+   UInt32 autoswitchSize = this->locationOutfits.size();
+    _assertWrite(WriteData(intfc, &autoswitchSize), "Failed to write the autoswitch count.");
+    for (auto it = this->locationOutfits.cbegin(); it != this->locationOutfits.cend(); ++it) {
+        auto& locationId = it->first;
+        _assertWrite(WriteData(intfc, &locationId), "Failed to write a location ID.");
+        //
+        UInt32      outfitNameSize = it->second.size();
+        const char* outfitName     = it->second.c_str();
+        _assertWrite(WriteData(intfc, &outfitNameSize), "Failed to write autoswitch location outfit name.");
+        _assertWrite(intfc->WriteRecordData(outfitName, outfitNameSize), "Failed to write autoswitch location outfit name.");
+    }
 }
 //
 void ArmorAddonOverrideService::dump() const {
