@@ -1,6 +1,6 @@
 # Skyrim Outfit System SE Revived
 
-master branch: [![Build status](https://ci.appveyor.com/api/projects/status/yiekriyp3suwahn6/branch/master?svg=true)](https://ci.appveyor.com/project/thekineticeffect/skyrimoutfitsystemse/branch/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/oxovhnk16gfn9ef3/branch/master?svg=true)](https://ci.appveyor.com/project/thekineticeffect/skyrimoutfitsystemse-mpt1j/branch/master)
 
 This mod is a resurrection of [aers's port](https://github.com/aers/SkyrimOutfitSystemSE) of David J Cobb's [Skyrim Outfit System](https://github.com/DavidJCobb/skyrim-outfit-system) for Skyrim SE.
 
