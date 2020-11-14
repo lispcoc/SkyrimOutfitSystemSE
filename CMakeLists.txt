@@ -13,6 +13,11 @@ elseif(${SKYRIM_RUNTIME} STREQUAL "1_5_73")
 endif()
 
 ################################################################################
+# Find and configure Google Protocol Buffers
+################################################################################
+find_package(Protobuf REQUIRED)
+
+################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
 ################################################################################
 if(NOT CMAKE_CL_64)
@@ -82,6 +87,20 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 ################################################################################
 add_subdirectory(dependencies/CommonLibSSE)
 add_subdirectory(dependencies)
+
+################################################################################
+# Build Protocol Buffers
+################################################################################
+protobuf_generate_cpp(
+    PROTO_SRC PROTO_HDR
+    src/protos/example.proto
+)
+
+add_library(ProtocolBuffers ${PROTO_SRC} ${PROTO_HDR})
+
+target_link_libraries(ProtocolBuffers PUBLIC protobuf::libprotobuf)
+
+target_include_directories(ProtocolBuffers PUBLIC ${CMAKE_CURRENT_BINARY_DIR}) # The headers are generated right into the output dir.
 
 ################################################################################
 # Target
@@ -233,6 +252,7 @@ target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     skse64_common
     nonstd::span-lite
     spdlog::spdlog
+    ProtocolBuffers
 )
 
 ################################################################################
