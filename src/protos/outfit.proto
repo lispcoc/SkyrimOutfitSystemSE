@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+message POutfit {
+  string name = 1;
+  repeated uint32 armors = 2; // A list of formIDs that will be resolved as pointers to RE::TESObjectARMO
+  bool isFavorite = 3;
+}
+
+message POutfitSystem {
+  bool enabled = 1;
+  string selectedOutfitName = 2;
+  repeated POutfit outfits = 3;
+  bool locationBasedAutoSwitchEnabled = 4;
+  map<uint32, string> locationBasedOutfits = 5;
+}

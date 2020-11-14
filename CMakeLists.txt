@@ -93,7 +93,7 @@ add_subdirectory(dependencies)
 ################################################################################
 protobuf_generate_cpp(
     PROTO_SRC PROTO_HDR
-    src/protos/example.proto
+    src/protos/outfit.proto
 )
 
 add_library(ProtocolBuffers ${PROTO_SRC} ${PROTO_HDR})
