@@ -96,7 +96,7 @@ protobuf_generate_cpp(
     src/protos/outfit.proto
 )
 
-add_library(ProtocolBuffers ${PROTO_SRC} ${PROTO_HDR})
+add_library(ProtocolBuffers STATIC ${PROTO_SRC} ${PROTO_HDR})
 
 target_link_libraries(ProtocolBuffers PUBLIC protobuf::libprotobuf)
 
@@ -156,8 +156,9 @@ string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
 
 set_target_properties(SkyrimOutfitSystemSE PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
 
-# Also force it on CommonLibSSE
+# Also force it on CommonLibSSE and Protobuf
 set_target_properties(CommonLibSSE PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
+set_target_properties(ProtocolBuffers PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
 
 ################################################################################
 # Compile definitions
