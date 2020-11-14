@@ -1,7 +1,15 @@
 syntax = "proto3";
 
-message Person {
+message Outfit {
   string name = 1;
   int32 id = 2;
   string email = 3;
+}
+
+message OutfitSystem {
+  bool enabled = 1;
+  string selectedOutfitName = 2;
+  repeated Outfit outfits = 3;
+  bool locationBasedAutoSwitchEnabled = 4;
+  map<uint32, string> locationBasedOutfits = 5;
 }
