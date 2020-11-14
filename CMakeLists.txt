@@ -13,6 +13,11 @@ elseif(${SKYRIM_RUNTIME} STREQUAL "1_5_73")
 endif()
 
 ################################################################################
+# Find and configure Google Protocol Buffers
+################################################################################
+find_package(Protobuf REQUIRED)
+
+################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
 ################################################################################
 if(NOT CMAKE_CL_64)
@@ -84,6 +89,20 @@ add_subdirectory(dependencies/CommonLibSSE)
 add_subdirectory(dependencies)
 
 ################################################################################
+# Build Protocol Buffers
+################################################################################
+protobuf_generate_cpp(
+    PROTO_SRC PROTO_HDR
+    src/protos/outfit.proto
+)
+
+add_library(ProtocolBuffers STATIC ${PROTO_SRC} ${PROTO_HDR})
+
+target_link_libraries(ProtocolBuffers PUBLIC protobuf::libprotobuf)
+
+target_include_directories(ProtocolBuffers PUBLIC ${CMAKE_CURRENT_BINARY_DIR}) # The headers are generated right into the output dir.
+
+################################################################################
 # Target
 ################################################################################
 add_library(SkyrimOutfitSystemSE SHARED
@@ -137,8 +156,9 @@ string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
 
 set_target_properties(SkyrimOutfitSystemSE PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
 
-# Also force it on CommonLibSSE
+# Also force it on CommonLibSSE and Protobuf
 set_target_properties(CommonLibSSE PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
+set_target_properties(ProtocolBuffers PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
 
 ################################################################################
 # Compile definitions
@@ -233,6 +253,7 @@ target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     skse64_common
     nonstd::span-lite
     spdlog::spdlog
+    ProtocolBuffers
 )
 
 ################################################################################

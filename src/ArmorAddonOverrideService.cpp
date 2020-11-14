@@ -8,12 +8,12 @@
 #include "skse64/Serialization.h"
 
 void _assertWrite(bool result, const char* err) {
-   if (!result)
-      throw ArmorAddonOverrideService::save_error(err);
+    if (!result)
+        throw ArmorAddonOverrideService::save_error(err);
 }
 void _assertRead(bool result, const char* err) {
-   if (!result)
-      throw ArmorAddonOverrideService::load_error(err);
+    if (!result)
+        throw ArmorAddonOverrideService::load_error(err);
 }
 
 bool Outfit::conflictsWith(RE::TESObjectARMO* test) const {
@@ -39,8 +39,8 @@ bool Outfit::hasShield() const {
    }
    return false;
 };
-//
-void Outfit::load(SKSESerializationInterface* intfc, UInt32 version) {
+
+void Outfit::load_legacy(SKSESerializationInterface* intfc, UInt32 version) {
    using namespace Serialization;
    //
    UInt32 size = 0;
@@ -61,19 +61,30 @@ void Outfit::load(SKSESerializationInterface* intfc, UInt32 version) {
        this->isFavorite = false;
    }
 }
-void Outfit::save(SKSESerializationInterface* intfc) const {
+
+void Outfit::load(const proto::Outfit& proto, SKSESerializationInterface* intfc) {
+    this->name = proto.name();
+    for (const auto& formID : proto.armors()) {
+        UInt32 fixedID;
+        if (intfc->ResolveFormId(formID, &fixedID)) {
+            auto armor = reinterpret_cast<RE::TESObjectARMO*>(Runtime_DynamicCast((void*) LookupFormByID(fixedID), RTTI_TESForm, RTTI_TESObjectARMO));
+            if (armor)
+                this->armors.insert(armor);
+        }
+    }
+    this->isFavorite = proto.is_favorite();
+}
+
+proto::Outfit Outfit::save(SKSESerializationInterface*) const {
    using namespace Serialization;
    //
-   UInt32 size = static_cast<UInt32>(this->armors.size());
-   _assertWrite(WriteData(intfc, &size), "Failed to write the outfit's armor count.");
-   for (auto it = this->armors.cbegin(); it != this->armors.cend(); ++it) {
-      UInt32 formID = 0;
-      auto   armor  = *it;
-      if (armor)
-         formID = armor->formID;
-      _assertWrite(WriteData(intfc, &formID), "Failed to write an outfit's armors.");
+   proto::Outfit out;
+   out.set_name(this->name);
+   for (const auto& armor : this->armors) {
+       if (armor) out.add_armors(armor->formID);
    }
-   _assertWrite(WriteData(intfc, &isFavorite), "Failed to write an outfit's favorite status.");
+   out.set_is_favorite(this->isFavorite);
+   return out;
 }
 
 void ArmorAddonOverrideService::_validateNameOrThrow(const char* outfitName) {
@@ -255,8 +266,11 @@ void ArmorAddonOverrideService::reset() {
    this->enabled = true;
    this->currentOutfitName = g_noOutfitName;
    this->outfits.clear();
+   this->locationBasedAutoSwitchEnabled = false;
+   this->locationOutfits.clear();
 }
-void ArmorAddonOverrideService::load(SKSESerializationInterface* intfc, UInt32 version) {
+
+void ArmorAddonOverrideService::load_legacy(SKSESerializationInterface* intfc, UInt32 version) {
    using namespace Serialization;
    //
    this->reset();
@@ -285,7 +299,7 @@ void ArmorAddonOverrideService::load(SKSESerializationInterface* intfc, UInt32 v
       std::string name;
       _assertRead(ReadData(intfc, &name), "Failed to read an outfit's name.");
       auto& outfit = this->getOrCreateOutfit(name.c_str());
-      outfit.load(intfc, version);
+       outfit.load_legacy(intfc, version);
    }
    this->setOutfit(selectedOutfitName.c_str());
    if (version >= ArmorAddonOverrideService::kSaveVersionV3) {
@@ -315,42 +329,41 @@ void ArmorAddonOverrideService::load(SKSESerializationInterface* intfc, UInt32 v
        this->locationOutfits = std::map<LocationType, cobb::istring>();
    }
 }
-void ArmorAddonOverrideService::save(SKSESerializationInterface* intfc) {
+
+void ArmorAddonOverrideService::load(SKSESerializationInterface* intfc, const proto::OutfitSystem& data) {
+    this->reset();
+    // Extract data from the protobuf struct.
+    this->enabled = data.enabled();
+    auto currentOutfitName = data.current_outfit_name();
+    this->currentOutfitName = cobb::istring(currentOutfitName.data(), currentOutfitName.size());
+    for (const auto& outfitData : data.outfits()) {
+        Outfit outfit;
+        outfit.load(outfitData, intfc);
+        this->outfits.emplace(cobb::istring(outfitData.name().data(), outfitData.name().size()), outfit);
+    }
+    this->locationBasedAutoSwitchEnabled = data.location_based_auto_switch_enabled();
+    for (const auto& locOutfitData : data.location_based_outfits()) {
+        this->locationOutfits.emplace(LocationType(locOutfitData.first),
+                cobb::istring(locOutfitData.second.data(), locOutfitData.second.size()));
+    }
+}
+
+proto::OutfitSystem ArmorAddonOverrideService::save(SKSESerializationInterface* intfc) {
    using namespace Serialization;
    //
-   _assertWrite(WriteData(intfc, &this->enabled), "Failed to write the enable state.");
-   {  // current outfit name
-      //
-      // we can't call WriteData directly on this->currentOutfitName because it's 
-      // a cobb::istring, and SKSE only templated WriteData for std::string in 
-      // specific; other basic_string classes break it.
-      //
-      UInt32 size      = static_cast<UInt32>(this->currentOutfitName.size());
-      const char* name = this->currentOutfitName.c_str();
-      _assertWrite(WriteData(intfc, &size), "Failed to write the selected outfit name.");
-      _assertWrite(intfc->WriteRecordData(name, size), "Failed to write the selected outfit name.");
+   proto::OutfitSystem out;
+   out.set_enabled(this->enabled);
+   out.set_current_outfit_name(this->currentOutfitName.data(), this->currentOutfitName.size());
+   for (const auto& outfit : this->outfits) {
+       auto newOutfit = out.add_outfits();
+       *newOutfit = outfit.second.save(intfc);
    }
-   UInt32 size = static_cast<UInt32>(this->outfits.size());
-   _assertWrite(WriteData(intfc, &size), "Failed to write the outfit count.");
-   for (auto it = this->outfits.cbegin(); it != this->outfits.cend(); ++it) {
-      auto& name = it->second.name;
-      _assertWrite(WriteData(intfc, &name), "Failed to write an outfit's name.");
-      //
-      auto& outfit = it->second;
-      outfit.save(intfc);
+   out.set_location_based_auto_switch_enabled(this->locationBasedAutoSwitchEnabled);
+   for (const auto& lbo : this->locationOutfits) {
+       out.mutable_location_based_outfits()->insert({static_cast<UInt32>(lbo.first), std::string(lbo.second.data(), lbo.second.size())});
    }
-    _assertWrite(WriteData(intfc, &this->locationBasedAutoSwitchEnabled), "Failed to write the autoswitch enable state.");
-   UInt32 autoswitchSize = static_cast<UInt32>(this->locationOutfits.size());
-    _assertWrite(WriteData(intfc, &autoswitchSize), "Failed to write the autoswitch count.");
-    for (auto it = this->locationOutfits.cbegin(); it != this->locationOutfits.cend(); ++it) {
-        auto& locationId = it->first;
-        _assertWrite(WriteData(intfc, &locationId), "Failed to write a location ID.");
-        //
-        UInt32      outfitNameSize = static_cast<UInt32>(it->second.size());
-        const char* outfitName     = it->second.c_str();
-        _assertWrite(WriteData(intfc, &outfitNameSize), "Failed to write autoswitch location outfit name.");
-        _assertWrite(intfc->WriteRecordData(outfitName, outfitNameSize), "Failed to write autoswitch location outfit name.");
-    }
+   return out;
+
 }
 //
 void ArmorAddonOverrideService::dump() const {
