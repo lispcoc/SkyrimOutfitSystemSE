@@ -252,16 +252,17 @@ EndFunction
       ;/Block/; ; Right column
          SetCursorPosition(1)
          AddHeaderOption("$SkyOutSys_MCMHeader_Autoswitch")
-         Int iCount = SkyrimOutfitSystemNativeFuncs.GetAutoSwitchLocationCount()
+         Int[] iIndices = SkyrimOutfitSystemNativeFuncs.GetAutoSwitchLocationArray()
+         Int iCount = iIndices.Length
          AddToggleOptionST("OPT_AutoswitchEnabled", "$SkyOutSys_Text_EnableAutoswitch", SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
          If SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled()
             Int iIterator = 0
             While iIterator < iCount
-               String sLocationOutfit = SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(iIterator)
+               String sLocationOutfit = SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(iIndices[iIterator])
                If sLocationOutfit == ""
                   sLocationOutfit = "$SkyOutSys_AutoswitchEdit_None"
                EndIf
-               AddMenuOptionST("OPT_AutoswitchEntry" + iIterator, "$SkyOutSys_Text_Autoswitch" + iIterator, sLocationOutfit)
+               AddMenuOptionST("OPT_AutoswitchEntry" + iIndices[iIterator], "$SkyOutSys_Text_Autoswitch" + iIndices[iIterator], sLocationOutfit)
                iIterator = iIterator + 1
             EndWhile
          EndIf
