@@ -23,6 +23,7 @@
 #include "RE/Inventory/InventoryChanges.h"
 #include "RE/Inventory/InventoryEntryData.h"
 #include "RE/FormComponents/TESForm/BGSLocation.h"
+#include "RE/FormComponents/TESForm/TESWeather.h"
 #include "RE/FormComponents/TESForm/BGSKeyword/BGSKeyword.h"
 #include "RE/Misc/Misc.h"
 #pragma warning( pop )
@@ -588,15 +589,28 @@ extern SKSESerializationInterface* g_Serialization;
         bool GetLocationBasedAutoSwitchEnabled(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
             return ArmorAddonOverrideService::GetInstance().locationBasedAutoSwitchEnabled;
         }
-        UInt32 GetAutoSwitchLocationCount(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
-            return 3;
+        VMResultArray<UInt32> GetAutoSwitchLocationArray(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
+            VMResultArray<UInt32> result;
+            for (UInt32 i : {0, 3, 1, 2}) {
+                result.push_back(i);
+            }
+            return result;
         }
-        LocationType identifyLocation(RE::BGSLocation* location) {
+        LocationType identifyLocation(RE::BGSLocation* location, RE::TESWeather* weather) {
             // Just a helper function to classify a location.
             // TODO: Think of a better place than this since we're not exposing it to Papyrus.
-            std::optional<LocationType> classifiedLocation;
+            auto& service = ArmorAddonOverrideService::GetInstance();
+
+            // Collect weather information.
+            WeatherFlags weather_flags;
+            if (weather) {
+                weather_flags.snowy = weather->data.flags.any(RE::TESWeather::WeatherDataFlag::kSnow);
+            }
+
+            // Collect location keywords
+            std::unordered_set<std::string> keywords;
+            keywords.reserve(20);
             while (location) {
-                std::set<std::string> keywords;
                 std::uint32_t max = location->GetNumKeywords();
                 for (std::uint32_t i = 0; i < max; i++) {
                     RE::BGSKeyword* keyword = location->GetKeywordAt(i).value();
@@ -608,23 +622,19 @@ extern SKSESerializationInterface* g_Serialization;
                     */
                     keywords.emplace(keyword->GetFormEditorID());
                 }
-                classifiedLocation = ArmorAddonOverrideService::checkLocationType(keywords);
-                if (classifiedLocation.has_value()) {
-                    break;
-                }
                 location = location->parentLoc;
             }
-            return classifiedLocation.value_or(LocationType::World);
+            return service.checkLocationType(keywords, weather_flags);
         }
-        UInt32 IdentifyLocationType(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse) {
-            return static_cast<UInt32>(identifyLocation((RE::BGSLocation*) location_skse));
+        UInt32 IdentifyLocationType(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse, TESWeather* weather_skse) {
+            return static_cast<UInt32>(identifyLocation((RE::BGSLocation*) location_skse, (RE::TESWeather*) weather_skse));
         }
-        void SetOutfitUsingLocation(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse) {
+        void SetOutfitUsingLocation(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse, TESWeather* weather_skse) {
             // NOTE: Location can be NULL.
             auto& service = ArmorAddonOverrideService::GetInstance();
 
             if (service.locationBasedAutoSwitchEnabled) {
-                auto location = identifyLocation((RE::BGSLocation*) location_skse);
+                auto location = identifyLocation((RE::BGSLocation*) location_skse, (RE::TESWeather*) weather_skse);
                 // Debug notifications for location classification.
                 /*
                 const char* locationName = locationTypeStrings[static_cast<std::uint32_t>(location)];
@@ -939,19 +949,19 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         GetLocationBasedAutoSwitchEnabled,
         registry
     ));
-    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, UInt32>(
-        "GetAutoSwitchLocationCount",
+    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, VMResultArray<UInt32>>(
+        "GetAutoSwitchLocationArray",
         "SkyrimOutfitSystemNativeFuncs",
-        GetAutoSwitchLocationCount,
+        GetAutoSwitchLocationArray,
         registry
     ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, UInt32, BGSLocation*>(
+    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, BGSLocation*, TESWeather*>(
         "IdentifyLocationType",
         "SkyrimOutfitSystemNativeFuncs",
         IdentifyLocationType,
         registry
     ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, BGSLocation*>(
+    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BGSLocation*, TESWeather*>(
         "SetOutfitUsingLocation",
         "SkyrimOutfitSystemNativeFuncs",
         SetOutfitUsingLocation,

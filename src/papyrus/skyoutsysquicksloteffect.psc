@@ -1,9 +1,6 @@
 Scriptname SkyOutSysQuickslotEffect extends activemagiceffect
 
 Event OnEffectStart(Actor akCaster, Actor akTarget)
-
-   SkyrimOutfitSystemNativeFuncs.SetOutfitUsingLocation(akCaster.GetCurrentLocation())
-
    String[] sLMenuItems = SkyrimOutfitSystemNativeFuncs.ListOutfits(favoritesOnly = true)
    sLMenuItems = SkyrimOutfitSystemNativeFuncs.NaturalSort_ASCII(sLMenuItems)
    UIListMenu menu = UIExtensions.GetMenu("UIListMenu") as UIListMenu
@@ -29,7 +26,7 @@ Event OnEffectStart(Actor akCaster, Actor akTarget)
       ; 1) autoswitching is enabled,
       ; 2) the current location has an outfit assigned already, and
       ; 3) if we have an outfit selected in this menu
-      Int playerLocationType = SkyrimOutfitSystemNativeFuncs.IdentifyLocationType(Game.GetPlayer().GetCurrentLocation())
+      Int playerLocationType = SkyrimOutfitSystemNativeFuncs.IdentifyLocationType(Game.GetPlayer().GetCurrentLocation(), Weather.GetCurrentWeather())
       If SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled() && SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(playerLocationType) != "" && result != ""
          SkyrimOutfitSystemNativeFuncs.SetLocationOutfit(playerLocationType, result)
          Debug.Notification("This outfit will be remembered for this location type.")
