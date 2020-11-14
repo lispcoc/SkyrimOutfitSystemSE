@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "cobb/strings.h"
+#include "outfit.pb.h"
 
 namespace RE {
    class TESObjectARMO;
@@ -31,8 +32,9 @@ struct Outfit {
    bool conflictsWith(RE::TESObjectARMO*) const;
    bool hasShield() const;
 
-   void load(SKSESerializationInterface* intfc, UInt32 version); // can throw ArmorAddonOverrideService::load_error
-   void save(SKSESerializationInterface*) const; // can throw ArmorAddonOverrideService::save_error
+   void load(const proto::Outfit& proto, SKSESerializationInterface*);
+   [[deprecated]] void load_legacy(SKSESerializationInterface* intfc, UInt32 version); // can throw ArmorAddonOverrideService::load_error
+   proto::Outfit save(SKSESerializationInterface*) const; // can throw ArmorAddonOverrideService::save_error
 };
 const constexpr char* g_noOutfitName = "";
 static Outfit g_noOutfit(g_noOutfitName); // can't be const; prevents us from assigning it to Outfit&s
@@ -41,7 +43,8 @@ class ArmorAddonOverrideService {
    public:
       typedef Outfit Outfit;
       static constexpr UInt32 signature = 'AAOS';
-      enum { kSaveVersionV1 = 1, kSaveVersionV2 = 2, kSaveVersionV3 = 3 };
+      // Uses protobufs starting with V4
+      enum { kSaveVersionV1 = 1, kSaveVersionV2 = 2, kSaveVersionV3 = 3, kSaveVersionV4 = 4 };
       //
       static constexpr UInt32 ce_outfitNameMaxLength = 256; // SKSE caps serialized std::strings and const char*s to 256 bytes.
       //
@@ -109,8 +112,9 @@ class ArmorAddonOverrideService {
       void refreshCurrentIfChanged(const char* testName);
       //
       void reset();
-      void load(SKSESerializationInterface* intfc, UInt32 version); // can throw load_error
-      void save(SKSESerializationInterface* intfc); // can throw save_error
+      void load(SKSESerializationInterface* intfc, const proto::OutfitSystem& data); // can throw load_error
+      [[deprecated]] void load_legacy(SKSESerializationInterface* intfc, UInt32 version); // can throw load_error
+      proto::OutfitSystem save(SKSESerializationInterface* intfc); // can throw save_error
       //
       void dump() const;
 };

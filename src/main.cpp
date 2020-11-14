@@ -3,6 +3,7 @@
 #include "skse64/PluginAPI.h"
 
 #include <ShlObj.h>
+#include <skse64/Serialization.h>
 
 #include "version.h"
 #include "ArmorAddonOverrideService.h"
@@ -21,6 +22,9 @@ static UInt32 g_pluginSerializationSignature = 'cOft';
 void Callback_Messaging_SKSE(SKSEMessagingInterface::Message* message);
 void Callback_Serialization_Save(SKSESerializationInterface* intfc);
 void Callback_Serialization_Load(SKSESerializationInterface* intfc);
+
+void _assertWrite(bool result, const char* err);
+void _assertRead(bool result, const char* err);
 
 void WaitForDebugger(void)
 {
@@ -147,10 +151,12 @@ void Callback_Messaging_SKSE(SKSEMessagingInterface::Message* message) {
 void Callback_Serialization_Save(SKSESerializationInterface* intfc) {
     _MESSAGE("Writing savedata...");
     //
-    if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV3)) {
+    if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV4)) {
         try {
             auto& service = ArmorAddonOverrideService::GetInstance();
-            service.save(intfc);
+            const auto& data = service.save(intfc);
+            const auto& data_ser = data.SerializeAsString();
+            _assertWrite(intfc->WriteRecordData(data_ser.data(), static_cast<UInt32>(data_ser.size())), "Failed to write proto into SKSE record.");
         }
         catch (const ArmorAddonOverrideService::save_error& exception) {
             _MESSAGE("Save FAILED for ArmorAddonOverrideService.");
@@ -175,7 +181,22 @@ void Callback_Serialization_Load(SKSESerializationInterface* intfc) {
         case ArmorAddonOverrideService::signature:
             try {
                 auto& service = ArmorAddonOverrideService::GetInstance();
-                service.load(intfc, version);
+                if (version >= ArmorAddonOverrideService::kSaveVersionV4) {
+                    using namespace Serialization;
+                    // Read data from protobuf.
+                    std::vector<char> buf;
+                    buf.insert(buf.begin(), length, 0);
+                    _assertRead(intfc->ReadRecordData(buf.data(), length) == length, "Failed to load protobuf.");
+
+                    // Parse data in protobuf.
+                    proto::OutfitSystem data;
+                    _assertRead(data.ParseFromArray(buf.data(), static_cast<int>(buf.size())), "Failed to parse protobuf.");
+
+                    // Load data from protobuf struct.
+                    service.load(intfc, data);
+                } else {
+                    service.load_legacy(intfc, version);
+                }
             }
             catch (const ArmorAddonOverrideService::load_error& exception) {
                 _MESSAGE("Load FAILED for ArmorAddonOverrideService.");
