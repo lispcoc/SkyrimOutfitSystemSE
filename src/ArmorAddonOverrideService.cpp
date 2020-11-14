@@ -6,6 +6,7 @@
 #include "skse64/GameForms.h"
 #include "skse64/GameRTTI.h"
 #include "skse64/Serialization.h"
+#include "example.pb.h"
 
 void _assertWrite(bool result, const char* err) {
    if (!result)
