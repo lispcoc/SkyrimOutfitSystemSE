@@ -85,3 +85,5 @@ Int      Function IdentifyLocationType (Location alLocation) Global Native
          Function SetLocationOutfit (Int aiLocationType, String asOutfitName) Global Native
          Function UnsetLocationOutfit (Int aiLocationType) Global Native
 String   Function GetLocationOutfit (Int aiLocationType) Global Native
+Bool     Function ExportSettings () Global Native
+Bool     Function ImportSettings () Global Native
