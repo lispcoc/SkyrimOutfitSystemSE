@@ -12,12 +12,12 @@
 
 #define DllExport   __declspec( dllexport )
 
-static PluginHandle g_pluginHandle = kPluginHandle_Invalid;
-static SKSEPapyrusInterface* g_Papyrus = nullptr;
-static SKSEMessagingInterface* g_Messaging = nullptr;
-static SKSESerializationInterface* g_Serialization = nullptr;
+PluginHandle g_pluginHandle = kPluginHandle_Invalid;
+SKSEPapyrusInterface* g_Papyrus = nullptr;
+SKSEMessagingInterface* g_Messaging = nullptr;
+SKSESerializationInterface* g_Serialization = nullptr;
 
-static UInt32 g_pluginSerializationSignature = 'cOft';
+UInt32 g_pluginSerializationSignature = 'cOft';
 
 void Callback_Messaging_SKSE(SKSEMessagingInterface::Message* message);
 void Callback_Serialization_Save(SKSESerializationInterface* intfc);
