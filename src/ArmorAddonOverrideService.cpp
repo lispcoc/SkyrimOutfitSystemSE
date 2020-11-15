@@ -334,8 +334,7 @@ void ArmorAddonOverrideService::load(SKSESerializationInterface* intfc, const pr
     this->reset();
     // Extract data from the protobuf struct.
     this->enabled = data.enabled();
-    auto currentOutfitName = data.current_outfit_name();
-    this->currentOutfitName = cobb::istring(currentOutfitName.data(), currentOutfitName.size());
+    this->currentOutfitName = cobb::istring(data.current_outfit_name().data(), data.current_outfit_name().size());
     for (const auto& outfitData : data.outfits()) {
         Outfit outfit;
         outfit.load(outfitData, intfc);

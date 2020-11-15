@@ -63,6 +63,13 @@ Event OnPageReset(String asPage)
    EndIf
 EndEvent
 
+Function FullRefresh()
+   ResetOutfitBrowser()
+   ResetOutfitEditor()
+   RefreshCache()
+   ForcePageReset()
+EndFunction
+
 Function RefreshCache()
    _sOutfitNames    = SkyrimOutfitSystemNativeFuncs.ListOutfits()
    _sSelectedOutfit = SkyrimOutfitSystemNativeFuncs.GetSelectedOutfit()
@@ -292,7 +299,7 @@ EndFunction
    State OPT_ImportSettings
       Event OnSelectST()
          SkyrimOutfitSystemNativeFuncs.ImportSettings()
-         ForcePageReset()
+         FullRefresh()
       EndEvent
       Event OnHighlightST()
          SetInfoText("$SkyOutSys_Desc_Import")
@@ -301,7 +308,6 @@ EndFunction
    State OPT_ExportSettings
       Event OnSelectST()
          SkyrimOutfitSystemNativeFuncs.ExportSettings()
-         ForcePageReset()
       EndEvent
       Event OnHighlightST()
          SetInfoText("$SkyOutSys_Desc_Export")

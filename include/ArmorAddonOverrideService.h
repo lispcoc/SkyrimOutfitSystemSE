@@ -75,7 +75,7 @@ class ArmorAddonOverrideService {
    public:
       bool enabled = true;
       cobb::istring currentOutfitName = g_noOutfitName;
-      std::unordered_map<cobb::istring, Outfit> outfits;
+      std::map<cobb::istring, Outfit> outfits;
       // Location-based switching
       bool locationBasedAutoSwitchEnabled = false;
       std::map<LocationType, cobb::istring> locationOutfits;
