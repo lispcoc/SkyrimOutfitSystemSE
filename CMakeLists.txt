@@ -12,10 +12,6 @@ elseif(${SKYRIM_RUNTIME} STREQUAL "1_5_73")
     set(SKSE_RUNTIME_VERSION 0x01050490)
 endif()
 
-################################################################################
-# Find and configure Google Protocol Buffers
-################################################################################
-find_package(Protobuf REQUIRED)
 
 ################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
@@ -27,6 +23,12 @@ endif()
 if(NOT "${VCPKG_TARGET_TRIPLET}" STREQUAL "x64-windows-static")
     message(FATAL_ERROR "Must set VCPKG_TARGET_TRIPLET to x64-windows-static! It is currently ${VCPKG_TARGET_TRIPLET}")
 endif()
+
+################################################################################
+# Find and configure Google Protocol Buffers
+################################################################################
+find_package(Protobuf REQUIRED)
+message(STATUS "Found protoc at ${Protobuf_PROTOC_EXECUTABLE}")
 
 ################################################################################
 # Global configuration types
