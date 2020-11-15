@@ -108,7 +108,7 @@ class ArmorAddonOverrideService {
       void setLocationOutfit(LocationType location, const char* name);
       void unsetLocationOutfit(LocationType location);
       std::optional<cobb::istring> getLocationOutfit(LocationType location);
-      LocationType checkLocationType(const std::unordered_set<std::string>& keywords, const WeatherFlags& weather_flags);
+      std::optional<LocationType> checkLocationType(const std::unordered_set<std::string>& keywords, const WeatherFlags& weather_flags);
       //
       bool shouldOverride() const noexcept;
       void getOutfitNames(std::vector<std::string>& out, bool favoritesOnly = false) const;
