@@ -234,6 +234,13 @@ EndFunction
          SkyOutSysQuickslotManager kQM = GetQuickslotManager()
          AddHeaderOption("$SkyOutSys_MCMHeader_Quickslots")
          AddToggleOptionST("OPT_QuickslotsEnabled", "$SkyOutSys_Text_EnableQuickslots", kQM.GetEnabled())
+         AddEmptyOption()
+         ;
+         ; Setting import/export
+         ;
+         AddHeaderOption("$SkyOutSys_Text_SettingExportImport")
+         AddTextOptionST ("OPT_ExportSettings", "$SkyOutSys_Text_Export", "")
+         AddTextOptionST ("OPT_ImportSettings", "$SkyOutSys_Text_Import", "")
       ;/EndBlock/;
       ;/Block/; ; Right column
          SetCursorPosition(1)
@@ -280,6 +287,24 @@ EndFunction
       EndEvent
       Event OnHighlightST()
          SetInfoText("$SkyOutSys_Desc_EnableAutoswitch")
+      EndEvent
+   EndState
+   State OPT_ImportSettings
+      Event OnSelectST()
+         SkyrimOutfitSystemNativeFuncs.ImportSettings()
+         ForcePageReset()
+      EndEvent
+      Event OnHighlightST()
+         SetInfoText("$SkyOutSys_Desc_Import")
+      EndEvent
+   EndState
+   State OPT_ExportSettings
+      Event OnSelectST()
+         SkyrimOutfitSystemNativeFuncs.ExportSettings()
+         ForcePageReset()
+      EndEvent
+      Event OnHighlightST()
+         SetInfoText("$SkyOutSys_Desc_Export")
       EndEvent
    EndState
 ;/EndBlock/;
