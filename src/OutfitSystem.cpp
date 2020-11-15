@@ -596,7 +596,7 @@ extern SKSESerializationInterface* g_Serialization;
             }
             return result;
         }
-        LocationType identifyLocation(RE::BGSLocation* location, RE::TESWeather* weather) {
+        std::optional<LocationType> identifyLocation(RE::BGSLocation* location, RE::TESWeather* weather) {
             // Just a helper function to classify a location.
             // TODO: Think of a better place than this since we're not exposing it to Papyrus.
             auto& service = ArmorAddonOverrideService::GetInstance();
@@ -627,7 +627,9 @@ extern SKSESerializationInterface* g_Serialization;
             return service.checkLocationType(keywords, weather_flags);
         }
         UInt32 IdentifyLocationType(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse, TESWeather* weather_skse) {
-            return static_cast<UInt32>(identifyLocation((RE::BGSLocation*) location_skse, (RE::TESWeather*) weather_skse));
+            // NOTE: Identify the location for Papyrus. In the event no location is identified, we lie to Papyrus and say "World".
+            //       Therefore, Papyrus cannot assume that locations returned have an outfit assigned, at least not for "World".
+            return static_cast<UInt32>(identifyLocation((RE::BGSLocation*) location_skse, (RE::TESWeather*) weather_skse).value_or(LocationType::World));
         }
         void SetOutfitUsingLocation(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse, TESWeather* weather_skse) {
             // NOTE: Location can be NULL.
@@ -642,7 +644,9 @@ extern SKSESerializationInterface* g_Serialization;
                 sprintf_s(message, "SOS: This location is a %s.", locationName);
                 RE::DebugNotification(message, nullptr, false);
                 */
-                service.setOutfitUsingLocation(location);
+                if (location.has_value()) {
+                    service.setOutfitUsingLocation(location.value());
+                }
             }
 
         }

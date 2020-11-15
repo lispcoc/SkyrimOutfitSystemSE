@@ -235,20 +235,14 @@ std::optional<cobb::istring> ArmorAddonOverrideService::getLocationOutfit(Locati
     }
 }
 
-LocationType ArmorAddonOverrideService::checkLocationType(const std::unordered_set<std::string>& keywords, const WeatherFlags& weather_flags) {
-    if (keywords.count("LocTypeHabitation")) {
-        return LocationType::Town;
-    } else if (keywords.count("LocTypeDungeon")) {
-        return LocationType::Dungeon;
-    }
-    // By now, we know we're in no location more specific than "World"
-    //
-    // We will now perform weather checks and return the value *only if* that
-    // weather has an outfit assigned.
-    if (weather_flags.snowy && locationOutfits.count(LocationType::WorldSnowy)) {
-        return LocationType::WorldSnowy;
-    }
-    return LocationType::World;
+#define CHECK_LOCATION(TYPE, CHECK_CODE) if (locationOutfits.count(LocationType::TYPE) && (CHECK_CODE)) return std::optional<LocationType>(LocationType::TYPE);
+
+std::optional<LocationType> ArmorAddonOverrideService::checkLocationType(const std::unordered_set<std::string>& keywords, const WeatherFlags& weather_flags) {
+    CHECK_LOCATION(Town, keywords.count("LocTypeHabitation"));
+    CHECK_LOCATION(Dungeon, keywords.count("LocTypeDungeon"));
+    CHECK_LOCATION(WorldSnowy, weather_flags.snowy);
+    CHECK_LOCATION(World, true);
+    return std::optional<LocationType>();
 }
 
 bool ArmorAddonOverrideService::shouldOverride() const noexcept {
