@@ -35,6 +35,10 @@
 
 #include <algorithm>
 
+#include "google/protobuf/util/json_util.h"
+
+// Needed for save and load of config JSON
+extern SKSESerializationInterface* g_Serialization;
 
     namespace OutfitSystem {
         SInt32 GetOutfitNameMaxLength(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
@@ -651,6 +655,55 @@
                 return BSFixedString("");
             }
         }
+        bool ExportSettings(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
+            std::string	outputFile = GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\OutfitSystemData.json";
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            proto::OutfitSystem data = service.save(g_Serialization);
+            std::string output;
+            google::protobuf::util::JsonPrintOptions options;
+            options.add_whitespace = true;
+            google::protobuf::util::MessageToJsonString(data, &output, options);
+            std::ofstream file(outputFile);
+            if (file) {
+                file << output;
+            } else {
+                RE::DebugNotification("Failed to open config for writing", nullptr, false);
+                return false;
+            }
+            if (file.good()) {
+                std::string message = "Wrote JSON config to " + outputFile;
+                RE::DebugNotification(message.c_str(), nullptr, false);
+                return true;
+            } else {
+                RE::DebugNotification("Failed to write config", nullptr, false);
+                return false;
+            }
+        }
+        bool ImportSettings(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
+            std::string	inputFile = GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\OutfitSystemData.json";
+            std::ifstream file(inputFile);
+            if (!file) {
+                RE::DebugNotification("Failed to open config for reading", nullptr, false);
+                return false;
+            }
+            std::stringstream input;
+            input << file.rdbuf();
+            if (!file.good()) {
+                RE::DebugNotification("Failed to read config data", nullptr, false);
+                return false;
+            }
+            proto::OutfitSystem data;
+            auto status = google::protobuf::util::JsonStringToMessage(input.str(), &data);
+            if (!status.ok()) {
+                RE::DebugNotification("Failed to parse config data. Invalid syntax.", nullptr, false);
+                return false;
+            }
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            service.load(g_Serialization, data);
+            std::string message = "Read JSON config from " + inputFile;
+            RE::DebugNotification(message.c_str(), nullptr, false);
+            return true;
+        }
     }
 
 
@@ -922,5 +975,18 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         GetLocationOutfit,
         registry
         ));
+    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, bool>(
+        "ExportSettings",
+        "SkyrimOutfitSystemNativeFuncs",
+        ExportSettings,
+        registry
+    ));
+    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, bool>(
+        "ImportSettings",
+        "SkyrimOutfitSystemNativeFuncs",
+        ImportSettings,
+        registry
+    ));
+
     return true;
 }
