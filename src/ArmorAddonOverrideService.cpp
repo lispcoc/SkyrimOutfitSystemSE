@@ -242,9 +242,10 @@ std::optional<LocationType> ArmorAddonOverrideService::checkLocationType(const s
     CHECK_LOCATION(CityRainy, keywords.count("LocTypeCity") && weather_flags.rainy);
     CHECK_LOCATION(City, keywords.count("LocTypeCity"));
 
-    CHECK_LOCATION(TownSnowy, keywords.count("LocTypeTown") && weather_flags.snowy);
-    CHECK_LOCATION(TownRainy, keywords.count("LocTypeTown") && weather_flags.rainy);
-    CHECK_LOCATION(Town, keywords.count("LocTypeTown"));
+    // A city is considered a town, so it will use the town outfit unless a city one is selected.
+    CHECK_LOCATION(TownSnowy, keywords.count("LocTypeTown") + keywords.count("LocTypeCity") && weather_flags.snowy);
+    CHECK_LOCATION(TownRainy, keywords.count("LocTypeTown") + keywords.count("LocTypeCity") && weather_flags.rainy);
+    CHECK_LOCATION(Town, keywords.count("LocTypeTown") + keywords.count("LocTypeCity"));
 
     CHECK_LOCATION(DungeonSnowy, keywords.count("LocTypeDungeon") && weather_flags.snowy);
     CHECK_LOCATION(DungeonRainy, keywords.count("LocTypeDungeon") && weather_flags.rainy);
