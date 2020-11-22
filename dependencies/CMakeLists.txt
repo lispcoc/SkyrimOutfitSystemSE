@@ -96,6 +96,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/skse64/src/skse64"
         )
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE PCH_COMMON_ONLY)
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE
         ../include/SKSE_PCH.h
