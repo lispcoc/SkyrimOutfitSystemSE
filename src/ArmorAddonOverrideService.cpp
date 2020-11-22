@@ -238,10 +238,18 @@ std::optional<cobb::istring> ArmorAddonOverrideService::getLocationOutfit(Locati
 #define CHECK_LOCATION(TYPE, CHECK_CODE) if (locationOutfits.count(LocationType::TYPE) && (CHECK_CODE)) return std::optional<LocationType>(LocationType::TYPE);
 
 std::optional<LocationType> ArmorAddonOverrideService::checkLocationType(const std::unordered_set<std::string>& keywords, const WeatherFlags& weather_flags) {
+    CHECK_LOCATION(TownSnowy, keywords.count("LocTypeHabitation") || weather_flags.snowy);
+    CHECK_LOCATION(TownRainy, keywords.count("LocTypeHabitation") || weather_flags.rainy);
     CHECK_LOCATION(Town, keywords.count("LocTypeHabitation"));
+
+    CHECK_LOCATION(DungeonSnowy, keywords.count("LocTypeDungeon") || weather_flags.snowy);
+    CHECK_LOCATION(DungeonRainy, keywords.count("LocTypeDungeon") || weather_flags.rainy);
     CHECK_LOCATION(Dungeon, keywords.count("LocTypeDungeon"));
+
     CHECK_LOCATION(WorldSnowy, weather_flags.snowy);
+    CHECK_LOCATION(WorldRainy, weather_flags.rainy);
     CHECK_LOCATION(World, true);
+
     return std::optional<LocationType>();
 }
 
