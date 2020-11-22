@@ -12,15 +12,25 @@ namespace RE {
 }
 
 enum class LocationType: std::uint32_t {
-    World,
-    Town,
-    Dungeon,
-    WorldSnowy
+    World = 0,
+    Town = 1,
+    Dungeon = 2,
+    City = 9,
+
+    WorldSnowy = 3,
+    TownSnowy = 4,
+    DungeonSnowy = 5,
+    CitySnowy = 10,
+
+    WorldRainy = 6,
+    TownRainy = 7,
+    DungeonRainy = 8,
+    CityRainy = 11
 };
-static const char * locationTypeStrings[] = { "overworld", "town", "dungeon", "world (snowy)" };
 
 struct WeatherFlags {
     bool snowy = false;
+    bool rainy = false;
 };
 
 struct Outfit {

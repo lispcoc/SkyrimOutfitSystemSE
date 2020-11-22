@@ -591,8 +591,21 @@ extern SKSESerializationInterface* g_Serialization;
         }
         VMResultArray<UInt32> GetAutoSwitchLocationArray(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
             VMResultArray<UInt32> result;
-            for (UInt32 i : {0, 3, 1, 2}) {
-                result.push_back(i);
+            for (LocationType i : {
+                    LocationType::World,
+                    LocationType::WorldSnowy,
+                    LocationType::WorldRainy,
+                    LocationType::City,
+                    LocationType::CitySnowy,
+                    LocationType::CityRainy,
+                    LocationType::Town,
+                    LocationType::TownSnowy,
+                    LocationType::TownRainy,
+                    LocationType::Dungeon,
+                    LocationType::DungeonSnowy,
+                    LocationType::DungeonRainy
+            }) {
+                result.push_back(UInt32(i));
             }
             return result;
         }
@@ -605,6 +618,7 @@ extern SKSESerializationInterface* g_Serialization;
             WeatherFlags weather_flags;
             if (weather) {
                 weather_flags.snowy = weather->data.flags.any(RE::TESWeather::WeatherDataFlag::kSnow);
+                weather_flags.rainy = weather->data.flags.any(RE::TESWeather::WeatherDataFlag::kRainy);
             }
 
             // Collect location keywords
