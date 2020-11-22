@@ -8,7 +8,6 @@
 #include "addrlib_offsets.h"
 #include "versiondb.h"
 
-extern VersionDb* s_versionDbBuilt;
 extern VersionDb* s_versionDbCurrent;
 
 // template<uintptr_t offset> inline uintptr_t offset_lookup() {
@@ -21,15 +20,12 @@ extern VersionDb* s_versionDbCurrent;
 // }
 
 inline uintptr_t runtime_offset_lookup(uintptr_t offset) {
-    if (!s_versionDbBuilt || !s_versionDbCurrent) {
-        s_versionDbBuilt = new VersionDb();
-        s_versionDbBuilt->Load(BUILT_AGAINST_SKYRIM_MAJOR, BUILT_AGAINST_SKYRIM_MINOR, BUILT_AGAINST_SKYRIM_REVISION, 0);
+    if (!s_versionDbCurrent) {
         s_versionDbCurrent = new VersionDb();
         s_versionDbCurrent->Load();
     }
-    uintptr_t id;
-    bool found = s_versionDbBuilt->FindIdByOffset(offset, id);
-    if (!found) {
+    auto iter = Offsets::addrMap.find(offset);
+    if (iter == Offsets::addrMap.end()) {
         char error[100];
         sprintf_s(error, "Could not find offset %p", (void*) offset);
         _ERROR("Could not find offset %p", (void*) offset);
@@ -41,7 +37,7 @@ inline uintptr_t runtime_offset_lookup(uintptr_t offset) {
         // _MESSAGE("Mapped offset %p", offset);
     }
     uintptr_t result;
-    s_versionDbCurrent->FindOffsetById(id, result);
+    s_versionDbCurrent->FindOffsetById(iter->second, result);
     return result;
 }
 
