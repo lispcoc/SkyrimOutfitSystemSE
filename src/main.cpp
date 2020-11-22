@@ -57,11 +57,12 @@ DllExport bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
         return false;
     }
 
-    if (a_skse->runtimeVersion > MAKE_EXE_VERSION(1, 5, 97) || a_skse->runtimeVersion < MAKE_EXE_VERSION(1, 5, 73))
-    {
-        _FATALERROR("[FATAL ERROR] Unsupported runtime version %08X!\n", a_skse->runtimeVersion);
-        return false;
-    }
+    // NOTE: Version check is disabled since we're trying to use the Address Library
+    // if (a_skse->runtimeVersion > MAKE_EXE_VERSION(1, 5, 97) || a_skse->runtimeVersion < MAKE_EXE_VERSION(1, 5, 73))
+    // {
+    //     _FATALERROR("[FATAL ERROR] Unsupported runtime version %08X!\n", a_skse->runtimeVersion);
+    //     return false;
+    // }
 
     g_Messaging = static_cast<SKSEMessagingInterface*>(a_skse->QueryInterface(kInterface_Messaging));
     if (!g_Messaging)
