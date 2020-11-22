@@ -15,14 +15,17 @@ enum class LocationType: std::uint32_t {
     World = 0,
     Town = 1,
     Dungeon = 2,
+    City = 9,
 
     WorldSnowy = 3,
     TownSnowy = 4,
     DungeonSnowy = 5,
+    CitySnowy = 10,
 
     WorldRainy = 6,
     TownRainy = 7,
     DungeonRainy = 8,
+    CityRainy = 11
 };
 
 struct WeatherFlags {
