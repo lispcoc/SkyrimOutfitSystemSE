@@ -35,14 +35,15 @@ struct WeatherFlags {
 
 struct Outfit {
    Outfit() {}; // we shouldn't need this, really, but std::unordered_map is a brat
-   Outfit(const char* n) : name(n), isFavorite(false) {};
+   Outfit(const char* n) : name(n), isFavorite(false), allowsPassthrough(true) {};
    Outfit(const Outfit& other) = default;
-   Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false) {
+   Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false), allowsPassthrough(true) {
       this->armors = other.armors;
    }
    std::string name; // can't be const; prevents assigning to Outfit vars
    std::set<RE::TESObjectARMO*> armors;
    bool isFavorite;
+   bool allowsPassthrough;
 
    bool conflictsWith(RE::TESObjectARMO*) const;
    bool hasShield() const;
