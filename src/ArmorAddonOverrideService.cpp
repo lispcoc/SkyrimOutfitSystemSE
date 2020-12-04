@@ -73,6 +73,7 @@ void Outfit::load(const proto::Outfit& proto, SKSESerializationInterface* intfc)
         }
     }
     this->isFavorite = proto.is_favorite();
+    this->allowsPassthrough = proto.allows_passthrough();
 }
 
 proto::Outfit Outfit::save(SKSESerializationInterface*) const {
@@ -84,6 +85,7 @@ proto::Outfit Outfit::save(SKSESerializationInterface*) const {
        if (armor) out.add_armors(armor->formID);
    }
    out.set_is_favorite(this->isFavorite);
+   out.set_allows_passthrough(this->allowsPassthrough);
    return out;
 }
 
