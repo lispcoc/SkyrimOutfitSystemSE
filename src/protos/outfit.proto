@@ -6,6 +6,8 @@ message Outfit {
   string name = 1;
   repeated uint32 armors = 2; // A list of formIDs that will be resolved as pointers to RE::TESObjectARMO
   bool is_favorite = 3;
+  bool allows_passthrough = 4;
+  bool requires_equipped = 5;
 }
 
 message OutfitSystem {

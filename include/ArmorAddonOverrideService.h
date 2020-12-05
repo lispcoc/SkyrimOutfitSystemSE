@@ -35,17 +35,20 @@ struct WeatherFlags {
 
 struct Outfit {
    Outfit() {}; // we shouldn't need this, really, but std::unordered_map is a brat
-   Outfit(const char* n) : name(n), isFavorite(false) {};
+   Outfit(const char* n) : name(n), isFavorite(false), allowsPassthrough(false), requiresEquipped(false) {};
    Outfit(const Outfit& other) = default;
-   Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false) {
+   Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false), allowsPassthrough(false), requiresEquipped(false) {
       this->armors = other.armors;
    }
    std::string name; // can't be const; prevents assigning to Outfit vars
-   std::set<RE::TESObjectARMO*> armors;
+   std::unordered_set<RE::TESObjectARMO*> armors;
    bool isFavorite;
+   bool allowsPassthrough;
+   bool requiresEquipped;
 
    bool conflictsWith(RE::TESObjectARMO*) const;
    bool hasShield() const;
+   std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equipped);
 
    void load(const proto::Outfit& proto, SKSESerializationInterface*);
    [[deprecated]] void load_legacy(SKSESerializationInterface* intfc, UInt32 version); // can throw ArmorAddonOverrideService::load_error
@@ -109,6 +112,8 @@ class ArmorAddonOverrideService {
       bool hasOutfit(const char* name) const;
       void deleteOutfit(const char* name);
       void setFavorite(const char* name, bool favorite);
+      void setOutfitPassthrough(const char* name, bool allowPassthrough);
+      void setOutfitEquipRequired(const char* name, bool requiresEquipped);
       void modifyOutfit(const char* name, std::vector<RE::TESObjectARMO*>& add, std::vector<RE::TESObjectARMO*>& remove, bool createIfMissing = false); // can throw bad_name if (createIfMissing)
       void renameOutfit(const char* oldName, const char* newName); // throws name_conflict if the new name is already taken; can throw bad_name; throws std::out_of_range if the oldName doesn't exist
       void setOutfit(const char* name);
