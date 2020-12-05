@@ -35,18 +35,20 @@ struct WeatherFlags {
 
 struct Outfit {
    Outfit() {}; // we shouldn't need this, really, but std::unordered_map is a brat
-   Outfit(const char* n) : name(n), isFavorite(false), allowsPassthrough(true) {};
+   Outfit(const char* n) : name(n), isFavorite(false), allowsPassthrough(false), requiresEquipped(false) {};
    Outfit(const Outfit& other) = default;
-   Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false), allowsPassthrough(true) {
+   Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false), allowsPassthrough(false), requiresEquipped(false) {
       this->armors = other.armors;
    }
    std::string name; // can't be const; prevents assigning to Outfit vars
-   std::set<RE::TESObjectARMO*> armors;
+   std::unordered_set<RE::TESObjectARMO*> armors;
    bool isFavorite;
    bool allowsPassthrough;
+   bool requiresEquipped;
 
    bool conflictsWith(RE::TESObjectARMO*) const;
    bool hasShield() const;
+   std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equipped);
 
    void load(const proto::Outfit& proto, SKSESerializationInterface*);
    [[deprecated]] void load_legacy(SKSESerializationInterface* intfc, UInt32 version); // can throw ArmorAddonOverrideService::load_error
