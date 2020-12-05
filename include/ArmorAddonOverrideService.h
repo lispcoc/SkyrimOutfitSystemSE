@@ -112,6 +112,8 @@ class ArmorAddonOverrideService {
       bool hasOutfit(const char* name) const;
       void deleteOutfit(const char* name);
       void setFavorite(const char* name, bool favorite);
+      void setOutfitPassthrough(const char* name, bool allowPassthrough);
+      void setOutfitEquipRequired(const char* name, bool requiresEquipped);
       void modifyOutfit(const char* name, std::vector<RE::TESObjectARMO*>& add, std::vector<RE::TESObjectARMO*>& remove, bool createIfMissing = false); // can throw bad_name if (createIfMissing)
       void renameOutfit(const char* oldName, const char* newName); // throws name_conflict if the new name is already taken; can throw bad_name; throws std::out_of_range if the oldName doesn't exist
       void setOutfit(const char* name);

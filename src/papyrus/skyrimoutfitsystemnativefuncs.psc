@@ -66,6 +66,10 @@ Bool     Function ArmorConflictsWithOutfit (Armor akTest, String asOutfitName) G
 Armor[]  Function GetOutfitContents (String asOutfitName) Global Native
 Bool     Function GetOutfitFavoriteStatus(String asOutfitName) Global Native
          Function SetOutfitFavoriteStatus(String asOutfitName, Bool abFavorite) Global Native
+Bool     Function GetOutfitPassthroughStatus(String asOutfitName) Global Native
+         Function SetOutfitPassthroughStatus(String asOutfitName, Bool abPassthrough) Global Native
+Bool     Function GetOutfitEquipRequiredStatus(String asOutfitName) Global Native
+         Function SetOutfitEquipRequiredStatus(String asOutfitName, Bool asEquipRequired) Global Native
 String   Function GetSelectedOutfit () Global Native
 Bool     Function IsEnabled         () Global Native
 String[] Function ListOutfits       (Bool favoritesOnly = False) Global Native
