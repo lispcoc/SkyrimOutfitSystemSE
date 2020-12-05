@@ -156,7 +156,7 @@ EndFunction
          Return
       EndIf
       If StringUtil.Substring(sState, 0, 22) == "OutfitEditor_BodySlot_"
-         Int iEntryIndex = (_iOutfitEditorBodySlotPage*8) + (StringUtil.Substring(sState, 22) as Int) ;;pagination fix
+         Int iEntryIndex = (_iOutfitEditorBodySlotPage*8) + (StringUtil.Substring(sState, 22) as Int)
          String sArmorName = _sOutfitSlotArmors[iEntryIndex]
          Armor  kArmorForm = _kOutfitSlotArmors[iEntryIndex]
          Bool bDelete = ShowMessage("$SkyOutSys_Confirm_RemoveArmor_Text{" + sArmorName + "}", True, "$SkyOutSys_Confirm_RemoveArmor_Yes", "$SkyOutSys_Confirm_RemoveArmor_No")
