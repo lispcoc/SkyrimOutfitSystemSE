@@ -466,7 +466,31 @@ extern SKSESerializationInterface* g_Serialization;
             }
             return result;
         }
-        BSFixedString GetSelectedOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
+        bool GetOutfitPassthroughStatus(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name) {
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            bool result = false;
+            try {
+                auto& outfit = service.getOutfit(name.data);
+                result = outfit.allowsPassthrough;
+            }
+            catch (std::out_of_range) {
+                registry->LogWarning("The specified outfit does not exist.", stackId);
+            }
+            return result;
+        }
+        bool GetOutfitEquipRequiredStatus(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name) {
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            bool result = false;
+            try {
+                auto& outfit = service.getOutfit(name.data);
+                result = outfit.requiresEquipped;
+            }
+            catch (std::out_of_range) {
+                registry->LogWarning("The specified outfit does not exist.", stackId);
+            }
+            return result;
+        }
+    BSFixedString GetSelectedOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
             auto& service = ArmorAddonOverrideService::GetInstance();
             return service.currentOutfit().name.c_str();
         }
@@ -544,7 +568,15 @@ extern SKSESerializationInterface* g_Serialization;
             auto& service = ArmorAddonOverrideService::GetInstance();
             service.setFavorite(name.data, favorite);
         }
-        bool OutfitExists(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name) {
+        void SetOutfitPassthroughStatus(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name, bool allowsPassthrough) {
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            service.setOutfitPassthrough(name.data, allowsPassthrough);
+        }
+        void SetOutfitEquipRequiredStatus(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name, bool equipRequired) {
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            service.setOutfitEquipRequired(name.data, equipRequired);
+        }
+    bool OutfitExists(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name) {
             auto& service = ArmorAddonOverrideService::GetInstance();
             return service.hasOutfit(name.data);
         }
@@ -889,11 +921,35 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         GetOutfitFavoriteStatus,
         registry
     ));
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, bool, BSFixedString>(
+            "GetOutfitPassthroughStatus",
+            "SkyrimOutfitSystemNativeFuncs",
+            GetOutfitPassthroughStatus,
+            registry
+    ));
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, bool, BSFixedString>(
+            "GetOutfitEquipRequiredStatus",
+            "SkyrimOutfitSystemNativeFuncs",
+            GetOutfitEquipRequiredStatus,
+            registry
+    ));
     registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, bool>(
         "SetOutfitFavoriteStatus",
         "SkyrimOutfitSystemNativeFuncs",
         SetOutfitFavoriteStatus,
         registry
+    ));
+    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, bool>(
+            "SetOutfitPassthroughStatus",
+            "SkyrimOutfitSystemNativeFuncs",
+            SetOutfitPassthroughStatus,
+            registry
+    ));
+    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, bool>(
+            "SetOutfitEquipRequiredStatus",
+            "SkyrimOutfitSystemNativeFuncs",
+            SetOutfitEquipRequiredStatus,
+            registry
     ));
     registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, bool>(
         "IsEnabled",

@@ -565,6 +565,11 @@ EndFunction
             AddMenuOptionST  ("OutfitEditor_AddFromList_Menu",     "$SkyOutSys_OEdit_AddFromList_Search", "")
             AddInputOptionST ("OutfitEditor_AddFromList_Filter",   "$SkyOutSys_OEdit_AddFromList_Filter_Name", _sOutfitEditor_AddFromList_Filter)
             AddToggleOptionST("OutfitEditor_AddFromList_Playable", "$SkyOutSys_OEdit_AddFromList_Filter_Playable", _bOutfitEditor_AddFromList_Playable)
+            AddEmptyOption()
+            AddHeaderOption  ("$SkyOutSys_OEdit_OutfitSettings_Header")
+            AddToggleOptionST("OutfitEditor_ToggleAllowPassthrough", "$SkyOutSys_OEdit_ToggleAllowPassthrough", SkyrimOutfitSystemNativeFuncs.GetOutfitPassthroughStatus(_sEditingOutfit))
+            AddToggleOptionST("OutfitEditor_ToggleRequireEquipped", "$SkyOutSys_OEdit_ToggleRequireEquipped", SkyrimOutfitSystemNativeFuncs.GetOutfitEquipRequiredStatus(_sEditingOutfit))
+
             ;
             ; All add functions must fail if the armor already exists 
             ; in the item (though that shouldn't cause problems on the 
@@ -866,6 +871,24 @@ EndFunction
                _bOutfitEditor_AddFromList_Playable = !_bOutfitEditor_AddFromList_Playable
                SetToggleOptionValueST(_bOutfitEditor_AddFromList_Playable)
             EndEvent
+         EndState
+         State OutfitEditor_ToggleAllowPassthrough
+            Event OnSelectST()
+               SkyrimOutfitSystemNativeFuncs.SetOutfitPassthroughStatus(_sEditingOutfit, !SkyrimOutfitSystemNativeFuncs.GetOutfitPassthroughStatus(_sEditingOutfit))
+               SetToggleOptionValueST(SkyrimOutfitSystemNativeFuncs.GetOutfitPassthroughStatus(_sEditingOutfit))
+            EndEvent
+            Event OnHighlightST()
+               SetInfoText("$SkyOutSys_OEdit_ToggleAllowPassthrough_Desc")
+            EndEvent
+         EndState
+         State OutfitEditor_ToggleRequireEquipped
+            Event OnSelectST()
+               SkyrimOutfitSystemNativeFuncs.SetOutfitEquipRequiredStatus(_sEditingOutfit, !SkyrimOutfitSystemNativeFuncs.GetOutfitEquipRequiredStatus(_sEditingOutfit))
+               SetToggleOptionValueST(SkyrimOutfitSystemNativeFuncs.GetOutfitEquipRequiredStatus(_sEditingOutfit))
+            EndEvent
+            Event OnHighlightST()
+               SetInfoText("$SkyOutSys_OEdit_ToggleRequireEquipped_Desc")
+            EndEvent      
          EndState
       ;/EndBlock/;
    ;/EndBlock/;

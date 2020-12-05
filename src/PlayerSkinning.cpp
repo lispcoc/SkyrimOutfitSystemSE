@@ -23,27 +23,54 @@ namespace OutfitSystem
         return target == RE::PlayerCharacter::GetSingleton();
     }
 
-    const std::set<RE::TESObjectARMO*>& GetOverrideArmors()
+    const std::unordered_set<RE::TESObjectARMO*>& GetOverrideArmors()
     {
         auto& svc = ArmorAddonOverrideService::GetInstance();
         return svc.currentOutfit().armors;
     }
+
+    class EquippedArmorVisitor : public RE::InventoryChanges::IItemChangeVisitor {
+        //
+        // If the player has a shield equipped, and if we're not overriding that
+        // shield, then we need to grab the equipped shield's worn-flags.
+        //
+    public:
+        virtual ReturnType Visit(RE::InventoryEntryData* data) override {
+            auto form = data->object;
+            if (form && form->formType == RE::FormType::Armor) {
+                auto armor = reinterpret_cast<RE::TESObjectARMO*>(form);
+                equipped.emplace(armor);
+            }
+            return ReturnType::kContinue; // Return true to "continue visiting".
+        };
+
+        std::unordered_set<RE::TESObjectARMO*> equipped;
+    };
 
     REL::ID TESObjectARMO_ApplyArmorAddon(17392); // 0x00228AD0 in 1.5.73
 
     namespace DontVanillaSkinPlayer
     {
         bool _stdcall ShouldOverride(RE::TESObjectARMO* armor, RE::TESObjectREFR* target) {
-            if (!ShouldOverrideSkinning(target))
-                return false;
-            if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
-                auto& svc = ArmorAddonOverrideService::GetInstance();
-                auto& outfit = svc.currentOutfit();
-                if (!outfit.hasShield()) {
-                    return false;
-                }
+            if (!ShouldOverrideSkinning(target)) return false;
+            auto& svc = ArmorAddonOverrideService::GetInstance();
+            auto& outfit = svc.currentOutfit();
+            auto actor = reinterpret_cast<RE::Actor*>(Runtime_DynamicCast(static_cast<RE::TESObjectREFR*>(target), RTTI_TESObjectREFR, RTTI_Actor));
+            if (!actor) {
+                // Actor failed to cast...
+                _MESSAGE("ShouldOverride: Failed to cast target to Actor.");
+                return true;
             }
-            return true;
+            auto inventory = target->GetInventoryChanges();
+            EquippedArmorVisitor visitor;
+            if (inventory) {
+                inventory->ExecuteVisitorOnWorn(&visitor);
+            } else {
+                _MESSAGE("ShouldOverride: Unable to get target inventory.");
+                return true;
+            }
+            // Block the item (return true) if the item isn't in the display set.
+            return outfit.computeDisplaySet(visitor.equipped).count(armor) == 0;
         }
 
         REL::ID DontVanillaSkinPlayer_Hook_ID(24232);
@@ -105,52 +132,17 @@ namespace OutfitSystem
 
     namespace ShimWornFlags
     {
-        class _ShieldVisitor : public RE::InventoryChanges::IItemChangeVisitor {
-            //
-            // If the player has a shield equipped, and if we're not overriding that 
-            // shield, then we need to grab the equipped shield's worn-flags.
-            //
-        public:
-            virtual ReturnType Visit(RE::InventoryEntryData* data) override {
-                auto form = data->object;
-                if (form && form->formType == RE::FormType::Armor) {
-                    auto armor = reinterpret_cast<RE::TESObjectARMO*>(form);
-                    if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
-                        this->mask |= static_cast<UInt32>(armor->GetSlotMask());
-                        this->hasShield = true;
-                    }
-                }
-                return ReturnType::kContinue; // Return true to "continue visiting".
-            };
-
-            UInt32 mask = 0;
-            bool   hasShield = false;
-        };
-
         UInt32 OverrideWornFlags(RE::InventoryChanges * inventory) {
             UInt32 mask = 0;
             //
             auto& svc = ArmorAddonOverrideService::GetInstance();
             auto& outfit = svc.currentOutfit();
-            auto& armors = outfit.armors;
-            bool  shield = false;
-            if (!outfit.hasShield()) {
-                _ShieldVisitor visitor;
-                inventory->ExecuteVisitorOnWorn(&visitor);
-                mask |= visitor.mask;
-                shield = visitor.hasShield;
+            EquippedArmorVisitor visitor;
+            inventory->ExecuteVisitorOnWorn(&visitor);
+            auto displaySet = outfit.computeDisplaySet(visitor.equipped);
+            for (auto& armor : displaySet) {
+                mask |= static_cast<UInt32>(armor->GetSlotMask());
             }
-            for (auto armor : armors)
-            {
-                if (armor) {
-                    if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
-                        if (!shield)
-                            continue;
-                    }
-                    mask |= static_cast<UInt32>(armor->GetSlotMask());
-                }
-            }
-            //
             return mask;
         }
 
@@ -218,27 +210,8 @@ namespace OutfitSystem
 
     namespace CustomSkinPlayer
     {
-        class _ShieldVisitor : public RE::InventoryChanges::IItemChangeVisitor {
-            //
-            // If the player has a shield equipped, and if we're not overriding that 
-            // shield, then we need to grab the equipped shield's worn-flags.
-            //
-        public:
-            virtual ReturnType Visit(RE::InventoryEntryData* data) override {
-                auto form = data->object;
-                if (form && form->formType == RE::FormType::Armor) {
-                    auto armor = reinterpret_cast<RE::TESObjectARMO*>(form);
-                    if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
-                        this->result = true;
-                        return ReturnType::kBreak; // False halt visitor early
-                    }
-                }
-                return ReturnType::kContinue; // True to continue visiting
-            };
-            bool result = false;
-        };
-
         void Custom(RE::Actor* target, RE::ActorWeightModel * actorWeightModel) {
+            // Get basic actor information (race and sex)
             if (!actorWeightModel)
                 return;
             auto base = reinterpret_cast<RE::TESNPC*>(Runtime_DynamicCast(static_cast<RE::TESForm*>(target->data.objectReference), RTTI_TESForm, RTTI_TESNPC));
@@ -247,26 +220,39 @@ namespace OutfitSystem
             auto race = base->race;
             bool isFemale = base->IsFemale();
             //
-            auto& armors = GetOverrideArmors();
-            for (auto it = armors.cbegin(); it != armors.cend(); ++it) {
+            auto& svc = ArmorAddonOverrideService::GetInstance();
+            auto& outfit = svc.currentOutfit();
+
+            // Get actor inventory and equipped items
+            auto actor = reinterpret_cast<RE::Actor*>(Runtime_DynamicCast(static_cast<RE::TESObjectREFR*>(target), RTTI_TESObjectREFR, RTTI_Actor));
+            if (!actor) {
+                // Actor failed to cast...
+                _MESSAGE("Custom: Failed to cast target to Actor.");
+                return;
+            }
+            auto inventory = target->GetInventoryChanges();
+            EquippedArmorVisitor visitor;
+            if (inventory) {
+                inventory->ExecuteVisitorOnWorn(&visitor);
+            } else {
+                _MESSAGE("Custom: Unable to get target inventory.");
+                return;
+            }
+
+            // Compute the display set.
+            auto displaySet = outfit.computeDisplaySet(visitor.equipped);
+
+            // Compute the remaining items to be applied to the player
+            // We assume that the DontVanillaSkinPlayer already passed through
+            // the equipped items that will be shown, so we only need to worry about the items that
+            // are not equipped but which are in the outfit or which are masked by the outfit.
+            std::unordered_set<RE::TESObjectARMO*> applySet;
+            std::set_difference(displaySet.begin(), displaySet.end(), visitor.equipped.begin(), visitor.equipped.end(), std::inserter(applySet, applySet.begin()));
+
+            for (auto it = applySet.cbegin(); it != applySet.cend(); ++it) {
+                // TODO: [SlotPassthru] Also do the same iteration over the passthrough equipped items?
                 RE::TESObjectARMO* armor = *it;
                 if (armor) {
-                    if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
-                        //
-                        // We should only apply a shield's armor-addons if the player has 
-                        // a shield equipped.
-                        //
-                        auto inventory = target->GetInventoryChanges();
-                        if (inventory) {
-                            _ShieldVisitor visitor;
-                            inventory->ExecuteVisitorOnWorn(&visitor);
-                            if (!visitor.result)
-                                continue;
-                        }
-                        else {
-                            _MESSAGE("OverridePlayerSkinning: Outfit has a shield; unable to check whether the player has a shield equipped.");
-                        }
-                    }
                     armor->ApplyArmorAddon(race, actorWeightModel, isFemale);
                 }
             }
@@ -366,6 +352,7 @@ namespace OutfitSystem
             //
         public:
             virtual ReturnType Visit(RE::InventoryEntryData* data) override {
+                // TODO: [SlotPassthru] We might be able to leave this as-is.
                 auto form = data->object;
                 if (form && form->formType == RE::FormType::Armor) {
                     auto armor = reinterpret_cast<RE::TESObjectARMO*>(form);
