@@ -40,6 +40,107 @@ bool Outfit::hasShield() const {
    return false;
 };
 
+std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equipped) {
+    std::unordered_set<RE::TESObjectARMO*> result;
+
+    // Handle whatever combination of flags we have for how passthrough and equip requirements work.
+    if (!allowsPassthrough && !requiresEquipped) {
+        // The usual behavior: Don't allow passthrough of any slot and unconditionally apply the outfit items.
+
+        // The result is just my own armors...
+        result = armors;
+    } else if (allowsPassthrough && !requiresEquipped) {
+        // The much requested behavior. Allow compatible armors to show through the outfit
+
+        // The result is just my own armors...
+        result = armors;
+
+        // And now append equipped armors that *are compatible*.
+        for (auto candidate : equipped) {
+            if (!conflictsWith(candidate)) {
+                result.emplace(candidate);
+            }
+        }
+    } else if (!allowsPassthrough && requiresEquipped) {
+        // No passthrough, but do require that items are equipped to show their overrides.
+
+        // Get the effective mask of all equipped armors
+        UInt32 equippedMask = 0;
+        for (const auto armor : equipped) {
+            equippedMask |= static_cast<UInt32>(armor->GetSlotMask());
+        }
+
+        // Only add my armors if they are covered by the equip mask
+        for (const auto armor : armors) {
+            UInt32 armorMask = static_cast<UInt32>(armor->GetSlotMask());
+            if ((armorMask & equippedMask) == armorMask) {
+                result.emplace(armor);
+            }
+        }
+    } else if (allowsPassthrough && requiresEquipped) {
+        // Allow passthrough and also require that outfit items are equipped to show.
+
+        // Get the effective mask of all equipped armors
+        UInt32 equippedMask = 0;
+        for (const auto armor : equipped) {
+            equippedMask |= static_cast<UInt32>(armor->GetSlotMask());
+        }
+
+        // Only add my armors if they are covered by the equip mask
+        for (const auto armor : armors) {
+            UInt32 armorMask = static_cast<UInt32>(armor->GetSlotMask());
+            if ((armorMask & equippedMask) == armorMask) {
+                result.emplace(armor);
+            }
+        }
+
+        // And now append equipped armors that *are compatible*.
+        for (auto candidate : equipped) {
+            if (!conflictsWith(candidate)) {
+                result.emplace(candidate);
+            }
+        }
+    }
+
+    // IN ALL CASES -- SPECIAL SHIELD HANDLING
+    // Check if the equipped and outfit have shields and save them.
+    std::optional<RE::TESObjectARMO*> equippedShield;
+    std::optional<RE::TESObjectARMO*> outfitShield;
+    for (const auto armor : equipped) {
+        if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
+            equippedShield = armor;
+            break;
+        }
+    }
+    for (const auto armor : armors) {
+        if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
+            outfitShield = armor;
+            break;
+        }
+    }
+
+    // Unconditionally erase shields from the result, so that we can apply the correct one (if any)
+    for (auto it = result.begin(); it != result.end(); ++it) {
+        if (((*it)->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
+            result.erase(it);
+        }
+    }
+
+    // Add the correct shield to the outfit.
+    if (!equippedShield.has_value()) {
+        // No equipped shield. No shield will be added.
+    } else if (equippedShield.has_value() && !outfitShield.has_value()) {
+        // Equipped shield, but nothing in the outfit. Use the equipped shield.
+        result.emplace(equippedShield.value());
+    } else if (equippedShield.has_value() && outfitShield.has_value()) {
+        // Equipped shield, and outfit has shield. Use the outfit shield.
+        result.emplace(outfitShield.value());
+    }
+    // END SHIELD HANDLING
+
+    return result;
+};
+
 void Outfit::load_legacy(SKSESerializationInterface* intfc, UInt32 version) {
    using namespace Serialization;
    //
@@ -74,6 +175,7 @@ void Outfit::load(const proto::Outfit& proto, SKSESerializationInterface* intfc)
     }
     this->isFavorite = proto.is_favorite();
     this->allowsPassthrough = proto.allows_passthrough();
+    this->requiresEquipped = proto.requires_equipped();
 }
 
 proto::Outfit Outfit::save(SKSESerializationInterface*) const {
@@ -86,6 +188,7 @@ proto::Outfit Outfit::save(SKSESerializationInterface*) const {
    }
    out.set_is_favorite(this->isFavorite);
    out.set_allows_passthrough(this->allowsPassthrough);
+   out.set_requires_equipped(this->requiresEquipped);
    return out;
 }
 
