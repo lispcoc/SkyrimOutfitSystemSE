@@ -256,6 +256,19 @@ void ArmorAddonOverrideService::setFavorite(const char* name, bool favorite) {
       outfit->second.isFavorite = favorite;
 }
 
+void ArmorAddonOverrideService::setOutfitPassthrough(const char* name, bool allowPassthrough) {
+    auto outfit = this->outfits.find(name);
+    if (outfit != this->outfits.end())
+        outfit->second.allowsPassthrough = allowPassthrough;
+}
+
+void ArmorAddonOverrideService::setOutfitEquipRequired(const char* name, bool requiresEquipped) {
+    auto outfit = this->outfits.find(name);
+    if (outfit != this->outfits.end())
+        outfit->second.requiresEquipped = requiresEquipped;
+}
+
+
 void ArmorAddonOverrideService::modifyOutfit(const char* name, std::vector<RE::TESObjectARMO*>& add, std::vector<RE::TESObjectARMO*>& remove, bool createIfMissing) {
    try {
       Outfit& target = this->getOutfit(name);
