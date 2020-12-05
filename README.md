@@ -62,6 +62,8 @@ Once the project is successfully configured, build it by running
 
     ninja -j
 
+ > **NOTE:** `ninja` is the only supported build tool. MSBuild may or may not work.
+
 In a few moments, you should have `SkyrimOutfitSystemSE.dll` in the `mod_files` folder.
 
 ### Building the Papyrus code
