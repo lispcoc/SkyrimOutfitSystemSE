@@ -337,18 +337,18 @@ EndFunction
             AddHeaderOption("$SkyOutSys_MCMHeader_OutfitList")
             If _sOutfitNames.Length > 11 ; too many to fit on one screen
                Int iCount     = _sOutfitNames.Length
-               Int iPageCount = iCount / 8
-               If iPageCount * 8 < iCount
+               Int iPageCount = iCount / 11 ;; Kwek - the separator and buttons are on a different column, so can use all real estate
+               If iPageCount * 11 < iCount
                   iPageCount = iPageCount + 1
                EndIf
                If _iOutfitBrowserPage >= iPageCount
                   _iOutfitBrowserPage = iPageCount - 1
                EndIf
-               Int iOffset    = _iOutfitBrowserPage * 8
+               Int iOffset    = _iOutfitBrowserPage * 11
                Int iIterator  = 0
-               Int iMax       = iCount - _iOutfitBrowserPage
-               If iMax > 8 ; (visible - 3) -- make room for page separator and buttons
-                  iMax = 8
+               Int iMax       = iCount - iOffset  ;;Kwek - use iOffset instead of _iOutfitBrowserPage yields correct result, else weirdness ensues
+               If iMax > 11 ;; Kwek - the separator and buttons are on a different column, so can use all real estate
+                  iMax = 11
                EndIf
                While iIterator < iMax
                   String sName = _sOutfitNames[iIterator + iOffset]
