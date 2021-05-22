@@ -3,6 +3,10 @@
 #include <set>
 #include <unordered_map>
 #include <vector>
+#pragma warning( push )
+#pragma warning( disable : 5053 ) // CommonLibSSE uses explicit(<expr>) vendor extension.
+#include <RE/FormComponents/TESForm/TESObjectREFR/Actor/Actor.h>
+#pragma warning( pop )
 
 #include "cobb/strings.h"
 #include "outfit.pb.h"
@@ -91,12 +95,15 @@ class ArmorAddonOverrideService {
          }
       };
    public:
+      struct ActorOutfitAssignments {
+        cobb::istring currentOutfitName = g_noOutfitName;
+        std::map<LocationType, cobb::istring> locationOutfits;
+      };
       bool enabled = true;
-      cobb::istring currentOutfitName = g_noOutfitName;
       std::map<cobb::istring, Outfit> outfits;
+      std::map<RE::Actor*, ActorOutfitAssignments> actorOutfitAssignments;
       // Location-based switching
       bool locationBasedAutoSwitchEnabled = false;
-      std::map<LocationType, cobb::istring> locationOutfits;
       //
       static ArmorAddonOverrideService& GetInstance() {
          static ArmorAddonOverrideService instance;
@@ -108,7 +115,7 @@ class ArmorAddonOverrideService {
       //
       void addOutfit(const char* name); // can throw bad_name
       void addOutfit(const char* name, std::vector<RE::TESObjectARMO*> armors); // can throw bad_name
-      Outfit& currentOutfit();
+      Outfit& currentOutfit(RE::Actor* target);
       bool hasOutfit(const char* name) const;
       void deleteOutfit(const char* name);
       void setFavorite(const char* name, bool favorite);
@@ -116,16 +123,16 @@ class ArmorAddonOverrideService {
       void setOutfitEquipRequired(const char* name, bool requiresEquipped);
       void modifyOutfit(const char* name, std::vector<RE::TESObjectARMO*>& add, std::vector<RE::TESObjectARMO*>& remove, bool createIfMissing = false); // can throw bad_name if (createIfMissing)
       void renameOutfit(const char* oldName, const char* newName); // throws name_conflict if the new name is already taken; can throw bad_name; throws std::out_of_range if the oldName doesn't exist
-      void setOutfit(const char* name);
+      void setOutfit(const char* name, RE::Actor* target);
       //
       void setLocationBasedAutoSwitchEnabled(bool) noexcept;
-      void setOutfitUsingLocation(LocationType location);
-      void setLocationOutfit(LocationType location, const char* name);
-      void unsetLocationOutfit(LocationType location);
-      std::optional<cobb::istring> getLocationOutfit(LocationType location);
-      std::optional<LocationType> checkLocationType(const std::unordered_set<std::string>& keywords, const WeatherFlags& weather_flags);
+      void setOutfitUsingLocation(LocationType location, RE::Actor* target);
+      void setLocationOutfit(LocationType location, const char* name, RE::Actor* target);
+      void unsetLocationOutfit(LocationType location, RE::Actor* target);
+      std::optional<cobb::istring> getLocationOutfit(LocationType location, RE::Actor* target);
+      std::optional<LocationType> checkLocationType(const std::unordered_set<std::string>& keywords, const WeatherFlags& weather_flags, RE::Actor* target);
       //
-      bool shouldOverride() const noexcept;
+      bool shouldOverride(RE::Actor* target) const noexcept;
       void getOutfitNames(std::vector<std::string>& out, bool favoritesOnly = false) const;
       void setEnabled(bool) noexcept;
       //

@@ -18,15 +18,9 @@ namespace OutfitSystem
 {
     bool ShouldOverrideSkinning(RE::TESObjectREFR * target)
     {
-        if (!ArmorAddonOverrideService::GetInstance().shouldOverride())
+        if (!ArmorAddonOverrideService::GetInstance().shouldOverride((RE::Actor *) target))
             return false;
         return target == RE::PlayerCharacter::GetSingleton();
-    }
-
-    const std::unordered_set<RE::TESObjectARMO*>& GetOverrideArmors()
-    {
-        auto& svc = ArmorAddonOverrideService::GetInstance();
-        return svc.currentOutfit().armors;
     }
 
     class EquippedArmorVisitor : public RE::InventoryChanges::IItemChangeVisitor {
@@ -54,7 +48,7 @@ namespace OutfitSystem
         bool _stdcall ShouldOverride(RE::TESObjectARMO* armor, RE::TESObjectREFR* target) {
             if (!ShouldOverrideSkinning(target)) return false;
             auto& svc = ArmorAddonOverrideService::GetInstance();
-            auto& outfit = svc.currentOutfit();
+            auto& outfit = svc.currentOutfit((RE::Actor *) target);
             auto actor = reinterpret_cast<RE::Actor*>(Runtime_DynamicCast(static_cast<RE::TESObjectREFR*>(target), RTTI_TESObjectREFR, RTTI_Actor));
             if (!actor) {
                 // Actor failed to cast...
@@ -132,11 +126,11 @@ namespace OutfitSystem
 
     namespace ShimWornFlags
     {
-        UInt32 OverrideWornFlags(RE::InventoryChanges * inventory) {
+        UInt32 OverrideWornFlags(RE::InventoryChanges * inventory, RE::TESObjectREFR * target) {
             UInt32 mask = 0;
             //
             auto& svc = ArmorAddonOverrideService::GetInstance();
-            auto& outfit = svc.currentOutfit();
+            auto& outfit = svc.currentOutfit((RE::Actor *) target);
             EquippedArmorVisitor visitor;
             inventory->ExecuteVisitorOnWorn(&visitor);
             auto displaySet = outfit.computeDisplaySet(visitor.equipped);
@@ -180,7 +174,12 @@ namespace OutfitSystem
                         jmp(j_Out);
 
                         L(j_SuppressVanilla);
+                        push(rdx);
+                        mov(rdx, rsi);
+                        sub(rsp, 0x20);
                         call(ptr[rip + f_OverrideWornFlags]);
+                        add(rsp, 0x20);
+                        pop(rdx);
 
                         L(j_Out);
                         jmp(ptr[rip]);
@@ -221,7 +220,7 @@ namespace OutfitSystem
             bool isFemale = base->IsFemale();
             //
             auto& svc = ArmorAddonOverrideService::GetInstance();
-            auto& outfit = svc.currentOutfit();
+            auto& outfit = svc.currentOutfit((RE::Actor *) target);
 
             // Get actor inventory and equipped items
             auto actor = reinterpret_cast<RE::Actor*>(Runtime_DynamicCast(static_cast<RE::TESObjectREFR*>(target), RTTI_TESObjectREFR, RTTI_Actor));

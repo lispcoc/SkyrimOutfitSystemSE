@@ -1,7 +1,10 @@
+#include <RE/Misc/Misc.h>
 #include "ArmorAddonOverrideService.h"
 #pragma warning( push )
 #pragma warning( disable : 5053 ) // CommonLibSSE uses explicit(<expr>) vendor extension.
 #include "RE/FormComponents/TESForm/TESObject/TESBoundObject/TESObjectARMO.h"
+#include "RE/FormComponents/TESForm/TESObjectREFR/Actor/Character/PlayerCharacter.h"
+#include "RE/Misc/Misc.h"
 #pragma warning( pop )
 #include "skse64/GameForms.h"
 #include "skse64/GameRTTI.h"
@@ -220,11 +223,13 @@ void ArmorAddonOverrideService::addOutfit(const char* name, std::vector<RE::TESO
          created.armors.insert(armor);
    }
 }
-Outfit& ArmorAddonOverrideService::currentOutfit() {
-   if (this->currentOutfitName == g_noOutfitName)
+Outfit& ArmorAddonOverrideService::currentOutfit(RE::Actor* target) {
+   if (this->actorOutfitAssignments.count(target) == 0)
+       return g_noOutfit;
+   if (this->actorOutfitAssignments.at(target).currentOutfitName == g_noOutfitName)
       return g_noOutfit;
    try {
-      return this->outfits.at(this->currentOutfitName);
+      return this->outfits.at(this->actorOutfitAssignments.at(target).currentOutfitName);
    } catch (std::out_of_range) {
       return g_noOutfit;
    }
@@ -239,15 +244,17 @@ bool ArmorAddonOverrideService::hasOutfit(const char* name) const {
 }
 void ArmorAddonOverrideService::deleteOutfit(const char* name) {
    this->outfits.erase(name);
-   if (this->currentOutfitName == name)
-      this->currentOutfitName = g_noOutfitName;
-   // If the outfit is assigned as a location outfit, remove it there as well.
-   for (auto it = locationOutfits.begin(); it != locationOutfits.end(); ++it) {
-       if (it->second == name) {
-           locationOutfits.erase(it);
-           break;
-       }
-   }
+    for (auto& assn : actorOutfitAssignments) {
+        if (assn.second.currentOutfitName == name)
+            assn.second.currentOutfitName = g_noOutfitName;
+        // If the outfit is assigned as a location outfit, remove it there as well.
+        for (auto it = assn.second.locationOutfits.begin(); it != assn.second.locationOutfits.end(); ++it) {
+            if (it->second == name) {
+                assn.second.locationOutfits.erase(it);
+                break;
+            }
+        }
+    }
 }
 
 void ArmorAddonOverrideService::setFavorite(const char* name, bool favorite) {
@@ -298,28 +305,31 @@ void ArmorAddonOverrideService::renameOutfit(const char* oldName, const char* ne
       Outfit& renamed = (this->outfits[newName] = this->outfits.at(oldName)); // don't try-catch this "at" call; let the caller catch the exception
       renamed.name = newName;
       this->outfits.erase(oldName);
-      if (this->currentOutfitName == oldName)
-         this->currentOutfitName = newName;
-       // If the outfit is assigned as a location outfit, remove it there as well.
-       for (auto & locationOutfit : locationOutfits) {
-           if (locationOutfit.second == oldName) {
-               locationOutfits[locationOutfit.first] = newName;
-               break;
-           }
-       }
+      for (auto& assn : actorOutfitAssignments) {
+          if (assn.second.currentOutfitName == oldName)
+              assn.second.currentOutfitName = newName;
+          // If the outfit is assigned as a location outfit, remove it there as well.
+          for (auto & locationOutfit : assn.second.locationOutfits) {
+              if (locationOutfit.second == oldName) {
+                  assn.second.locationOutfits[locationOutfit.first] = newName;
+                  break;
+              }
+          }
+      }
    }
 }
-void ArmorAddonOverrideService::setOutfit(const char* name) {
+void ArmorAddonOverrideService::setOutfit(const char* name, RE::Actor* target) {
+   if (this->actorOutfitAssignments.count(target) == 0) return;
    if (strcmp(name, g_noOutfitName) == 0) {
-      this->currentOutfitName = g_noOutfitName;
-      return;
+       this->actorOutfitAssignments.at(target).currentOutfitName = g_noOutfitName;
+       return;
    }
    try {
       this->getOutfit(name);
-      this->currentOutfitName = name;
+       this->actorOutfitAssignments.at(target).currentOutfitName = name;
    } catch (std::out_of_range) {
       _MESSAGE("ArmorAddonOverrideService: Tried to set non-existent outfit %s as active. Switching the system off for now.", name);
-      this->currentOutfitName = g_noOutfitName;
+       this->actorOutfitAssignments.at(target).currentOutfitName = g_noOutfitName;
    }
 }
 
@@ -327,35 +337,41 @@ void ArmorAddonOverrideService::setLocationBasedAutoSwitchEnabled(bool newValue)
     locationBasedAutoSwitchEnabled = newValue;
 }
 
-void ArmorAddonOverrideService::setOutfitUsingLocation(LocationType location) {
-    auto it = locationOutfits.find(location);
-    if (it != locationOutfits.end()) {
-        this->setOutfit(it->second.c_str());
+void ArmorAddonOverrideService::setOutfitUsingLocation(LocationType location, RE::Actor* target) {
+    if (this->actorOutfitAssignments.count(target) == 0) return;
+    auto it = this->actorOutfitAssignments.at(target).locationOutfits.find(location);
+    if (it != this->actorOutfitAssignments.at(target).locationOutfits.end()) {
+        this->setOutfit(it->second.c_str(), target);
     }
 }
 
-void ArmorAddonOverrideService::setLocationOutfit(LocationType location, const char* name) {
+void ArmorAddonOverrideService::setLocationOutfit(LocationType location, const char* name, RE::Actor* target) {
+    if (this->actorOutfitAssignments.count(target) == 0) return;
     if (!std::string(name).empty()) { // Can never set outfit to the "" outfit. Use unsetLocationOutfit instead.
-        locationOutfits[location] = name;
+        this->actorOutfitAssignments.at(target).locationOutfits[location] = name;
     }
 }
 
-void ArmorAddonOverrideService::unsetLocationOutfit(LocationType location) {
-    locationOutfits.erase(location);
+void ArmorAddonOverrideService::unsetLocationOutfit(LocationType location, RE::Actor* target) {
+    if (this->actorOutfitAssignments.count(target) == 0) return;
+    this->actorOutfitAssignments.at(target).locationOutfits.erase(location);
 }
 
-std::optional<cobb::istring> ArmorAddonOverrideService::getLocationOutfit(LocationType location) {
-    auto it = locationOutfits.find(location);
-    if (it != locationOutfits.end()) {
+std::optional<cobb::istring> ArmorAddonOverrideService::getLocationOutfit(LocationType location, RE::Actor* target) {
+    if (this->actorOutfitAssignments.count(target) == 0) return std::optional<cobb::istring>();;
+    auto it = this->actorOutfitAssignments.at(target).locationOutfits.find(location);
+    if (it != this->actorOutfitAssignments.at(target).locationOutfits.end()) {
         return std::optional<cobb::istring>(it->second);
     } else {
         return std::optional<cobb::istring>();
     }
 }
 
-#define CHECK_LOCATION(TYPE, CHECK_CODE) if (locationOutfits.count(LocationType::TYPE) && (CHECK_CODE)) return std::optional<LocationType>(LocationType::TYPE);
+#define CHECK_LOCATION(TYPE, CHECK_CODE) if (this->actorOutfitAssignments.at(target).locationOutfits.count(LocationType::TYPE) && (CHECK_CODE)) return std::optional<LocationType>(LocationType::TYPE);
 
-std::optional<LocationType> ArmorAddonOverrideService::checkLocationType(const std::unordered_set<std::string>& keywords, const WeatherFlags& weather_flags) {
+std::optional<LocationType> ArmorAddonOverrideService::checkLocationType(const std::unordered_set<std::string>& keywords, const WeatherFlags& weather_flags, RE::Actor* target) {
+    if (this->actorOutfitAssignments.count(target) == 0) return std::optional<LocationType>();
+
     CHECK_LOCATION(CitySnowy, keywords.count("LocTypeCity") && weather_flags.snowy);
     CHECK_LOCATION(CityRainy, keywords.count("LocTypeCity") && weather_flags.rainy);
     CHECK_LOCATION(City, keywords.count("LocTypeCity"));
@@ -376,10 +392,12 @@ std::optional<LocationType> ArmorAddonOverrideService::checkLocationType(const s
     return std::optional<LocationType>();
 }
 
-bool ArmorAddonOverrideService::shouldOverride() const noexcept {
+bool ArmorAddonOverrideService::shouldOverride(RE::Actor* target) const noexcept {
    if (!this->enabled)
       return false;
-   if (this->currentOutfitName == g_noOutfitName)
+    if (this->actorOutfitAssignments.count(target) == 0)
+        return false;
+    if (this->actorOutfitAssignments.at(target).currentOutfitName == g_noOutfitName)
       return false;
    return true;
 }
@@ -396,10 +414,10 @@ void ArmorAddonOverrideService::setEnabled(bool flag) noexcept {
 //
 void ArmorAddonOverrideService::reset() {
    this->enabled = true;
-   this->currentOutfitName = g_noOutfitName;
+   this->actorOutfitAssignments.clear();
+   this->actorOutfitAssignments[RE::PlayerCharacter::GetSingleton()] = ActorOutfitAssignments();
    this->outfits.clear();
    this->locationBasedAutoSwitchEnabled = false;
-   this->locationOutfits.clear();
 }
 
 void ArmorAddonOverrideService::load_legacy(SKSESerializationInterface* intfc, UInt32 version) {
@@ -433,10 +451,10 @@ void ArmorAddonOverrideService::load_legacy(SKSESerializationInterface* intfc, U
       auto& outfit = this->getOrCreateOutfit(name.c_str());
        outfit.load_legacy(intfc, version);
    }
-   this->setOutfit(selectedOutfitName.c_str());
+   this->setOutfit(selectedOutfitName.c_str(), RE::PlayerCharacter::GetSingleton());
    if (version >= ArmorAddonOverrideService::kSaveVersionV3) {
        _assertWrite(ReadData(intfc, &this->locationBasedAutoSwitchEnabled), "Failed to read the autoswitch enable state.");
-       UInt32 autoswitchSize = static_cast<UInt32>(this->locationOutfits.size());
+       UInt32 autoswitchSize = static_cast<UInt32>(this->actorOutfitAssignments.at(RE::PlayerCharacter::GetSingleton()).locationOutfits.size());
        _assertRead(ReadData(intfc, &autoswitchSize), "Failed to read the number of autoswitch slots.");
        for (UInt32 i = 0; i < autoswitchSize; i++) {
            // get location outfit
@@ -454,11 +472,11 @@ void ArmorAddonOverrideService::load_legacy(SKSESerializationInterface* intfc, U
            _assertRead(locationOutfitNameSize < 257, "The autoswitch outfit name is too long.");
            if (locationOutfitNameSize) {
                _assertRead(intfc->ReadRecordData(locationOutfitName, locationOutfitNameSize), "Failed to read the selected outfit name.");
-               this->locationOutfits.emplace(autoswitchSlot, locationOutfitName);
+               this->actorOutfitAssignments.at(RE::PlayerCharacter::GetSingleton()).locationOutfits.emplace(autoswitchSlot, locationOutfitName);
            }
        }
    } else {
-       this->locationOutfits = std::map<LocationType, cobb::istring>();
+       this->actorOutfitAssignments.at(RE::PlayerCharacter::GetSingleton()).locationOutfits = std::map<LocationType, cobb::istring>();
    }
 }
 
@@ -466,16 +484,37 @@ void ArmorAddonOverrideService::load(SKSESerializationInterface* intfc, const pr
     this->reset();
     // Extract data from the protobuf struct.
     this->enabled = data.enabled();
-    this->currentOutfitName = cobb::istring(data.current_outfit_name().data(), data.current_outfit_name().size());
+    std::map<RE::Actor*, ActorOutfitAssignments> actorOutfitAssignmentsLocal;
+    for (const auto& actorAssn : data.actor_outfit_assignments()) {
+        // Lookup the actor
+        uint64_t handle;
+        RE::NiPointer<RE::Actor> actor;
+        if (!intfc->ResolveHandle(actorAssn.first, &handle)) continue;
+        if (!RE::LookupReferenceByHandle(static_cast<RE::RefHandle>(handle), actor)) continue;
+
+        ActorOutfitAssignments assignments;
+        assignments.currentOutfitName = cobb::istring(actorAssn.second.current_outfit_name().data(), actorAssn.second.current_outfit_name().size());
+        for (const auto& locOutfitData : actorAssn.second.location_based_outfits()) {
+            assignments.locationOutfits.emplace(LocationType(locOutfitData.first),
+                                          cobb::istring(locOutfitData.second.data(), locOutfitData.second.size()));
+        }
+        actorOutfitAssignmentsLocal[actor.get()] = assignments;
+    }
+    this->actorOutfitAssignments = actorOutfitAssignmentsLocal;
     for (const auto& outfitData : data.outfits()) {
         Outfit outfit;
         outfit.load(outfitData, intfc);
         this->outfits.emplace(cobb::istring(outfitData.name().data(), outfitData.name().size()), outfit);
     }
     this->locationBasedAutoSwitchEnabled = data.location_based_auto_switch_enabled();
-    for (const auto& locOutfitData : data.location_based_outfits()) {
-        this->locationOutfits.emplace(LocationType(locOutfitData.first),
-                cobb::istring(locOutfitData.second.data(), locOutfitData.second.size()));
+
+    // If the loaded actor assignments are empty, then we know we loaded the old format... convert from that instead.
+    if (actorOutfitAssignmentsLocal.empty()) {
+        this->actorOutfitAssignments[RE::PlayerCharacter::GetSingleton()].currentOutfitName = cobb::istring(data.obsolete_current_outfit_name().data(), data.obsolete_current_outfit_name().size());
+        for (const auto& locOutfitData : data.obsolete_location_based_outfits()) {
+            this->actorOutfitAssignments[RE::PlayerCharacter::GetSingleton()].locationOutfits.emplace(LocationType(locOutfitData.first),
+                                                                                                      cobb::istring(locOutfitData.second.data(), locOutfitData.second.size()));
+        }
     }
 }
 
@@ -484,15 +523,25 @@ proto::OutfitSystem ArmorAddonOverrideService::save(SKSESerializationInterface* 
    //
    proto::OutfitSystem out;
    out.set_enabled(this->enabled);
-   out.set_current_outfit_name(this->currentOutfitName.data(), this->currentOutfitName.size());
+   for (const auto& actorAssn : actorOutfitAssignments) {
+       // Store a reference to the actor
+       std::uint64_t handle;
+       RE::RefHandle handleTmp;
+       RE::CreateRefHandle(handleTmp, actorAssn.first);
+       handle = handleTmp;
+
+       proto::ActorOutfitAssignment assnOut;
+       assnOut.set_current_outfit_name(actorAssn.second.currentOutfitName.data(), actorAssn.second.currentOutfitName.size());
+       for (const auto& lbo : actorAssn.second.locationOutfits) {
+           assnOut.mutable_location_based_outfits()->insert({static_cast<UInt32>(lbo.first), std::string(lbo.second.data(), lbo.second.size())});
+       }
+       out.mutable_actor_outfit_assignments()->insert({handle, assnOut});
+   }
    for (const auto& outfit : this->outfits) {
        auto newOutfit = out.add_outfits();
        *newOutfit = outfit.second.save(intfc);
    }
    out.set_location_based_auto_switch_enabled(this->locationBasedAutoSwitchEnabled);
-   for (const auto& lbo : this->locationOutfits) {
-       out.mutable_location_based_outfits()->insert({static_cast<UInt32>(lbo.first), std::string(lbo.second.data(), lbo.second.size())});
-   }
    return out;
 
 }
