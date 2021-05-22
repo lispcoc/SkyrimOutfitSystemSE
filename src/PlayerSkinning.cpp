@@ -247,7 +247,9 @@ namespace OutfitSystem
             // the equipped items that will be shown, so we only need to worry about the items that
             // are not equipped but which are in the outfit or which are masked by the outfit.
             std::unordered_set<RE::TESObjectARMO*> applySet;
-            std::set_difference(displaySet.begin(), displaySet.end(), visitor.equipped.begin(), visitor.equipped.end(), std::inserter(applySet, applySet.begin()));
+            for (const auto& item : displaySet) {
+                if (visitor.equipped.find(item) == visitor.equipped.end()) applySet.insert(item);
+            }
 
             for (auto it = applySet.cbegin(); it != applySet.cend(); ++it) {
                 // TODO: [SlotPassthru] Also do the same iteration over the passthrough equipped items?
