@@ -616,6 +616,14 @@ extern SKSESerializationInterface* g_Serialization;
             auto& service = ArmorAddonOverrideService::GetInstance();
             service.setOutfit(name.data, RE::PlayerCharacter::GetSingleton());
         }
+        void AddActor(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, Actor* target) {
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            service.addActor((RE::Actor*) target);
+        }
+        void RemoveActor(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, Actor* target) {
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            service.removeActor((RE::Actor*) target);
+        }
         void SetLocationBasedAutoSwitchEnabled(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, bool value) {
             ArmorAddonOverrideService::GetInstance().setLocationBasedAutoSwitchEnabled(value);
         }
@@ -1012,6 +1020,18 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         SetSelectedOutfit,
         registry
         ));
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, Actor*>(
+        "AddActor",
+        "SkyrimOutfitSystemNativeFuncs",
+        AddActor,
+        registry
+    ));
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, Actor*>(
+        "RemoveActor",
+        "SkyrimOutfitSystemNativeFuncs",
+        RemoveActor,
+        registry
+    ));
     registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, bool>(
         "SetLocationBasedAutoSwitchEnabled",
         "SkyrimOutfitSystemNativeFuncs",

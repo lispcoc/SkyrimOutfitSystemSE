@@ -124,7 +124,9 @@ class ArmorAddonOverrideService {
       void modifyOutfit(const char* name, std::vector<RE::TESObjectARMO*>& add, std::vector<RE::TESObjectARMO*>& remove, bool createIfMissing = false); // can throw bad_name if (createIfMissing)
       void renameOutfit(const char* oldName, const char* newName); // throws name_conflict if the new name is already taken; can throw bad_name; throws std::out_of_range if the oldName doesn't exist
       void setOutfit(const char* name, RE::Actor* target);
-      //
+      void addActor(RE::Actor* target);
+      void removeActor(RE::Actor* target);
+    //
       void setLocationBasedAutoSwitchEnabled(bool) noexcept;
       void setOutfitUsingLocation(LocationType location, RE::Actor* target);
       void setLocationOutfit(LocationType location, const char* name, RE::Actor* target);

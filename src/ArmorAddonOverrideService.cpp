@@ -333,6 +333,15 @@ void ArmorAddonOverrideService::setOutfit(const char* name, RE::Actor* target) {
    }
 }
 
+void ArmorAddonOverrideService::addActor(RE::Actor* target) {
+    if (actorOutfitAssignments.count(target) == 0) actorOutfitAssignments.emplace(target, ActorOutfitAssignments());
+}
+
+void ArmorAddonOverrideService::removeActor(RE::Actor* target) {
+    if (target == RE::PlayerCharacter::GetSingleton()) return;
+    actorOutfitAssignments.erase(target);
+}
+
 void ArmorAddonOverrideService::setLocationBasedAutoSwitchEnabled(bool newValue) noexcept {
     locationBasedAutoSwitchEnabled = newValue;
 }

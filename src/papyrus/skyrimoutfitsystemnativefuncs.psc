@@ -80,6 +80,8 @@ Bool     Function OutfitExists      (String asOutfitName) Global Native
          Function OverwriteOutfit   (String asOutfitName, Armor[] akArmors) Global Native
          Function SetEnabled        (Bool abEnabled) Global Native
          Function SetSelectedOutfit (String asOutfitName) Global Native
+         Function AddActor (Actor akSubject) Global Native
+         Function RemoveActor (Actor akSubject) Global Native
 
          Function SetLocationBasedAutoSwitchEnabled (Bool abEnabled) Global Native
 Bool     Function GetLocationBasedAutoSwitchEnabled () Global Native
