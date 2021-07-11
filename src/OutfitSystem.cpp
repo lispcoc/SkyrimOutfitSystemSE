@@ -25,6 +25,7 @@
 #include "RE/Inventory/InventoryEntryData.h"
 #include "RE/FormComponents/TESForm/BGSLocation.h"
 #include "RE/FormComponents/TESForm/TESWeather.h"
+#include "RE/FormComponents/TESForm/TESObjectCELL.h"
 #include "RE/FormComponents/TESForm/BGSKeyword/BGSKeyword.h"
 #include "RE/Misc/Misc.h"
 #pragma warning( pop )
@@ -38,6 +39,13 @@
 #include <algorithm>
 
 #include "google/protobuf/util/json_util.h"
+
+#define ERROR_AND_RETURN_EXPR_IF(condition, message, valueExpr, registry, stackId) \
+	if (condition)								\
+	{											\
+		registry->LogError(message, stackId);	\
+		return (valueExpr);						\
+	}
 
 // Needed for save and load of config JSON
 extern SKSESerializationInterface* g_Serialization;
@@ -140,7 +148,23 @@ extern SKSESerializationInterface* g_Serialization;
                 pm->UpdateEquipment(target);
             }
         }
-        //
+        VMResultArray<Actor*> GetActorsNearPC(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
+            VMResultArray<Actor*> result;
+            auto pc = RE::PlayerCharacter::GetSingleton();
+            ERROR_AND_RETURN_EXPR_IF(pc == nullptr, "Could not get PC Singleton.", result, registry, stackId);
+            auto pcCell = pc->GetParentCell();
+            ERROR_AND_RETURN_EXPR_IF(pcCell == nullptr, "Could not get cell of PC.", result, registry, stackId);
+            result.reserve(pcCell->references.size());
+            for (const auto& ref : pcCell->references) {
+                RE::TESObjectREFR* objectRefPtr = ref.get();
+                auto actorCastedPtr = (Actor*)Runtime_DynamicCast((void*) objectRefPtr, RTTI_TESObjectREFR, RTTI_Actor);
+                if (actorCastedPtr) result.push_back(actorCastedPtr);
+            }
+            result.shrink_to_fit();
+            return result;
+        }
+
+    //
         namespace ArmorFormSearchUtils {
             static struct {
                 std::vector<std::string>    names;
@@ -802,6 +826,12 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         RefreshArmorFor,
         registry
         ));
+    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, VMResultArray<Actor*>>(
+        "GetActorNearPC",
+        "SkyrimOutfitSystemNativeFuncs",
+        GetActorsNearPC,
+        registry
+    ));
     //
     {  // armor form search utils
         registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, bool>(

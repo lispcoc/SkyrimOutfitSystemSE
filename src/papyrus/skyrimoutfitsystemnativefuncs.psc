@@ -29,6 +29,11 @@ Armor[] Function GetWornItems    (Actor akSubject) Global Native
         Function RefreshArmorFor (Actor akSubject) Global Native ; force akSubject to update their ArmorAddons
 
 ;
+; Searching for actors. Used in menus.
+;
+Actor[] Function GetActorNearPC  () Global Native
+
+;
 ; Search through all armor forms defined in the game (excluding templated ones). 
 ; Filter by name or require the "playable" flag.
 ;
