@@ -11,7 +11,7 @@ Event OnEffectStart(Actor akCaster, Actor akTarget)
    Else
       sCurrentOutfit = "[DISMISS]" + sCurrentOutfit
    Endif
-   menu.AddEntryItem("sCurrentOutfit")
+   menu.AddEntryItem(sCurrentOutfit)
    menu.AddEntryItem("[NO OUTFIT]")
    While iIndex < sLMenuItems.Length
       menu.AddEntryItem("[SELECT]" + sLMenuItems[iIndex])
