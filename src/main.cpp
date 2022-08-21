@@ -1,6 +1,5 @@
 ﻿#include <ShlObj.h>
 
-#include "version.h"
 #include "OutfitSystem.h"
 //#include "ArmorAddonOverrideService.h"
 //#include "PlayerSkinning.h"

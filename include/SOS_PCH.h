@@ -5,6 +5,8 @@
 #ifndef SKYRIMOUTFITSYSTEMSE_SOS_PCH_H
 #define SKYRIMOUTFITSYSTEMSE_SOS_PCH_H
 
+#include "version.h"
+
 #pragma warning(push)
 #include "SKSE/Impl/PCH.h"
 #include <RE/Skyrim.h>
@@ -44,7 +46,7 @@ using SKSE::stl::report_and_fail;
 namespace Plugin {
     using namespace std::literals;
 
-    inline constexpr REL::Version VERSION{ 0, 3, 0 };
+    inline constexpr REL::Version VERSION{ SKYRIMOUTFITSYSTEMSE_VERSION_MAJOR, SKYRIMOUTFITSYSTEMSE_VERSION_MINOR, SKYRIMOUTFITSYSTEMSE_VERSION_PATCH };
 
     inline constexpr auto NAME = "SkyrimOutfitSystemSE"sv;
 }
