@@ -175,8 +175,6 @@ void Outfit::load(const proto::Outfit &proto, SKSE::SerializationInterface *intf
 }
 
 proto::Outfit Outfit::save(SKSE::SerializationInterface *) const {
-    using namespace Serialization;
-    //
     proto::Outfit out;
     out.set_name(this->name);
     for (const auto &armor : this->armors) {
@@ -440,12 +438,10 @@ void ArmorAddonOverrideService::reset() {
 }
 
 void ArmorAddonOverrideService::load_legacy(SKSE::SerializationInterface *intfc, std::uint32_t version) {
-    using namespace Serialization;
-    //
     this->reset();
     //
     std::string selectedOutfitName;
-    _assertWrite(ReadData(intfc, &this->enabled), "Failed to read the enable state.");
+    _assertWrite(intfc->ReadRecordData(this->enabled), "Failed to read the enable state.");
     {  // current outfit name
         //
         // we can't call WriteData directly on this->currentOutfitName because it's
@@ -455,7 +451,7 @@ void ArmorAddonOverrideService::load_legacy(SKSE::SerializationInterface *intfc,
         std::uint32_t size = 0;
         char buf[257];
         memset(buf, '\0', sizeof(buf));
-        _assertRead(ReadData(intfc, &size), "Failed to read the selected outfit name.");
+        _assertRead(intfc->ReadRecordData(size), "Failed to read the selected outfit name.");
         _assertRead(size < 257, "The selected outfit name is too long.");
         if (size) {
             _assertRead(intfc->ReadRecordData(buf, size), "Failed to read the selected outfit name.");
@@ -463,21 +459,21 @@ void ArmorAddonOverrideService::load_legacy(SKSE::SerializationInterface *intfc,
         selectedOutfitName = buf;
     }
     std::uint32_t size;
-    _assertRead(ReadData(intfc, &size), "Failed to read the outfit count.");
+    _assertRead(intfc->ReadRecordData(size), "Failed to read the outfit count.");
     for (std::uint32_t i = 0; i < size; i++) {
         std::string name;
-        _assertRead(ReadData(intfc, &name), "Failed to read an outfit's name.");
+        _assertRead(intfc->ReadRecordData(name), "Failed to read an outfit's name.");
         auto &outfit = this->getOrCreateOutfit(name.c_str());
         outfit.load_legacy(intfc, version);
     }
     this->setOutfit(selectedOutfitName.c_str(), RE::PlayerCharacter::GetSingleton());
     if (version >= ArmorAddonOverrideService::kSaveVersionV3) {
-        _assertWrite(ReadData(intfc, &this->locationBasedAutoSwitchEnabled),
+        _assertWrite(intfc->ReadRecordData(this->locationBasedAutoSwitchEnabled),
                      "Failed to read the autoswitch enable state.");
         std::uint32_t autoswitchSize =
             static_cast<std::uint32_t>(this->actorOutfitAssignments.at(RE::PlayerCharacter::GetSingleton())
                 .locationOutfits.size());
-        _assertRead(ReadData(intfc, &autoswitchSize), "Failed to read the number of autoswitch slots.");
+        _assertRead(intfc->ReadRecordData(autoswitchSize), "Failed to read the number of autoswitch slots.");
         for (std::uint32_t i = 0; i < autoswitchSize; i++) {
             // get location outfit
             //
@@ -486,11 +482,11 @@ void ArmorAddonOverrideService::load_legacy(SKSE::SerializationInterface *intfc,
             // specific; other basic_string classes break it.
             //
             LocationType autoswitchSlot;
-            _assertRead(ReadData(intfc, &autoswitchSlot), "Failed to read the an autoswitch slot ID.");
+            _assertRead(intfc->ReadRecordData(autoswitchSlot), "Failed to read the an autoswitch slot ID.");
             std::uint32_t locationOutfitNameSize = 0;
             char locationOutfitName[257];
             memset(locationOutfitName, '\0', sizeof(locationOutfitName));
-            _assertRead(ReadData(intfc, &locationOutfitNameSize), "Failed to read the an autoswitch outfit name.");
+            _assertRead(intfc->ReadRecordData(locationOutfitNameSize), "Failed to read the an autoswitch outfit name.");
             _assertRead(locationOutfitNameSize < 257, "The autoswitch outfit name is too long.");
             if (locationOutfitNameSize) {
                 _assertRead(intfc->ReadRecordData(locationOutfitName, locationOutfitNameSize),
@@ -512,9 +508,9 @@ void ArmorAddonOverrideService::load(SKSE::SerializationInterface *intfc, const 
     std::map<RE::Actor *, ActorOutfitAssignments> actorOutfitAssignmentsLocal;
     for (const auto &actorAssn : data.actor_outfit_assignments()) {
         // Lookup the actor
-        uint64_t handle;
+        RE::VMHandle handle;
         RE::NiPointer<RE::Actor> actor;
-        if (!intfc->ResolveHandle(actorAssn.first, &handle))
+        if (!intfc->ResolveHandle(actorAssn.first, handle))
             continue;
         if (!RE::LookupReferenceByHandle(static_cast<RE::RefHandle>(handle), actor))
             continue;
@@ -550,8 +546,6 @@ void ArmorAddonOverrideService::load(SKSE::SerializationInterface *intfc, const 
 }
 
 proto::OutfitSystem ArmorAddonOverrideService::save(SKSE::SerializationInterface *intfc) {
-    using namespace Serialization;
-    //
     proto::OutfitSystem out;
     out.set_enabled(this->enabled);
     for (const auto &actorAssn : actorOutfitAssignments) {
@@ -591,7 +585,7 @@ void ArmorAddonOverrideService::dump() const {
         for (auto jt = list.begin(); jt != list.end(); ++jt) {
             auto ptr = *jt;
             if (ptr) {
-                LOG(info, "       - (TESObjectARMO*)%08X == [ARMO:%08X]", ptr, ptr->formID);
+                LOG(info, "       - (TESObjectARMO*){} == [ARMO:{}]", (void*) ptr, ptr->formID);
             } else {
                 LOG(info, "       - nullptr");
             }
