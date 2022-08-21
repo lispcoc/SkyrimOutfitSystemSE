@@ -46,7 +46,7 @@ namespace OutfitSystem
             auto actor = reinterpret_cast<RE::Actor*>(Runtime_DynamicCast(static_cast<RE::TESObjectREFR*>(target), RTTI_TESObjectREFR, RTTI_Actor));
             if (!actor) {
                 // Actor failed to cast...
-                _MESSAGE("ShouldOverride: Failed to cast target to Actor.");
+                LOG(info, "ShouldOverride: Failed to cast target to Actor.");
                 return true;
             }
             auto inventory = target->GetInventoryChanges();
@@ -54,7 +54,7 @@ namespace OutfitSystem
             if (inventory) {
                 inventory->ExecuteVisitorOnWorn(&visitor);
             } else {
-                _MESSAGE("ShouldOverride: Unable to get target inventory.");
+                LOG(info, "ShouldOverride: Unable to get target inventory.");
                 return true;
             }
             // Block the item (return true) if the item isn't in the display set.
@@ -66,9 +66,9 @@ namespace OutfitSystem
 
         void Apply()
         {
-            _MESSAGE("Patching vanilla player skinning");
-            _MESSAGE("TESObjectARMO_ApplyArmorAddon = %p", TESObjectARMO_ApplyArmorAddon.address() - RelocationManager::s_baseAddr);
-            _MESSAGE("DontVanillaSkinPlayer_Hook = %p", DontVanillaSkinPlayer_Hook - RelocationManager::s_baseAddr);
+            LOG(info, "Patching vanilla player skinning");
+            LOG(info, "TESObjectARMO_ApplyArmorAddon = %p", TESObjectARMO_ApplyArmorAddon.address() - RelocationManager::s_baseAddr);
+            LOG(info, "DontVanillaSkinPlayer_Hook = %p", DontVanillaSkinPlayer_Hook - RelocationManager::s_baseAddr);
             {
                 struct DontVanillaSkinPlayer_Code : Xbyak::CodeGenerator
                 {
@@ -110,11 +110,11 @@ namespace OutfitSystem
                 DontVanillaSkinPlayer_Code code(codeBuf);
                 g_localTrampoline.EndAlloc(code.getCurr());
 
-				_MESSAGE("AVI: Patching vanilla player skinning at addr = %llX. base = %llX", DontVanillaSkinPlayer_Hook, RelocationManager::s_baseAddr);
+				LOG(info, "AVI: Patching vanilla player skinning at addr = %llX. base = %llX", DontVanillaSkinPlayer_Hook, RelocationManager::s_baseAddr);
                 g_branchTrampoline.Write5Branch(DontVanillaSkinPlayer_Hook,
                     uintptr_t(code.getCode()));
             }
-            _MESSAGE("Done");
+            LOG(info, "Done");
         }
     }
 
@@ -141,9 +141,9 @@ namespace OutfitSystem
 
         void Apply()
         {
-            _MESSAGE("Patching shim worn flags");
-            _MESSAGE("ShimWornFlags_Hook = %p", ShimWornFlags_Hook - RelocationManager::s_baseAddr);
-            _MESSAGE("InventoryChanges_GetWornMask = %p", InventoryChanges_GetWornMask.address() - RelocationManager::s_baseAddr);
+            LOG(info, "Patching shim worn flags");
+            LOG(info, "ShimWornFlags_Hook = %p", ShimWornFlags_Hook - RelocationManager::s_baseAddr);
+            LOG(info, "InventoryChanges_GetWornMask = %p", InventoryChanges_GetWornMask.address() - RelocationManager::s_baseAddr);
             {
                 struct ShimWornFlags_Code : Xbyak::CodeGenerator
                 {
@@ -197,7 +197,7 @@ namespace OutfitSystem
                 g_branchTrampoline.Write5Branch(ShimWornFlags_Hook,
                     uintptr_t(code.getCode()));
             }
-            _MESSAGE("Done");
+            LOG(info, "Done");
         }
     }
 
@@ -220,7 +220,7 @@ namespace OutfitSystem
             auto actor = reinterpret_cast<RE::Actor*>(Runtime_DynamicCast(static_cast<RE::TESObjectREFR*>(target), RTTI_TESObjectREFR, RTTI_Actor));
             if (!actor) {
                 // Actor failed to cast...
-                _MESSAGE("Custom: Failed to cast target to Actor.");
+                LOG(info, "Custom: Failed to cast target to Actor.");
                 return;
             }
             auto inventory = target->GetInventoryChanges();
@@ -228,7 +228,7 @@ namespace OutfitSystem
             if (inventory) {
                 inventory->ExecuteVisitorOnWorn(&visitor);
             } else {
-                _MESSAGE("Custom: Unable to get target inventory.");
+                LOG(info, "Custom: Unable to get target inventory.");
                 return;
             }
 
@@ -260,9 +260,9 @@ namespace OutfitSystem
 
         void Apply()
         {
-            _MESSAGE("Patching custom skin player");
-            _MESSAGE("CustomSkinPlayer_Hook = %p", CustomSkinPlayer_Hook - RelocationManager::s_baseAddr);
-            _MESSAGE("InventoryChanges_ExecuteVisitorOnWorn = %p", InventoryChanges_ExecuteVisitorOnWorn.address() - RelocationManager::s_baseAddr);
+            LOG(info, "Patching custom skin player");
+            LOG(info, "CustomSkinPlayer_Hook = %p", CustomSkinPlayer_Hook - RelocationManager::s_baseAddr);
+            LOG(info, "InventoryChanges_ExecuteVisitorOnWorn = %p", InventoryChanges_ExecuteVisitorOnWorn.address() - RelocationManager::s_baseAddr);
             {
                 struct CustomSkinPlayer_Code : Xbyak::CodeGenerator
                 {
@@ -318,7 +318,7 @@ namespace OutfitSystem
                 g_branchTrampoline.Write5Branch(CustomSkinPlayer_Hook,
                     uintptr_t(code.getCode()));
             }
-            _MESSAGE("Done");
+            LOG(info, "Done");
         }
     }
 
@@ -383,7 +383,7 @@ namespace OutfitSystem
                 inventory->ExecuteVisitorOnWorn(&visitor);
             }
             else {
-                _MESSAGE("OverridePlayerSkinning: Conflict check failed: no inventory!");
+                LOG(info, "OverridePlayerSkinning: Conflict check failed: no inventory!");
             }
         }
         bool ShouldOverride(RE::TESForm* item) {
@@ -398,9 +398,9 @@ namespace OutfitSystem
         }
         void Apply()
         {
-            _MESSAGE("Patching fix for equip conflict check");
-            _MESSAGE("FixEquipConflictCheck_Hook = %p", FixEquipConflictCheck_Hook - RelocationManager::s_baseAddr);
-            _MESSAGE("BGSBipedObjectForm_TestBodyPartByIndex = %p", BGSBipedObjectForm_TestBodyPartByIndex.address() - RelocationManager::s_baseAddr);
+            LOG(info, "Patching fix for equip conflict check");
+            LOG(info, "FixEquipConflictCheck_Hook = %p", FixEquipConflictCheck_Hook - RelocationManager::s_baseAddr);
+            LOG(info, "BGSBipedObjectForm_TestBodyPartByIndex = %p", BGSBipedObjectForm_TestBodyPartByIndex.address() - RelocationManager::s_baseAddr);
             {
                 struct FixEquipConflictCheck_Code : Xbyak::CodeGenerator
                 {
@@ -463,7 +463,7 @@ namespace OutfitSystem
                 g_branchTrampoline.Write5Branch(FixEquipConflictCheck_Hook,
                                                 uintptr_t(code.getCode()));
             }
-            _MESSAGE("Done");
+            LOG(info, "Done");
         }
     }
 

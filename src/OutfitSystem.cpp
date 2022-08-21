@@ -695,7 +695,7 @@ extern SKSESerializationInterface* g_Serialization;
                     RE::BGSKeyword* keyword = location->GetKeywordAt(i).value();
                     /*
                     char message[100];
-                    _MESSAGE("SOS: Location has Keyword %s", keyword->GetFormEditorID());
+                    LOG(info, "SOS: Location has Keyword %s", keyword->GetFormEditorID());
                     sprintf(message, "SOS: Location has keyword %s", keyword->GetFormEditorID());
                     RE::DebugNotification(message, nullptr, false);
                     */
@@ -800,7 +800,7 @@ extern SKSESerializationInterface* g_Serialization;
     }
 
 
-bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
+bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
     registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, SInt32>(
         "GetOutfitNameMaxLength",
         "SkyrimOutfitSystemNativeFuncs",

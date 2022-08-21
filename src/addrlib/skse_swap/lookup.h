@@ -34,7 +34,7 @@ inline uintptr_t runtime_offset_lookup(uintptr_t offset) {
         *p;
         // throw std::runtime_error(error);
     } else {
-        // _MESSAGE("Mapped offset %p", offset);
+        // LOG(info, "Mapped offset %p", offset);
     }
     uintptr_t result;
     s_versionDbCurrent->FindOffsetById(iter->second, result);

@@ -322,7 +322,7 @@ void ArmorAddonOverrideService::setOutfit(const char* name, RE::Actor* target) {
       this->getOutfit(name);
        this->actorOutfitAssignments.at(target).currentOutfitName = name;
    } catch (std::out_of_range) {
-      _MESSAGE("ArmorAddonOverrideService: Tried to set non-existent outfit %s as active. Switching the system off for now.", name);
+      LOG(info, "ArmorAddonOverrideService: Tried to set non-existent outfit %s as active. Switching the system off for now.", name);
        this->actorOutfitAssignments.at(target).currentOutfitName = g_noOutfitName;
    }
 }
@@ -550,22 +550,22 @@ proto::OutfitSystem ArmorAddonOverrideService::save(SKSESerializationInterface* 
 }
 //
 void ArmorAddonOverrideService::dump() const {
-   _MESSAGE("Dumping all state for ArmorAddonOverrideService...");
-   _MESSAGE("Enabled: %d", this->enabled);
-   _MESSAGE("We have %d outfits. Enumerating...", this->outfits.size());
+   LOG(info, "Dumping all state for ArmorAddonOverrideService...");
+   LOG(info, "Enabled: %d", this->enabled);
+   LOG(info, "We have %d outfits. Enumerating...", this->outfits.size());
    for (auto it = this->outfits.begin(); it != this->outfits.end(); ++it) {
-      _MESSAGE(" - Key: %s", it->first.c_str());
-      _MESSAGE("    - Name: %s", it->second.name.c_str());
-      _MESSAGE("    - Armors:");
+      LOG(info, " - Key: %s", it->first.c_str());
+      LOG(info, "    - Name: %s", it->second.name.c_str());
+      LOG(info, "    - Armors:");
       auto& list = it->second.armors;
       for (auto jt = list.begin(); jt != list.end(); ++jt) {
          auto ptr = *jt;
          if (ptr) {
-            _MESSAGE("       - (TESObjectARMO*)%08X == [ARMO:%08X]", ptr, ptr->formID);
+            LOG(info, "       - (TESObjectARMO*)%08X == [ARMO:%08X]", ptr, ptr->formID);
          } else {
-            _MESSAGE("       - nullptr");
+            LOG(info, "       - nullptr");
          }
       }
    }
-   _MESSAGE("All state has been dumped.");
+   LOG(info, "All state has been dumped.");
 }

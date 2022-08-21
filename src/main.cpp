@@ -119,14 +119,14 @@ DllExport bool SKSEPlugin_Query(const SKSEInterface *a_skse, PluginInfo *a_info)
 void _RegisterAndEchoPapyrus(SKSEPapyrusInterface::RegisterFunctions callback, char *module) {
     bool status = g_Papyrus->Register(callback);
     if (status)
-        _MESSAGE("Papyrus registration %s for %s.", "succeeded", module);
+        LOG(info, "Papyrus registration %s for %s.", "succeeded", module);
     else
-        _MESSAGE("Papyrus registration %s for %s.", "FAILED", module);
+        LOG(info, "Papyrus registration %s for %s.", "FAILED", module);
 } ;
 
 DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface *a_skse) {
     SKSE::Init(a_skse);
-    _MESSAGE("loading");
+    LOG(info, "loading");
     {  // Patches:
         OutfitSystem::ApplyPlayerSkinningHooks();
     }
@@ -161,7 +161,7 @@ void Callback_Messaging_SKSE(SKSEMessagingInterface::Message *message) {
     }
 };
 void Callback_Serialization_Save(SKSESerializationInterface *intfc) {
-    _MESSAGE("Writing savedata...");
+    LOG(info, "Writing savedata...");
     //
     if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV4)) {
         try {
@@ -172,16 +172,16 @@ void Callback_Serialization_Save(SKSESerializationInterface *intfc) {
                          "Failed to write proto into SKSE record.");
         }
         catch (const ArmorAddonOverrideService::save_error &exception) {
-            _MESSAGE("Save FAILED for ArmorAddonOverrideService.");
-            _MESSAGE(" - Exception string: %s", exception.what());
+            LOG(info, "Save FAILED for ArmorAddonOverrideService.");
+            LOG(info, " - Exception string: %s", exception.what());
         }
     } else
-        _MESSAGE("Save FAILED for ArmorAddonOverrideService. Record didn't open.");
+        LOG(info, "Save FAILED for ArmorAddonOverrideService. Record didn't open.");
     //
-    _MESSAGE("Saving done!");
+    LOG(info, "Saving done!");
 }
 void Callback_Serialization_Load(SKSESerializationInterface *intfc) {
-    _MESSAGE("Loading savedata...");
+    LOG(info, "Loading savedata...");
     //
     std::uint32_t
         type;    // This IS correct. A std::uint32_t and a four-character ASCII string have the same length (and can be read interchangeably, it seems).
@@ -213,12 +213,12 @@ void Callback_Serialization_Load(SKSESerializationInterface *intfc) {
                 }
             }
             catch (const ArmorAddonOverrideService::load_error &exception) {
-                _MESSAGE("Load FAILED for ArmorAddonOverrideService.");
-                _MESSAGE(" - Exception string: %s", exception.what());
+                LOG(info, "Load FAILED for ArmorAddonOverrideService.");
+                LOG(info, " - Exception string: %s", exception.what());
             }
             break;
         default:
-            _MESSAGE("Loading: Unhandled type %c%c%c%c",
+            LOG(info, "Loading: Unhandled type %c%c%c%c",
                      (char) (type >> 0x18),
                      (char) (type >> 0x10),
                      (char) (type >> 0x8),
@@ -228,5 +228,5 @@ void Callback_Serialization_Load(SKSESerializationInterface *intfc) {
         }
     }
     //
-    _MESSAGE("Loading done!");
+    LOG(info, "Loading done!");
 }

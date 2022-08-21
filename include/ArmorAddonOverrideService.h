@@ -51,9 +51,9 @@ struct Outfit {
    bool hasShield() const;
    std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equipped);
 
-   void load(const proto::Outfit& proto, SKSESerializationInterface*);
-   [[deprecated]] void load_legacy(SKSESerializationInterface* intfc, UInt32 version); // can throw ArmorAddonOverrideService::load_error
-   proto::Outfit save(SKSESerializationInterface*) const; // can throw ArmorAddonOverrideService::save_error
+   void load(const proto::Outfit& proto, SKSE::SerializationInterface*);
+   [[deprecated]] void load_legacy(SKSE::SerializationInterface* intfc, std::uint32_t version); // can throw ArmorAddonOverrideService::load_error
+   proto::Outfit save(SKSE::SerializationInterface*) const; // can throw ArmorAddonOverrideService::save_error
 };
 const constexpr char* g_noOutfitName = "";
 static Outfit g_noOutfit(g_noOutfitName); // can't be const; prevents us from assigning it to Outfit&s
@@ -138,9 +138,9 @@ class ArmorAddonOverrideService {
       void refreshCurrentIfChanged(const char* testName);
       //
       void reset();
-      void load(SKSESerializationInterface* intfc, const proto::OutfitSystem& data); // can throw load_error
-      [[deprecated]] void load_legacy(SKSESerializationInterface* intfc, UInt32 version); // can throw load_error
-      proto::OutfitSystem save(SKSESerializationInterface* intfc); // can throw save_error
+      void load(SKSE::SerializationInterface* intfc, const proto::OutfitSystem& data); // can throw load_error
+      [[deprecated]] void load_legacy(SKSE::SerializationInterface* intfc, std::uint32_t version); // can throw load_error
+      proto::OutfitSystem save(SKSE::SerializationInterface* intfc); // can throw save_error
       //
       void dump() const;
 };
