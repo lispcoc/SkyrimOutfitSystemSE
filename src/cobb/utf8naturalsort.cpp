@@ -26,8 +26,8 @@ namespace cobb {
                   continue;
                return c_b - c_a;
             }
-            UInt32 n_a = c_a - '0';
-            UInt32 n_b = c_b - '0';
+            std::uint32_t n_a = c_a - '0';
+            std::uint32_t n_b = c_b - '0';
             ++i_a;
             ++i_b;
             for (; i_a != a.end(); ++i_a) {

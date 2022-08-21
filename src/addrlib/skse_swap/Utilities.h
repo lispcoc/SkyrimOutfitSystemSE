@@ -180,7 +180,7 @@ const std::string & GetRuntimeDirectory();
 
 const std::string & GetConfigPath();
 std::string GetConfigOption(const char * section, const char * key);
-bool GetConfigOption_UInt32(const char * section, const char * key, UInt32 * dataOut);
+bool GetConfigOption_std::uint32_t(const char * section, const char * key, std::uint32_t * dataOut);
 
 const std::string & GetOSInfoStr();
 

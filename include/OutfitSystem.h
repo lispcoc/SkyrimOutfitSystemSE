@@ -1,5 +1,5 @@
 #pragma once
-#include "skse64/PapyrusVM.h"
+//#include "skse64/PapyrusVM.h"
 
 namespace OutfitSystem
 {

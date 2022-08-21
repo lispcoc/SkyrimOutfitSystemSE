@@ -1,18 +1,12 @@
 #define XBYAK_NO_OP_NAMES 1
-#include <xbyak/xbyak.h>
-
-#include "RE/Inventory/InventoryChanges.h"
-#include "RE/Inventory/InventoryEntryData.h"
-#include "RE/FormComponents/TESForm/TESObjectREFR/Actor/Character/PlayerCharacter.h"
-#include "RE/FormComponents/TESForm/TESObject/TESBoundObject/TESObjectARMO.h"
-#include "RE/FormComponents/TESForm/TESObjectREFR/TESObjectREFR.h"
-#include "RE/FormComponents/TESForm/TESForm.h"
 
 #include "ArmorAddonOverrideService.h"
-#include "skse64_common/Relocation.h"
-#include "skse64_common/BranchTrampoline.h"
-#include "skse64/GameRTTI.h"
-#include "RE/Inventory/ActorEquipManager.h"
+
+#include <xbyak/xbyak.h>
+
+//#include "skse64_common/Relocation.h"
+//#include "skse64_common/BranchTrampoline.h"
+//#include "skse64/GameRTTI.h"
 
 namespace OutfitSystem
 {
@@ -126,8 +120,8 @@ namespace OutfitSystem
 
     namespace ShimWornFlags
     {
-        UInt32 OverrideWornFlags(RE::InventoryChanges * inventory, RE::TESObjectREFR * target) {
-            UInt32 mask = 0;
+        std::uint32_t OverrideWornFlags(RE::InventoryChanges * inventory, RE::TESObjectREFR * target) {
+            std::uint32_t mask = 0;
             //
             auto& svc = ArmorAddonOverrideService::GetInstance();
             auto& outfit = svc.currentOutfit((RE::Actor *) target);
@@ -135,7 +129,7 @@ namespace OutfitSystem
             inventory->ExecuteVisitorOnWorn(&visitor);
             auto displaySet = outfit.computeDisplaySet(visitor.equipped);
             for (auto& armor : displaySet) {
-                mask |= static_cast<UInt32>(armor->GetSlotMask());
+                mask |= static_cast<std::uint32_t>(armor->GetSlotMask());
             }
             return mask;
         }
@@ -378,9 +372,9 @@ namespace OutfitSystem
             };
 
             RE::Actor* target;
-            UInt32     conflictIndex = 0;
+            std::uint32_t     conflictIndex = 0;
         };
-        void Inner(UInt32 bodyPartForNewItem, RE::Actor* target) {
+        void Inner(std::uint32_t bodyPartForNewItem, RE::Actor* target) {
             auto inventory = target->GetInventoryChanges();
             if (inventory) {
                 _Visitor visitor;

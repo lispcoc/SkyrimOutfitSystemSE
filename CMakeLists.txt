@@ -88,7 +88,6 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Sub-projects
 ################################################################################
 add_subdirectory(dependencies/CommonLibSSE)
-add_subdirectory(dependencies)
 
 ################################################################################
 # Build Protocol Buffers
@@ -123,9 +122,7 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/OutfitSystem.cpp
     include/PlayerSkinning.h
     src/PlayerSkinning.cpp
-    include/StorableObject.h
-    src/StorableObject.cpp
-)
+        )
 
 set(ROOT_NAMESPACE SkyrimOutfitSystemSE)
 

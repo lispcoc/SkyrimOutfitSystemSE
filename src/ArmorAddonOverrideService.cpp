@@ -1,14 +1,8 @@
-#include <RE/Misc/Misc.h>
 #include "ArmorAddonOverrideService.h"
-#pragma warning( push )
-#pragma warning( disable : 5053 ) // CommonLibSSE uses explicit(<expr>) vendor extension.
-#include "RE/FormComponents/TESForm/TESObject/TESBoundObject/TESObjectARMO.h"
-#include "RE/FormComponents/TESForm/TESObjectREFR/Actor/Character/PlayerCharacter.h"
-#include "RE/Misc/Misc.h"
-#pragma warning( pop )
-#include "skse64/GameForms.h"
-#include "skse64/GameRTTI.h"
-#include "skse64/Serialization.h"
+
+//#include "skse64/GameForms.h"
+//#include "skse64/GameRTTI.h"
+//#include "skse64/Serialization.h"
 
 void _assertWrite(bool result, const char* err) {
     if (!result)
@@ -68,14 +62,14 @@ std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unor
         // No passthrough, but do require that items are equipped to show their overrides.
 
         // Get the effective mask of all equipped armors
-        UInt32 equippedMask = 0;
+        std::uint32_t equippedMask = 0;
         for (const auto armor : equipped) {
-            equippedMask |= static_cast<UInt32>(armor->GetSlotMask());
+            equippedMask |= static_cast<std::uint32_t>(armor->GetSlotMask());
         }
 
         // Only add my armors if they are covered by the equip mask
         for (const auto armor : armors) {
-            UInt32 armorMask = static_cast<UInt32>(armor->GetSlotMask());
+            std::uint32_t armorMask = static_cast<std::uint32_t>(armor->GetSlotMask());
             if ((armorMask & equippedMask) == armorMask) {
                 result.emplace(armor);
             }
@@ -84,14 +78,14 @@ std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unor
         // Allow passthrough and also require that outfit items are equipped to show.
 
         // Get the effective mask of all equipped armors
-        UInt32 equippedMask = 0;
+        std::uint32_t equippedMask = 0;
         for (const auto armor : equipped) {
-            equippedMask |= static_cast<UInt32>(armor->GetSlotMask());
+            equippedMask |= static_cast<std::uint32_t>(armor->GetSlotMask());
         }
 
         // Only add my armors if they are covered by the equip mask
         for (const auto armor : armors) {
-            UInt32 armorMask = static_cast<UInt32>(armor->GetSlotMask());
+            std::uint32_t armorMask = static_cast<std::uint32_t>(armor->GetSlotMask());
             if ((armorMask & equippedMask) == armorMask) {
                 result.emplace(armor);
             }
@@ -144,15 +138,15 @@ std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unor
     return result;
 };
 
-void Outfit::load_legacy(SKSESerializationInterface* intfc, UInt32 version) {
+void Outfit::load_legacy(SKSESerializationInterface* intfc, std::uint32_t version) {
    using namespace Serialization;
    //
-   UInt32 size = 0;
+   std::uint32_t size = 0;
    _assertRead(ReadData(intfc, &size), "Failed to read an outfit's armor count.");
-   for (UInt32 i = 0; i < size; i++) {
-      UInt32 formID = 0;
+   for (std::uint32_t i = 0; i < size; i++) {
+      std::uint32_t formID = 0;
       _assertRead(ReadData(intfc, &formID), "Failed to read an outfit's armor.");
-      UInt32 fixedID;
+      std::uint32_t fixedID;
       if (intfc->ResolveFormId(formID, &fixedID)) {
          auto armor = reinterpret_cast<RE::TESObjectARMO*>(Runtime_DynamicCast((void*) LookupFormByID(fixedID), RTTI_TESForm, RTTI_TESObjectARMO));
          if (armor)
@@ -169,7 +163,7 @@ void Outfit::load_legacy(SKSESerializationInterface* intfc, UInt32 version) {
 void Outfit::load(const proto::Outfit& proto, SKSESerializationInterface* intfc) {
     this->name = proto.name();
     for (const auto& formID : proto.armors()) {
-        UInt32 fixedID;
+        std::uint32_t fixedID;
         if (intfc->ResolveFormId(formID, &fixedID)) {
             auto armor = reinterpret_cast<RE::TESObjectARMO*>(Runtime_DynamicCast((void*) LookupFormByID(fixedID), RTTI_TESForm, RTTI_TESObjectARMO));
             if (armor)
@@ -429,7 +423,7 @@ void ArmorAddonOverrideService::reset() {
    this->locationBasedAutoSwitchEnabled = false;
 }
 
-void ArmorAddonOverrideService::load_legacy(SKSESerializationInterface* intfc, UInt32 version) {
+void ArmorAddonOverrideService::load_legacy(SKSESerializationInterface* intfc, std::uint32_t version) {
    using namespace Serialization;
    //
    this->reset();
@@ -442,7 +436,7 @@ void ArmorAddonOverrideService::load_legacy(SKSESerializationInterface* intfc, U
       // a cobb::istring, and SKSE only templated WriteData for std::string in 
       // specific; other basic_string classes break it.
       //
-      UInt32 size = 0;
+      std::uint32_t size = 0;
       char buf[257];
       memset(buf, '\0', sizeof(buf));
       _assertRead(ReadData(intfc, &size), "Failed to read the selected outfit name.");
@@ -452,9 +446,9 @@ void ArmorAddonOverrideService::load_legacy(SKSESerializationInterface* intfc, U
       }
       selectedOutfitName = buf;
    }
-   UInt32 size;
+   std::uint32_t size;
    _assertRead(ReadData(intfc, &size), "Failed to read the outfit count.");
-   for (UInt32 i = 0; i < size; i++) {
+   for (std::uint32_t i = 0; i < size; i++) {
       std::string name;
       _assertRead(ReadData(intfc, &name), "Failed to read an outfit's name.");
       auto& outfit = this->getOrCreateOutfit(name.c_str());
@@ -463,9 +457,9 @@ void ArmorAddonOverrideService::load_legacy(SKSESerializationInterface* intfc, U
    this->setOutfit(selectedOutfitName.c_str(), RE::PlayerCharacter::GetSingleton());
    if (version >= ArmorAddonOverrideService::kSaveVersionV3) {
        _assertWrite(ReadData(intfc, &this->locationBasedAutoSwitchEnabled), "Failed to read the autoswitch enable state.");
-       UInt32 autoswitchSize = static_cast<UInt32>(this->actorOutfitAssignments.at(RE::PlayerCharacter::GetSingleton()).locationOutfits.size());
+       std::uint32_t autoswitchSize = static_cast<std::uint32_t>(this->actorOutfitAssignments.at(RE::PlayerCharacter::GetSingleton()).locationOutfits.size());
        _assertRead(ReadData(intfc, &autoswitchSize), "Failed to read the number of autoswitch slots.");
-       for (UInt32 i = 0; i < autoswitchSize; i++) {
+       for (std::uint32_t i = 0; i < autoswitchSize; i++) {
            // get location outfit
            //
            // we can't call WriteData directly on this->currentOutfitName because it's
@@ -474,7 +468,7 @@ void ArmorAddonOverrideService::load_legacy(SKSESerializationInterface* intfc, U
            //
            LocationType autoswitchSlot;
            _assertRead(ReadData(intfc, &autoswitchSlot), "Failed to read the an autoswitch slot ID.");
-           UInt32 locationOutfitNameSize = 0;
+           std::uint32_t locationOutfitNameSize = 0;
            char locationOutfitName[257];
            memset(locationOutfitName, '\0', sizeof(locationOutfitName));
            _assertRead(ReadData(intfc, &locationOutfitNameSize), "Failed to read the an autoswitch outfit name.");
@@ -542,7 +536,7 @@ proto::OutfitSystem ArmorAddonOverrideService::save(SKSESerializationInterface* 
        proto::ActorOutfitAssignment assnOut;
        assnOut.set_current_outfit_name(actorAssn.second.currentOutfitName.data(), actorAssn.second.currentOutfitName.size());
        for (const auto& lbo : actorAssn.second.locationOutfits) {
-           assnOut.mutable_location_based_outfits()->insert({static_cast<UInt32>(lbo.first), std::string(lbo.second.data(), lbo.second.size())});
+           assnOut.mutable_location_based_outfits()->insert({static_cast<std::uint32_t>(lbo.first), std::string(lbo.second.data(), lbo.second.size())});
        }
        out.mutable_actor_outfit_assignments()->insert({handle, assnOut});
    }

@@ -78,7 +78,7 @@ namespace cobb {
          //
          // Two bytes:
          //
-         UInt32 result;
+         std::uint32_t result;
          char b = iterator[1];
          if (!_is_continuation(b))
             return invalid_glyph;
@@ -126,7 +126,7 @@ namespace cobb {
          //
          // Two bytes:
          //
-         UInt32 result;
+         std::uint32_t result;
          char b = iterator[1];
          if (!_is_continuation(b))
             return invalid_glyph;

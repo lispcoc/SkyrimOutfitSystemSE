@@ -1,9 +1,4 @@
-﻿#include "skse64_common/BranchTrampoline.h"
-#include "skse64_common/skse_version.h"
-#include "skse64/PluginAPI.h"
-
-#include <ShlObj.h>
-#include <skse64/Serialization.h>
+﻿#include <ShlObj.h>
 
 #include "version.h"
 #include "ArmorAddonOverrideService.h"
@@ -17,7 +12,7 @@ SKSEPapyrusInterface* g_Papyrus = nullptr;
 SKSEMessagingInterface* g_Messaging = nullptr;
 SKSESerializationInterface* g_Serialization = nullptr;
 
-UInt32 g_pluginSerializationSignature = 'cOft';
+std::uint32_t g_pluginSerializationSignature = 'cOft';
 
 void Callback_Messaging_SKSE(SKSEMessagingInterface::Message* message);
 void Callback_Serialization_Save(SKSESerializationInterface* intfc);
@@ -157,7 +152,7 @@ void Callback_Serialization_Save(SKSESerializationInterface* intfc) {
             auto& service = ArmorAddonOverrideService::GetInstance();
             const auto& data = service.save(intfc);
             const auto& data_ser = data.SerializeAsString();
-            _assertWrite(intfc->WriteRecordData(data_ser.data(), static_cast<UInt32>(data_ser.size())), "Failed to write proto into SKSE record.");
+            _assertWrite(intfc->WriteRecordData(data_ser.data(), static_cast<std::uint32_t>(data_ser.size())), "Failed to write proto into SKSE record.");
         }
         catch (const ArmorAddonOverrideService::save_error& exception) {
             _MESSAGE("Save FAILED for ArmorAddonOverrideService.");
@@ -172,9 +167,9 @@ void Callback_Serialization_Save(SKSESerializationInterface* intfc) {
 void Callback_Serialization_Load(SKSESerializationInterface* intfc) {
     _MESSAGE("Loading savedata...");
     //
-    UInt32 type;    // This IS correct. A UInt32 and a four-character ASCII string have the same length (and can be read interchangeably, it seems).
-    UInt32 version;
-    UInt32 length;
+    std::uint32_t type;    // This IS correct. A std::uint32_t and a four-character ASCII string have the same length (and can be read interchangeably, it seems).
+    std::uint32_t version;
+    std::uint32_t length;
     bool   error = false;
     //
     while (!error && intfc->GetNextRecordInfo(&type, &version, &length)) {

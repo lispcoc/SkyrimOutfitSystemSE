@@ -1,13 +1,10 @@
 #pragma once
-#include "skse64/PluginAPI.h"
+
 #include <set>
 #include <unordered_map>
 #include <vector>
-#pragma warning( push )
-#pragma warning( disable : 5053 ) // CommonLibSSE uses explicit(<expr>) vendor extension.
-#include <RE/FormComponents/TESForm/TESObjectREFR/Actor/Actor.h>
-#pragma warning( pop )
 
+//#include "skse64/PluginAPI.h"
 #include "cobb/strings.h"
 #include "outfit.pb.h"
 
@@ -64,11 +61,11 @@ static Outfit g_noOutfit(g_noOutfitName); // can't be const; prevents us from as
 class ArmorAddonOverrideService {
    public:
       typedef Outfit Outfit;
-      static constexpr UInt32 signature = 'AAOS';
+      static constexpr std::uint32_t signature = 'AAOS';
       // Uses protobufs starting with V4
       enum { kSaveVersionV1 = 1, kSaveVersionV2 = 2, kSaveVersionV3 = 3, kSaveVersionV4 = 4 };
       //
-      static constexpr UInt32 ce_outfitNameMaxLength = 256; // SKSE caps serialized std::strings and const char*s to 256 bytes.
+      static constexpr std::uint32_t ce_outfitNameMaxLength = 256; // SKSE caps serialized std::strings and const char*s to 256 bytes.
       //
       static void _validateNameOrThrow(const char* outfitName);
       //
