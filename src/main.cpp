@@ -6,17 +6,15 @@
 
 std::uint32_t g_pluginSerializationSignature = 'cOft';
 
-void Callback_Messaging_SKSE(SKSEMessagingInterface::Message* message);
-void Callback_Serialization_Save(SKSESerializationInterface* intfc);
-void Callback_Serialization_Load(SKSESerializationInterface* intfc);
+void Callback_Messaging_SKSE(SKSEMessagingInterface::Message *message);
+void Callback_Serialization_Save(SKSESerializationInterface *intfc);
+void Callback_Serialization_Load(SKSESerializationInterface *intfc);
 
-void _assertWrite(bool result, const char* err);
-void _assertRead(bool result, const char* err);
+void _assertWrite(bool result, const char *err);
+void _assertRead(bool result, const char *err);
 
-void WaitForDebugger(void)
-{
-    while(!IsDebuggerPresent())
-    {
+void WaitForDebugger(void) {
+    while (!IsDebuggerPresent()) {
         Sleep(10);
     }
 
@@ -24,28 +22,28 @@ void WaitForDebugger(void)
 }
 
 namespace {
-void InitializeLog() {
-    auto path = logger::log_directory();
-		if (!path) {
-			util::report_and_fail("Failed to find standard logging directory"sv);
-		}
+    void InitializeLog() {
+        auto path = logger::log_directory();
+        if (!path) {
+            util::report_and_fail("Failed to find standard logging directory"sv);
+        }
 
-		*path /= fmt::format("{}.log"sv, Plugin::NAME);
-		auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
+        *path /= fmt::format("{}.log"sv, Plugin::NAME);
+        auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
 
 #ifndef NDEBUG
-    const auto level = spdlog::level::trace;
+        const auto level = spdlog::level::trace;
 #else
-    const auto level = spdlog::level::info;
+        const auto level = spdlog::level::info;
 #endif
 
-    auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
-    log->set_level(level);
-    log->flush_on(level);
+        auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
+        log->set_level(level);
+        log->flush_on(level);
 
-    spdlog::set_default_logger(std::move(log));
-    spdlog::set_pattern("%g(%#): [%^%l%$] %v"s);
-}
+        spdlog::set_default_logger(std::move(log));
+        spdlog::set_pattern("%g(%#): [%^%l%$] %v"s);
+    }
 }
 
 extern "C" {
@@ -58,14 +56,13 @@ DllExport constinit auto SKSEPlugin_Version = []() {
     v.PluginName(Plugin::NAME);
 
     v.UsesAddressLibrary(true);
-    v.CompatibleVersions({ SKSE::RUNTIME_LATEST });
+    v.CompatibleVersions({SKSE::RUNTIME_LATEST});
 
     return v;
 }();
 
 // Plugin Query for SE
-DllExport bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
-{
+DllExport bool SKSEPlugin_Query(const SKSEInterface *a_skse, PluginInfo *a_info) {
     logger::info("SkyrimOutfitSystemSE v%s", SKYRIMOUTFITSYSTEMSE_VERSION_VERSTRING);
 
     a_info->infoVersion = PluginInfo::kInfoVersion;
@@ -74,8 +71,7 @@ DllExport bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
 
     g_pluginHandle = a_skse->GetPluginHandle();
 
-    if (a_skse->isEditor)
-    {
+    if (a_skse->isEditor) {
         logger::error("[FATAL ERROR] Loaded in editor, marking as incompatible!\n");
         return false;
     }
@@ -87,38 +83,32 @@ DllExport bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
     //     return false;
     // }
 
-    g_Messaging = static_cast<SKSEMessagingInterface*>(a_skse->QueryInterface(kInterface_Messaging));
-    if (!g_Messaging)
-    {
+    g_Messaging = static_cast<SKSEMessagingInterface *>(a_skse->QueryInterface(kInterface_Messaging));
+    if (!g_Messaging) {
         _FATALERROR("[FATAL ERROR] Couldn't get messaging interface.");
         return false;
     }
-    if (g_Messaging->interfaceVersion < SKSEMessagingInterface::kInterfaceVersion)
-    {
+    if (g_Messaging->interfaceVersion < SKSEMessagingInterface::kInterfaceVersion) {
         _FATALERROR("[FATAL ERROR] Messaging interface too old.");
         return false;
     }
 
-    g_Serialization = static_cast<SKSESerializationInterface*>(a_skse->QueryInterface(kInterface_Serialization));
-    if (!g_Serialization)
-    {
+    g_Serialization = static_cast<SKSESerializationInterface *>(a_skse->QueryInterface(kInterface_Serialization));
+    if (!g_Serialization) {
         _FATALERROR("[FATAL ERROR] Couldn't get serialization interface.");
         return false;
     }
-    if (g_Serialization->version < SKSESerializationInterface::kVersion)
-    {
+    if (g_Serialization->version < SKSESerializationInterface::kVersion) {
         _FATALERROR("[FATAL ERROR] Serialization interface too old.");
         return false;
     }
 
-    if (!g_branchTrampoline.Create(1024 * 64))
-    {
+    if (!g_branchTrampoline.Create(1024 * 64)) {
         _FATALERROR("couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
         return false;
     }
 
-    if (!g_localTrampoline.Create(1024 * 64, nullptr))
-    {
+    if (!g_localTrampoline.Create(1024 * 64, nullptr)) {
         _FATALERROR("couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
         return false;
     }
@@ -126,16 +116,15 @@ DllExport bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
     return true;
 }
 
-void _RegisterAndEchoPapyrus(SKSEPapyrusInterface::RegisterFunctions callback, char* module) {
+void _RegisterAndEchoPapyrus(SKSEPapyrusInterface::RegisterFunctions callback, char *module) {
     bool status = g_Papyrus->Register(callback);
     if (status)
         _MESSAGE("Papyrus registration %s for %s.", "succeeded", module);
     else
         _MESSAGE("Papyrus registration %s for %s.", "FAILED", module);
-};
+} ;
 
-DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
-{
+DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface *a_skse) {
     SKSE::Init(a_skse);
     _MESSAGE("loading");
     {  // Patches:
@@ -152,7 +141,7 @@ DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
         g_Serialization->SetLoadCallback(g_pluginHandle, Callback_Serialization_Load);
     }
     {  // Papyrus registrations
-        g_Papyrus = (SKSEPapyrusInterface*)a_skse->QueryInterface(kInterface_Papyrus);
+        g_Papyrus = (SKSEPapyrusInterface *) a_skse->QueryInterface(kInterface_Papyrus);
         char name[] = "SkyrimOutfitSystemNativeFuncs";
         _RegisterAndEchoPapyrus(OutfitSystem::RegisterPapyrus, name);
     }
@@ -160,53 +149,51 @@ DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 }
 };
 
-void Callback_Messaging_SKSE(SKSEMessagingInterface::Message* message) {
+void Callback_Messaging_SKSE(SKSEMessagingInterface::Message *message) {
     if (message->type == SKSEMessagingInterface::kMessage_PostLoad) {
-    }
-    else if (message->type == SKSEMessagingInterface::kMessage_PostPostLoad) {
-    }
-    else if (message->type == SKSEMessagingInterface::kMessage_DataLoaded) {
-    }
-    else if (message->type == SKSEMessagingInterface::kMessage_NewGame) {
+    } else if (message->type == SKSEMessagingInterface::kMessage_PostPostLoad) {
+    } else if (message->type == SKSEMessagingInterface::kMessage_DataLoaded) {
+    } else if (message->type == SKSEMessagingInterface::kMessage_NewGame) {
         ArmorAddonOverrideService::GetInstance().reset();
-    }
-    else if (message->type == SKSEMessagingInterface::kMessage_PreLoadGame) {
-        ArmorAddonOverrideService::GetInstance().reset(); // AAOS::load resets as well, but this is needed in case the save we're about to load doesn't have any AAOS data.
+    } else if (message->type == SKSEMessagingInterface::kMessage_PreLoadGame) {
+        ArmorAddonOverrideService::GetInstance()
+            .reset(); // AAOS::load resets as well, but this is needed in case the save we're about to load doesn't have any AAOS data.
     }
 };
-void Callback_Serialization_Save(SKSESerializationInterface* intfc) {
+void Callback_Serialization_Save(SKSESerializationInterface *intfc) {
     _MESSAGE("Writing savedata...");
     //
     if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV4)) {
         try {
-            auto& service = ArmorAddonOverrideService::GetInstance();
-            const auto& data = service.save(intfc);
-            const auto& data_ser = data.SerializeAsString();
-            _assertWrite(intfc->WriteRecordData(data_ser.data(), static_cast<std::uint32_t>(data_ser.size())), "Failed to write proto into SKSE record.");
+            auto &service = ArmorAddonOverrideService::GetInstance();
+            const auto &data = service.save(intfc);
+            const auto &data_ser = data.SerializeAsString();
+            _assertWrite(intfc->WriteRecordData(data_ser.data(), static_cast<std::uint32_t>(data_ser.size())),
+                         "Failed to write proto into SKSE record.");
         }
-        catch (const ArmorAddonOverrideService::save_error& exception) {
+        catch (const ArmorAddonOverrideService::save_error &exception) {
             _MESSAGE("Save FAILED for ArmorAddonOverrideService.");
             _MESSAGE(" - Exception string: %s", exception.what());
         }
-    }
-    else
+    } else
         _MESSAGE("Save FAILED for ArmorAddonOverrideService. Record didn't open.");
     //
     _MESSAGE("Saving done!");
 }
-void Callback_Serialization_Load(SKSESerializationInterface* intfc) {
+void Callback_Serialization_Load(SKSESerializationInterface *intfc) {
     _MESSAGE("Loading savedata...");
     //
-    std::uint32_t type;    // This IS correct. A std::uint32_t and a four-character ASCII string have the same length (and can be read interchangeably, it seems).
+    std::uint32_t
+        type;    // This IS correct. A std::uint32_t and a four-character ASCII string have the same length (and can be read interchangeably, it seems).
     std::uint32_t version;
     std::uint32_t length;
-    bool   error = false;
+    bool error = false;
     //
     while (!error && intfc->GetNextRecordInfo(&type, &version, &length)) {
         switch (type) {
         case ArmorAddonOverrideService::signature:
             try {
-                auto& service = ArmorAddonOverrideService::GetInstance();
+                auto &service = ArmorAddonOverrideService::GetInstance();
                 if (version >= ArmorAddonOverrideService::kSaveVersionV4) {
                     using namespace Serialization;
                     // Read data from protobuf.
@@ -216,7 +203,8 @@ void Callback_Serialization_Load(SKSESerializationInterface* intfc) {
 
                     // Parse data in protobuf.
                     proto::OutfitSystem data;
-                    _assertRead(data.ParseFromArray(buf.data(), static_cast<int>(buf.size())), "Failed to parse protobuf.");
+                    _assertRead(data.ParseFromArray(buf.data(), static_cast<int>(buf.size())),
+                                "Failed to parse protobuf.");
 
                     // Load data from protobuf struct.
                     service.load(intfc, data);
@@ -224,13 +212,17 @@ void Callback_Serialization_Load(SKSESerializationInterface* intfc) {
                     service.load_legacy(intfc, version);
                 }
             }
-            catch (const ArmorAddonOverrideService::load_error& exception) {
+            catch (const ArmorAddonOverrideService::load_error &exception) {
                 _MESSAGE("Load FAILED for ArmorAddonOverrideService.");
                 _MESSAGE(" - Exception string: %s", exception.what());
             }
             break;
         default:
-            _MESSAGE("Loading: Unhandled type %c%c%c%c", (char)(type >> 0x18), (char)(type >> 0x10), (char)(type >> 0x8), (char)type);
+            _MESSAGE("Loading: Unhandled type %c%c%c%c",
+                     (char) (type >> 0x18),
+                     (char) (type >> 0x10),
+                     (char) (type >> 0x8),
+                     (char) type);
             error = true;
             break;
         }

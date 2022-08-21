@@ -111,6 +111,7 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/version.rc
     include/SOS_PCH.h
     src/main.cpp
+    src/main2.cpp
     include/cobb/strings.h
     include/cobb/utf8naturalsort.h
     src/cobb/utf8naturalsort.cpp
@@ -120,9 +121,10 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/ArmorAddonOverrideService.cpp
     include/OutfitSystem.h
     src/OutfitSystem.cpp
+    src/OutfitSystem2.cpp
     include/PlayerSkinning.h
     src/PlayerSkinning.cpp
-        )
+    )
 
 set(ROOT_NAMESPACE SkyrimOutfitSystemSE)
 
