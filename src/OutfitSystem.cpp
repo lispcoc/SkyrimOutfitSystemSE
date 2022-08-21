@@ -1,12 +1,5 @@
 #include "OutfitSystem.h"
 
-#pragma warning( push )
-#pragma warning( disable : 4267 ) // SKSE has some integer conversion when returning arrays. Returned arrays should be limited to 32-bit size().
-#pragma warning( disable : 5053 ) // SKSE uses explicit(<expr>) vendor extension.
-//#include "skse64/PapyrusNativeFunctions.h"
-#include "RE/P/PlayerCharacter.h"
-#pragma warning( pop )
-
 //#include "skse64/PapyrusObjects.h"
 //#include "skse64/PapyrusVM.h"
 
@@ -14,21 +7,6 @@
 //#include "skse64/GameFormComponents.h"
 //#include "skse64/GameObjects.h"
 //#include "skse64/GameReferences.h"
-
-#pragma warning( push )
-#pragma warning( disable : 5053 ) // CommonLibSSE uses explicit(<expr>) vendor extension.
-#include "RE/T/TESObjectARMO.h"
-#include "RE/T/TESDataHandler.h"
-#include "RE/A/Actor.h"
-#include "RE/A/AIProcess.h"
-#include "RE/I/InventoryChanges.h"
-#include "RE/I/InventoryEntryData.h"
-#include "RE/B/BGSLocation.h"
-#include "RE/T/TESWeather.h"
-#include "RE/T/TESObjectCELL.h"
-#include "RE/B/BGSKeyword.h"
-#include "RE/M/Misc.h"
-#pragma warning( pop )
 
 #include "ArmorAddonOverrideService.h"
 
@@ -40,29 +18,43 @@
 
 #include "google/protobuf/util/json_util.h"
 
-#define ERROR_AND_RETURN_EXPR_IF(condition, message, valueExpr, registry, stackId) \
-    if (condition)                                \
-    {                                            \
-        registry->LogError(message, stackId);    \
-        return (valueExpr);                        \
+template<typename T>
+using VMResultArray = std::vector<T>;
+
+template<typename T>
+using VMArray = std::vector<T>;
+
+#define ERROR_AND_RETURN_EXPR_IF(condition, message, valueExpr, registry, stackId)                  \
+    if (condition)                                                                                  \
+    {                                                                                               \
+        registry->TraceStack(message, stackId, RE::BSScript::IVirtualMachine::Severity::kError);    \
+        return (valueExpr);                                                                         \
     }
 
-// Needed for save and load of config JSON
-extern SKSESerializationInterface *g_Serialization;
+#define ERROR_AND_RETURN_IF(condition, message, registry, stackId)                  \
+    if (condition)                                                                                  \
+    {                                                                                               \
+        registry->TraceStack(message, stackId, RE::BSScript::IVirtualMachine::Severity::kError);    \
+        return;                                                                         \
+    }
 
 namespace OutfitSystem {
-    SInt32 GetOutfitNameMaxLength(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *) {
+    std::int32_t GetOutfitNameMaxLength(RE::BSScript::IVirtualMachine *registry,
+                                        std::uint32_t stackId,
+                                        RE::StaticFunctionTag *) {
         return ArmorAddonOverrideService::ce_outfitNameMaxLength;
     }
-    VMResultArray<TESObjectARMO *> GetCarriedArmor(VMClassRegistry *registry,
-                                                   std::uint32_t stackId,
-                                                   StaticFunctionTag *,
-                                                   Actor *target_skse) {
-        VMResultArray < RE::TESObjectARMO * > result;
+    std::vector<RE::TESObjectARMO *> GetCarriedArmor(RE::BSScript::IVirtualMachine *registry,
+                                                     std::uint32_t stackId,
+                                                     RE::StaticFunctionTag *,
+                                                     RE::Actor *target_skse) {
+        VMResultArray<RE::TESObjectARMO *> result;
         auto target = (RE::Actor *) (target_skse);
         if (target == nullptr) {
-            registry->LogError("Cannot retrieve data for a None actor.", stackId);
-            VMResultArray < TESObjectARMO * > empty;
+            registry->TraceStack("Cannot retrieve data for a None RE::Actor.",
+                                 stackId,
+                                 RE::BSScript::IVirtualMachine::Severity::kError);
+            VMResultArray<RE::TESObjectARMO *> empty;
             return empty;
         }
         //
@@ -89,22 +81,23 @@ namespace OutfitSystem {
             _Visitor visitor(result);
             inventory->ExecuteVisitor(&visitor);
         }
-        VMResultArray < TESObjectARMO * > converted_result;
+        VMResultArray<RE::TESObjectARMO *> converted_result;
         converted_result.reserve(result.size());
         for (const auto ptr : result) {
-            converted_result.push_back((TESObjectARMO *) ptr);
+            converted_result.push_back((RE::TESObjectARMO *) ptr);
         }
         return converted_result;
     }
-    VMResultArray<TESObjectARMO *> GetWornItems(VMClassRegistry *registry,
-                                                std::uint32_t stackId,
-                                                StaticFunctionTag *,
-                                                Actor *target_skse) {
-        VMResultArray < RE::TESObjectARMO * > result;
+    VMResultArray<RE::TESObjectARMO *> GetWornItems(
+        RE::BSScript::IVirtualMachine *registry,
+        std::uint32_t stackId,
+        RE::StaticFunctionTag *,
+        RE::Actor *target_skse) {
+        VMResultArray<RE::TESObjectARMO *> result;
         auto target = (RE::Actor *) (target_skse);
         if (target == nullptr) {
-            registry->LogError("Cannot retrieve data for a None actor.", stackId);
-            VMResultArray < TESObjectARMO * > empty;
+            registry->TraceStack("Cannot retrieve data for a None RE::Actor.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);
+            VMResultArray<RE::TESObjectARMO *> empty;
             return empty;
         }
         //
@@ -130,32 +123,37 @@ namespace OutfitSystem {
             _Visitor visitor(result);
             inventory->ExecuteVisitorOnWorn(&visitor);
         }
-        VMResultArray < TESObjectARMO * > converted_result;
+        VMResultArray<RE::TESObjectARMO *> converted_result;
         converted_result.reserve(result.size());
         for (const auto ptr : result) {
-            converted_result.push_back((TESObjectARMO *) ptr);
+            converted_result.push_back((RE::TESObjectARMO *) ptr);
         }
         return converted_result;
     }
-    void RefreshArmorFor(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *, Actor *target_skse) {
+    void RefreshArmorFor(RE::BSScript::IVirtualMachine *registry,
+                         std::uint32_t stackId,
+                         RE::StaticFunctionTag *,
+                         RE::Actor *target_skse) {
         auto target = (RE::Actor *) (target_skse);
-        ERROR_AND_RETURN_IF(target == nullptr, "Cannot refresh armor on a None actor.", registry, stackId);
+        ERROR_AND_RETURN_IF(target == nullptr, "Cannot refresh armor on a None RE::Actor.", registry, stackId);
         auto pm = target->currentProcess;
         if (pm) {
             //
-            // "SetEquipFlag" tells the process manager that the actor's
+            // "SetEquipFlag" tells the process manager that the RE::Actor's
             // equipment has changed, and that their ArmorAddons should
             // be updated. If you need to find it in Skyrim Special, you
             // should see a call near the start of EquipManager's func-
             // tion to equip an item.
             //
-            // NOTE: AIProcess is also called as ActorProcessManager
+            // NOTE: AIProcess is also called as RE::ActorProcessManager
             pm->SetEquipFlag(RE::AIProcess::Flag::kUnk01);
             pm->UpdateEquipment(target);
         }
     }
-    VMResultArray<Actor *> GetActorsNearPC(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *) {
-        VMResultArray < Actor * > result;
+    std::vector<RE::Actor *> ActorsNearPC(RE::BSScript::IVirtualMachine *registry,
+                                          std::uint32_t stackId,
+                                          RE::StaticFunctionTag *) {
+        VMResultArray<RE::Actor *> result;
         auto pc = RE::PlayerCharacter::GetSingleton();
         ERROR_AND_RETURN_EXPR_IF(pc == nullptr, "Could not get PC Singleton.", result, registry, stackId);
         auto pcCell = pc->GetParentCell();
@@ -163,9 +161,10 @@ namespace OutfitSystem {
         result.reserve(pcCell->references.size());
         for (const auto &ref : pcCell->references) {
             RE::TESObjectREFR *objectRefPtr = ref.get();
-            auto actorCastedPtr = (Actor *) Runtime_DynamicCast((void *) objectRefPtr, RTTI_TESObjectREFR, RTTI_Actor);
-            if (actorCastedPtr)
-                result.push_back(actorCastedPtr);
+            autoRE::ActorCastedPtr =
+                (RE::Actor *) Runtime_DynamicCast((void *) objectRefPtr, RTTI_TESObjectREFR, RTTI_RE::Actor);
+            if (RE::ActorCastedPtr)
+                result.push_back(RE::ActorCastedPtr);
         }
         result.shrink_to_fit();
         return result;
@@ -193,9 +192,9 @@ namespace OutfitSystem {
                             continue;
                         std::string armorName;
                         {  // get name
-                            // TESFullName* tfn = DYNAMIC_CAST(armor, TESObjectARMO, TESFullName);
+                            // TESFullName* tfn = DYNAMIC_CAST(armor, RE::TESObjectARMO, TESFullName);
                             TESFullName *tfn = (TESFullName *) Runtime_DynamicCast((void *) armor,
-                                                                                   RTTI_TESObjectARMO,
+                                                                                   RTTI_RE::TESObjectARMO,
                                                                                    RTTI_TESFullName);
                             if (tfn)
                                 armorName = tfn->name.data;
@@ -223,33 +222,37 @@ namespace OutfitSystem {
         } data;
         //
         //
-        void Prep(VMClassRegistry *registry,
-                  std::uint32_t stackId,
-                  StaticFunctionTag *,
-                  BSFixedString filter,
+        void Prep(RE::BSScript::IVirtualMachine *registry,
+                  std::uint32_t stackId, 
+                  RE::StaticFunctionTag *,
+                  RE::BSFixedString filter,
                   bool mustBePlayable) {
-            data.setup(filter.data, mustBePlayable);
+            data.setup(filter.data(), mustBePlayable);
         }
-        VMResultArray<TESObjectARMO *> GetForms(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *) {
-            VMResultArray < RE::TESObjectARMO * > result;
+        VMResultArray<RE::TESObjectARMO *> GetForms(RE::BSScript::IVirtualMachine *registry,
+                                                    std::uint32_t stackId,
+                                                    RE::StaticFunctionTag *) {
+            VMResultArray<RE::TESObjectARMO *> result;
             auto &list = data.armors;
             for (auto it = list.begin(); it != list.end(); it++)
                 result.push_back(*it);
-            VMResultArray < TESObjectARMO * > converted_result;
+            VMResultArray<RE::TESObjectARMO *> converted_result;
             converted_result.reserve(result.size());
             for (const auto ptr : result) {
-                converted_result.push_back((TESObjectARMO *) ptr);
+                converted_result.push_back((RE::TESObjectARMO *) ptr);
             }
             return converted_result;
         }
-        VMResultArray <BSFixedString> GetNames(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *) {
-            VMResultArray <BSFixedString> result;
+        VMResultArray <RE::BSFixedString> GetNames(RE::BSScript::IVirtualMachine *registry,
+                                                   std::uint32_t stackId,
+                                                   RE::StaticFunctionTag *) {
+            VMResultArray<RE::BSFixedString> result;
             auto &list = data.names;
             for (auto it = list.begin(); it != list.end(); it++)
                 result.push_back(it->c_str());
             return result;
         }
-        void Clear(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *) {
+        void Clear(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *) {
             data.clear();
         }
     }
@@ -259,26 +262,29 @@ namespace OutfitSystem {
             kBodySlotMax = 61,
         };
         static struct {
-            std::vector<SInt32> bodySlots;
+            std::vector<std::int32_t> bodySlots;
             std::vector<std::string> armorNames;
             std::vector<RE::TESObjectARMO *> armors;
         } data;
         //
-        void Clear(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *) {
+        void Clear(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *) {
             data.bodySlots.clear();
             data.armorNames.clear();
             data.armors.clear();
         }
-        void Prep(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *, BSFixedString name) {
+        void Prep(RE::BSScript::IVirtualMachine *registry,
+                  std::uint32_t stackId,
+                  RE::StaticFunctionTag *,
+                  RE::BSFixedString name) {
             data.bodySlots.clear();
             data.armorNames.clear();
             data.armors.clear();
             //
             auto &service = ArmorAddonOverrideService::GetInstance();
             try {
-                auto &outfit = service.getOutfit(name.data);
+                auto &outfit = service.getOutfit(name.data());
                 auto &armors = outfit.armors;
-                for (UInt8 i = kBodySlotMin; i <= kBodySlotMax; i++) {
+                for (std::uint8_t i = kBodySlotMin; i <= kBodySlotMax; i++) {
                     std::uint32_t mask = 1 << (i - kBodySlotMin);
                     for (auto it = armors.begin(); it != armors.end(); it++) {
                         RE::TESObjectARMO *armor = *it;
@@ -286,9 +292,9 @@ namespace OutfitSystem {
                             data.bodySlots.push_back(i);
                             data.armors.push_back(armor);
                             { // name
-                                // TESFullName* pFullName = DYNAMIC_CAST(armor, TESObjectARMO, TESFullName);
-                                TESFullName *pFullName = (TESFullName *) Runtime_DynamicCast((void *) armor,
-                                                                                             RTTI_TESObjectARMO,
+                                // TESFullName* pFullName = DYNAMIC_CAST(armor, RE::TESObjectARMO, TESFullName);
+                                RE::TESFullName *pFullName = (RE::TESFullName *) Runtime_DynamicCast((void *) armor,
+                                                                                             RTTI_RE::TESObjectARMO,
                                                                                              RTTI_TESFullName);
                                 if (pFullName)
                                     data.armorNames.push_back(pFullName->name.data);
@@ -300,34 +306,36 @@ namespace OutfitSystem {
                 }
             }
             catch (std::out_of_range) {
-                registry->LogWarning("The specified outfit does not exist.", stackId);
+                registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
             }
         }
-        VMResultArray<TESObjectARMO *> GetArmorForms(VMClassRegistry *registry,
-                                                     std::uint32_t stackId,
-                                                     StaticFunctionTag *) {
-            VMResultArray < RE::TESObjectARMO * > result;
+        VMResultArray<RE::TESObjectARMO *> GetArmorForms(RE::BSScript::IVirtualMachine *registry,
+                                                         std::uint32_t stackId,
+                                                         RE::StaticFunctionTag *) {
+            VMResultArray<RE::TESObjectARMO *> result;
             auto &list = data.armors;
             for (auto it = list.begin(); it != list.end(); it++)
                 result.push_back(*it);
-            VMResultArray < TESObjectARMO * > converted_result;
+            VMResultArray<RE::TESObjectARMO *> converted_result;
             converted_result.reserve(result.size());
             for (const auto ptr : result) {
-                converted_result.push_back((TESObjectARMO *) ptr);
+                converted_result.push_back((RE::TESObjectARMO *) ptr);
             }
             return converted_result;
         }
-        VMResultArray <BSFixedString> GetArmorNames(VMClassRegistry *registry,
-                                                    std::uint32_t stackId,
-                                                    StaticFunctionTag *) {
-            VMResultArray <BSFixedString> result;
+        VMResultArray <RE::BSFixedString> GetArmorNames(RE::BSScript::IVirtualMachine *registry,
+                                                        std::uint32_t stackId,
+                                                        RE::StaticFunctionTag *) {
+            VMResultArray<RE::BSFixedString> result;
             auto &list = data.armorNames;
             for (auto it = list.begin(); it != list.end(); it++)
                 result.push_back(it->c_str());
             return result;
         }
-        VMResultArray <SInt32> GetSlotIndices(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *) {
-            VMResultArray <SInt32> result;
+        VMResultArray <std::int32_t> GetSlotIndices(RE::BSScript::IVirtualMachine *registry,
+                                                    std::uint32_t stackId,
+                                                    RE::StaticFunctionTag *) {
+            VMResultArray<std::int32_t> result;
             auto &list = data.bodySlots;
             for (auto it = list.begin(); it != list.end(); it++)
                 result.push_back(*it);
@@ -335,17 +343,18 @@ namespace OutfitSystem {
         }
     }
     namespace StringSorts {
-        VMResultArray <BSFixedString> NaturalSort_ASCII(VMClassRegistry *registry,
-                                                        std::uint32_t stackId,
-                                                        StaticFunctionTag *,
-                                                        VMArray <BSFixedString> arr,
-                                                        bool descending) {
-            VMResultArray <BSFixedString> result;
+        VMResultArray <RE::BSFixedString> NaturalSort_ASCII(RE::BSScript::IVirtualMachine *registry,
+                                                            std::uint32_t stackId,
+                                                            RE::StaticFunctionTag *,
+
+                                                            VMArray <RE::BSFixedString> arr,
+                                                            bool descending) {
+            VMResultArray<RE::BSFixedString> result;
             {  // Copy input array into output array
                 std::uint32_t size = arr.Length();
                 result.reserve(size);
                 for (std::uint32_t i = 0; i < size; i++) {
-                    BSFixedString x;
+                    RE::BSFixedString x;
                     arr.Get(&x, i);
                     result.push_back(x);
                 }
@@ -353,7 +362,7 @@ namespace OutfitSystem {
             std::sort(
                 result.begin(),
                 result.end(),
-                [descending](const BSFixedString &x, const BSFixedString &y) {
+                [descending](const RE::BSFixedString &x, const RE::BSFixedString &y) {
                     std::string a(x.data);
                     std::string b(y.data);
                     if (descending)
@@ -363,34 +372,35 @@ namespace OutfitSystem {
             );
             return result;
         }
-        template<typename T> VMResultArray <BSFixedString> NaturalSortPair_ASCII(VMClassRegistry *registry,
-                                                                                 std::uint32_t stackId,
-                                                                                 StaticFunctionTag *,
-                                                                                 VMArray <BSFixedString> arr,
-                                                                                 VMArray <T> second,
-                                                                                 bool descending) {
+        template<typename T> VMResultArray <RE::BSFixedString> NaturalSortPair_ASCII(
+            RE::BSScript::IVirtualMachine *registry,
+            std::uint32_t stackId,
+            RE::StaticFunctionTag *,
+            VMArray <RE::BSFixedString> arr,
+            VMArray <T> second,
+            bool descending) {
             std::uint32_t size = arr.Length();
             if (size != second.Length()) {
-                registry->LogError("The two arrays must be the same length.", stackId);
+                registry->TraceStack("The two arrays must be the same length.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);
                 //
-                VMResultArray <BSFixedString> result;
+                VMResultArray<RE::BSFixedString> result;
                 result.reserve(size);
                 for (std::uint32_t i = 0; i < size; i++) {
-                    BSFixedString x;
+                    RE::BSFixedString x;
                     arr.Get(&x, i);
                     result.push_back(x);
                 }
                 return result;
             }
             //
-            typedef std::pair<BSFixedString, T> _pair;
+            typedef std::pair<RE::BSFixedString, T> _pair;
             std::vector<_pair> pairs;
             //
-            VMResultArray <BSFixedString> result;
+            VMResultArray<RE::BSFixedString> result;
             {  // Copy input array into output array
                 result.reserve(size);
                 for (std::uint32_t i = 0; i < size; i++) {
-                    BSFixedString x;
+                    RE::BSFixedString x;
                     T y;
                     arr.Get(&x, i);
                     second.Get(&y, i);
@@ -415,26 +425,26 @@ namespace OutfitSystem {
         }
     }
     namespace Utility {
-        std::uint32_t HexToInt32(VMClassRegistry *registry,
+        std::uint32_t HexToInt32(RE::BSScript::IVirtualMachine *registry,
                                  std::uint32_t stackId,
-                                 StaticFunctionTag *,
-                                 BSFixedString str) {
+                                 RE::StaticFunctionTag *,
+
+                                 RE::BSFixedString str) {
             const char *s = str.data;
             char *discard;
             return strtoul(s, &discard, 16);
         }
-        BSFixedString ToHex(VMClassRegistry *registry,
-                            std::uint32_t stackId,
-                            StaticFunctionTag *,
-                            std::uint32_t value,
-                            SInt32 length) {
+        RE::BSFixedString ToHex(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *,
+
+                                std::uint32_t value,
+                                std::int32_t length) {
             if (length < 1) {
                 registry->LogWarning(
                     "Cannot format a hexadecimal valueinteger to a negative number of digits. Defaulting to eight.",
                     stackId);
                 length = 8;
             } else if (length > 8) {
-                registry->LogWarning("Cannot format a hexadecimal integer longer than eight digits.", stackId);
+                registry->TraceStack("Cannot format a hexadecimal integer longer than eight digits.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
                 length = 8;
             }
             char hex[9];
@@ -449,15 +459,14 @@ namespace OutfitSystem {
                     hex[length] = digit + 0x37;
                 }
             }
-            return hex; // passes through BSFixedString constructor, which I believe caches the string, so returning local vars should be fine
+            return hex; // passes through RE::BSFixedString constructor, which I believe caches the string, so returning local vars should be fine
         }
     }
     //
-    void AddArmorToOutfit(VMClassRegistry *registry,
-                          std::uint32_t stackId,
-                          StaticFunctionTag *,
-                          BSFixedString name,
-                          TESObjectARMO *armor_skse) {
+    void AddArmorToOutfit(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *,
+
+                          RE::BSFixedString name,
+                          RE::TESObjectARMO *armor_skse) {
         auto armor = (RE::TESObjectARMO *) (armor_skse);
         ERROR_AND_RETURN_IF(armor == nullptr, "Cannot add a None armor to an outfit.", registry, stackId);
         auto &service = ArmorAddonOverrideService::GetInstance();
@@ -466,17 +475,18 @@ namespace OutfitSystem {
             outfit.armors.insert(armor);
         }
         catch (std::out_of_range) {
-            registry->LogWarning("The specified outfit does not exist.", stackId);
+            registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
         }
     }
-    bool ArmorConflictsWithOutfit(VMClassRegistry *registry,
+    bool ArmorConflictsWithOutfit(RE::BSScript::IVirtualMachine *registry,
                                   std::uint32_t stackId,
-                                  StaticFunctionTag *,
-                                  TESObjectARMO *armor_skse,
-                                  BSFixedString name) {
+                                  RE::StaticFunctionTag *,
+
+                                  RE::TESObjectARMO *armor_skse,
+                                  RE::BSFixedString name) {
         auto armor = (RE::TESObjectARMO *) (armor_skse);
         if (armor == nullptr) {
-            registry->LogWarning("A None armor can't conflict with anything in an outfit.", stackId);
+            registry->TraceStack("A None armor can't conflict with anything in an outfit.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
             return false;
         }
         auto &service = ArmorAddonOverrideService::GetInstance();
@@ -485,29 +495,36 @@ namespace OutfitSystem {
             return outfit.conflictsWith(armor);
         }
         catch (std::out_of_range) {
-            registry->LogWarning("The specified outfit does not exist.", stackId);
+            registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
             return false;
         }
     }
-    void CreateOutfit(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *, BSFixedString name) {
+    void CreateOutfit(RE::BSScript::IVirtualMachine *registry,
+                      std::uint32_t stackId,
+                      RE::StaticFunctionTag *,
+                      RE::BSFixedString name) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         try {
             service.addOutfit(name.data);
         }
         catch (ArmorAddonOverrideService::bad_name) {
-            registry->LogError("Invalid outfit name specified.", stackId);
+            registry->TraceStack("Invalid outfit name specified.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);
             return;
         }
     }
-    void DeleteOutfit(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *, BSFixedString name) {
+    void DeleteOutfit(RE::BSScript::IVirtualMachine *registry,
+                      std::uint32_t stackId,
+                      RE::StaticFunctionTag *,
+                      RE::BSFixedString name) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         service.deleteOutfit(name.data);
     }
-    VMResultArray<TESObjectARMO *> GetOutfitContents(VMClassRegistry *registry,
-                                                     std::uint32_t stackId,
-                                                     StaticFunctionTag *,
-                                                     BSFixedString name) {
-        VMResultArray < RE::TESObjectARMO * > result;
+    VMResultArray<RE::TESObjectARMO *> GetOutfitContents(RE::BSScript::IVirtualMachine *registry,
+                                                         std::uint32_t stackId,
+                                                         RE::StaticFunctionTag *,
+
+                                                         RE::BSFixedString name) {
+        VMResultArray<RE::TESObjectARMO *> result;
         auto &service = ArmorAddonOverrideService::GetInstance();
         try {
             auto &outfit = service.getOutfit(name.data);
@@ -516,19 +533,20 @@ namespace OutfitSystem {
                 result.push_back(*it);
         }
         catch (std::out_of_range) {
-            registry->LogWarning("The specified outfit does not exist.", stackId);
+            registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
         }
-        VMResultArray < TESObjectARMO * > converted_result;
+        VMResultArray<RE::TESObjectARMO *> converted_result;
         converted_result.reserve(result.size());
         for (const auto ptr : result) {
-            converted_result.push_back((TESObjectARMO *) ptr);
+            converted_result.push_back((RE::TESObjectARMO *) ptr);
         }
         return converted_result;
     }
-    bool GetOutfitFavoriteStatus(VMClassRegistry *registry,
+    bool GetOutfitFavoriteStatus(RE::BSScript::IVirtualMachine *registry,
                                  std::uint32_t stackId,
-                                 StaticFunctionTag *,
-                                 BSFixedString name) {
+                                 RE::StaticFunctionTag *,
+
+                                 RE::BSFixedString name) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         bool result = false;
         try {
@@ -536,14 +554,15 @@ namespace OutfitSystem {
             result = outfit.isFavorite;
         }
         catch (std::out_of_range) {
-            registry->LogWarning("The specified outfit does not exist.", stackId);
+            registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
         }
         return result;
     }
-    bool GetOutfitPassthroughStatus(VMClassRegistry *registry,
+    bool GetOutfitPassthroughStatus(RE::BSScript::IVirtualMachine *registry,
                                     std::uint32_t stackId,
-                                    StaticFunctionTag *,
-                                    BSFixedString name) {
+                                    RE::StaticFunctionTag *,
+
+                                    RE::BSFixedString name) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         bool result = false;
         try {
@@ -551,14 +570,15 @@ namespace OutfitSystem {
             result = outfit.allowsPassthrough;
         }
         catch (std::out_of_range) {
-            registry->LogWarning("The specified outfit does not exist.", stackId);
+            registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
         }
         return result;
     }
-    bool GetOutfitEquipRequiredStatus(VMClassRegistry *registry,
+    bool GetOutfitEquipRequiredStatus(RE::BSScript::IVirtualMachine *registry,
                                       std::uint32_t stackId,
-                                      StaticFunctionTag *,
-                                      BSFixedString name) {
+                                      RE::StaticFunctionTag *,
+
+                                      RE::BSFixedString name) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         bool result = false;
         try {
@@ -566,24 +586,27 @@ namespace OutfitSystem {
             result = outfit.requiresEquipped;
         }
         catch (std::out_of_range) {
-            registry->LogWarning("The specified outfit does not exist.", stackId);
+            registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
         }
         return result;
     }
-    BSFixedString GetSelectedOutfit(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *) {
+    RE::BSFixedString GetSelectedOutfit(RE::BSScript::IVirtualMachine *registry,
+                                        std::uint32_t stackId,
+                                        RE::StaticFunctionTag *) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         return service.currentOutfit(RE::PlayerCharacter::GetSingleton()).name.c_str();
     }
-    bool IsEnabled(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *) {
+    bool IsEnabled(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         return service.enabled;
     }
-    VMResultArray <BSFixedString> ListOutfits(VMClassRegistry *registry,
-                                              std::uint32_t stackId,
-                                              StaticFunctionTag *,
-                                              bool favoritesOnly) {
+    VMResultArray <RE::BSFixedString> ListOutfits(RE::BSScript::IVirtualMachine *registry,
+                                                  std::uint32_t stackId,
+                                                  RE::StaticFunctionTag *,
+
+                                                  bool favoritesOnly) {
         auto &service = ArmorAddonOverrideService::GetInstance();
-        VMResultArray <BSFixedString> result;
+        VMResultArray<RE::BSFixedString> result;
         std::vector<std::string> intermediate;
         service.getOutfitNames(intermediate, favoritesOnly);
         result.reserve(intermediate.size());
@@ -591,11 +614,10 @@ namespace OutfitSystem {
             result.push_back(it->c_str());
         return result;
     }
-    void RemoveArmorFromOutfit(VMClassRegistry *registry,
-                               std::uint32_t stackId,
-                               StaticFunctionTag *,
-                               BSFixedString name,
-                               TESObjectARMO *armor_skse) {
+    void RemoveArmorFromOutfit(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *,
+
+                               RE::BSFixedString name,
+                               RE::TESObjectARMO *armor_skse) {
         auto armor = (RE::TESObjectARMO *) (armor_skse);
         ERROR_AND_RETURN_IF(armor == nullptr, "Cannot remove a None armor from an outfit.", registry, stackId);
         auto &service = ArmorAddonOverrideService::GetInstance();
@@ -604,14 +626,15 @@ namespace OutfitSystem {
             outfit.armors.erase(armor);
         }
         catch (std::out_of_range) {
-            registry->LogWarning("The specified outfit does not exist.", stackId);
+            registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
         }
     }
-    void RemoveConflictingArmorsFrom(VMClassRegistry *registry,
+    void RemoveConflictingArmorsFrom(RE::BSScript::IVirtualMachine *registry,
                                      std::uint32_t stackId,
-                                     StaticFunctionTag *,
-                                     TESObjectARMO *armor_skse,
-                                     BSFixedString name) {
+                                     RE::StaticFunctionTag *,
+
+                                     RE::TESObjectARMO *armor_skse,
+                                     RE::BSFixedString name) {
         auto armor = (RE::TESObjectARMO *) (armor_skse);
         ERROR_AND_RETURN_IF(armor == nullptr,
                             "A None armor can't conflict with anything in an outfit.",
@@ -636,72 +659,76 @@ namespace OutfitSystem {
                 armors.erase(*it);
         }
         catch (std::out_of_range) {
-            registry->LogError("The specified outfit does not exist.", stackId);
+            registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);
             return;
         }
     }
-    bool RenameOutfit(VMClassRegistry *registry,
-                      std::uint32_t stackId,
-                      StaticFunctionTag *,
-                      BSFixedString name,
-                      BSFixedString changeTo) {
+    bool RenameOutfit(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *,
+
+                      RE::BSFixedString name,
+                      RE::BSFixedString changeTo) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         try {
             service.renameOutfit(name.data, changeTo.data);
         }
         catch (ArmorAddonOverrideService::bad_name) {
-            registry->LogError("The desired name is invalid.", stackId);
+            registry->TraceStack("The desired name is invalid.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);
             return false;
         }
         catch (ArmorAddonOverrideService::name_conflict) {
-            registry->LogError("The desired name is taken.", stackId);
+            registry->TraceStack("The desired name is taken.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);
             return false;
         }
         catch (std::out_of_range) {
-            registry->LogError("The specified outfit does not exist.", stackId);
+            registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);
             return false;
         }
         return true;
     }
-    void SetOutfitFavoriteStatus(VMClassRegistry *registry,
+    void SetOutfitFavoriteStatus(RE::BSScript::IVirtualMachine *registry,
                                  std::uint32_t stackId,
-                                 StaticFunctionTag *,
-                                 BSFixedString name,
+                                 RE::StaticFunctionTag *,
+
+                                 RE::BSFixedString name,
                                  bool favorite) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         service.setFavorite(name.data, favorite);
     }
-    void SetOutfitPassthroughStatus(VMClassRegistry *registry,
+    void SetOutfitPassthroughStatus(RE::BSScript::IVirtualMachine *registry,
                                     std::uint32_t stackId,
-                                    StaticFunctionTag *,
-                                    BSFixedString name,
+                                    RE::StaticFunctionTag *,
+
+                                    RE::BSFixedString name,
                                     bool allowsPassthrough) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         service.setOutfitPassthrough(name.data, allowsPassthrough);
     }
-    void SetOutfitEquipRequiredStatus(VMClassRegistry *registry,
+    void SetOutfitEquipRequiredStatus(RE::BSScript::IVirtualMachine *registry,
                                       std::uint32_t stackId,
-                                      StaticFunctionTag *,
-                                      BSFixedString name,
+                                      RE::StaticFunctionTag *,
+
+                                      RE::BSFixedString name,
                                       bool equipRequired) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         service.setOutfitEquipRequired(name.data, equipRequired);
     }
-    bool OutfitExists(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *, BSFixedString name) {
+    bool OutfitExists(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *,
+
+                      RE::BSFixedString name) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         return service.hasOutfit(name.data);
     }
-    void OverwriteOutfit(VMClassRegistry *registry,
+    void OverwriteOutfit(RE::BSScript::IVirtualMachine *registry,
                          std::uint32_t stackId,
-                         StaticFunctionTag *,
-                         BSFixedString name,
-                         VMArray<TESObjectARMO *> armors_skse) {
+                         RE::StaticFunctionTag *,
+                         RE::BSFixedString name,
+                         VMArray<RE::TESObjectARMO *> armors_skse) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         // Convert input array.
-        VMResultArray < RE::TESObjectARMO * > armors;
+        VMResultArray<RE::TESObjectARMO *> armors;
         armors.reserve(armors_skse.Length());
         for (std::size_t i = 0; i < armors_skse.Length(); i++) {
-            TESObjectARMO *ptr;
+            RE::TESObjectARMO *ptr;
             armors_skse.Get(&ptr, static_cast<std::uint32_t>(i));
             armors.push_back((RE::TESObjectARMO *) ptr);
         }
@@ -718,39 +745,54 @@ namespace OutfitSystem {
             }
         }
         catch (ArmorAddonOverrideService::bad_name) {
-            registry->LogError("Invalid outfit name specified.", stackId);
+            registry->TraceStack("Invalid outfit name specified.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);
             return;
         }
     }
-    void SetEnabled(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *, bool state) {
+    void SetEnabled(RE::BSScript::IVirtualMachine *registry,
+                    std::uint32_t stackId,
+                    RE::StaticFunctionTag *,
+                    bool state) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         service.setEnabled(state);
     }
-    void SetSelectedOutfit(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *, BSFixedString name) {
+    void SetSelectedOutfit(RE::BSScript::IVirtualMachine *registry,
+                           std::uint32_t stackId,
+                           RE::StaticFunctionTag *,
+                           RE::BSFixedString name) {
         auto &service = ArmorAddonOverrideService::GetInstance();
         service.setOutfit(name.data, RE::PlayerCharacter::GetSingleton());
     }
-    void AddActor(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *, Actor *target) {
+    void AddActor(RE::BSScript::IVirtualMachine *registry,
+                  std::uint32_t stackId,
+                  RE::StaticFunctionTag *,
+                  RE::Actor *target) {
         auto &service = ArmorAddonOverrideService::GetInstance();
-        service.addActor((RE::Actor *) target);
+        service.addRE::Actor((RE::Actor *) target);
     }
-    void RemoveActor(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *, Actor *target) {
+    void RemoveActor(RE::BSScript::IVirtualMachine *registry,
+                     std::uint32_t stackId,
+                     RE::StaticFunctionTag *,
+                     RE::Actor *target) {
         auto &service = ArmorAddonOverrideService::GetInstance();
-        service.removeActor((RE::Actor *) target);
+        service.removeRE::Actor((RE::Actor *) target);
     }
-    void SetLocationBasedAutoSwitchEnabled(VMClassRegistry *registry,
+    void SetLocationBasedAutoSwitchEnabled(RE::BSScript::IVirtualMachine *registry,
                                            std::uint32_t stackId,
-                                           StaticFunctionTag *,
+                                           RE::StaticFunctionTag *,
+
                                            bool value) {
         ArmorAddonOverrideService::GetInstance().setLocationBasedAutoSwitchEnabled(value);
     }
-    bool GetLocationBasedAutoSwitchEnabled(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *) {
+    bool GetLocationBasedAutoSwitchEnabled(RE::BSScript::IVirtualMachine *registry,
+                                           std::uint32_t stackId,
+                                           RE::StaticFunctionTag *) {
         return ArmorAddonOverrideService::GetInstance().locationBasedAutoSwitchEnabled;
     }
-    VMResultArray <std::uint32_t> GetAutoSwitchLocationArray(VMClassRegistry *registry,
+    VMResultArray <std::uint32_t> GetAutoSwitchLocationArray(RE::BSScript::IVirtualMachine *registry,
                                                              std::uint32_t stackId,
-                                                             StaticFunctionTag *) {
-        VMResultArray <std::uint32_t> result;
+                                                             RE::StaticFunctionTag *) {
+        VMResultArray<std::uint32_t> result;
         for (LocationType i : {
             LocationType::World,
             LocationType::WorldSnowy,
@@ -800,22 +842,22 @@ namespace OutfitSystem {
         }
         return service.checkLocationType(keywords, weather_flags, RE::PlayerCharacter::GetSingleton());
     }
-    std::uint32_t IdentifyLocationType(VMClassRegistry *registry,
+    std::uint32_t IdentifyLocationType(RE::BSScript::IVirtualMachine *registry,
                                        std::uint32_t stackId,
-                                       StaticFunctionTag *,
-                                       BGSLocation *location_skse,
-                                       TESWeather *weather_skse) {
+                                       RE::StaticFunctionTag *,
+
+                                       RE::BGSLocation *location_skse,
+                                       RE::TESWeather *weather_skse) {
         // NOTE: Identify the location for Papyrus. In the event no location is identified, we lie to Papyrus and say "World".
         //       Therefore, Papyrus cannot assume that locations returned have an outfit assigned, at least not for "World".
         return static_cast<std::uint32_t>(identifyLocation((RE::BGSLocation *) location_skse,
                                                            (RE::TESWeather *) weather_skse)
             .value_or(LocationType::World));
     }
-    void SetOutfitUsingLocation(VMClassRegistry *registry,
-                                std::uint32_t stackId,
-                                StaticFunctionTag *,
-                                BGSLocation *location_skse,
-                                TESWeather *weather_skse) {
+    void SetOutfitUsingLocation(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *,
+
+                                RE::BGSLocation *location_skse,
+                                RE::TESWeather *weather_skse) {
         // NOTE: Location can be NULL.
         auto &service = ArmorAddonOverrideService::GetInstance();
 
@@ -834,11 +876,10 @@ namespace OutfitSystem {
         }
 
     }
-    void SetLocationOutfit(VMClassRegistry *registry,
-                           std::uint32_t stackId,
-                           StaticFunctionTag *,
+    void SetLocationOutfit(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *,
+
                            std::uint32_t location,
-                           BSFixedString name) {
+                           RE::BSFixedString name) {
         if (strcmp(name.data, "") == 0) {
             // Location outfit assignment is never allowed to be empty string. Use unset instead.
             return;
@@ -846,27 +887,27 @@ namespace OutfitSystem {
         return ArmorAddonOverrideService::GetInstance()
             .setLocationOutfit(LocationType(location), name.data, RE::PlayerCharacter::GetSingleton());
     }
-    void UnsetLocationOutfit(VMClassRegistry *registry,
-                             std::uint32_t stackId,
-                             StaticFunctionTag *,
+    void UnsetLocationOutfit(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *,
+
                              std::uint32_t location) {
         return ArmorAddonOverrideService::GetInstance()
             .unsetLocationOutfit(LocationType(location), RE::PlayerCharacter::GetSingleton());
     }
-    BSFixedString GetLocationOutfit(VMClassRegistry *registry,
-                                    std::uint32_t stackId,
-                                    StaticFunctionTag *,
-                                    std::uint32_t location) {
+    RE::BSFixedString GetLocationOutfit(RE::BSScript::IVirtualMachine *registry,
+                                        std::uint32_t stackId,
+                                        RE::StaticFunctionTag *,
+
+                                        std::uint32_t location) {
         auto outfit = ArmorAddonOverrideService::GetInstance()
             .getLocationOutfit(LocationType(location), RE::PlayerCharacter::GetSingleton());
         if (outfit.has_value()) {
-            return BSFixedString(outfit.value().c_str());
+            return RE::BSFixedString(outfit.value().c_str());
         } else {
             // Empty string means "no outfit assigned" for this location type.
-            return BSFixedString("");
+            return RE::BSFixedString("");
         }
     }
-    bool ExportSettings(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *) {
+    bool ExportSettings(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *) {
         std::string outputFile = GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\OutfitSystemData.json";
         auto &service = ArmorAddonOverrideService::GetInstance();
         proto::OutfitSystem data = service.save(g_Serialization);
@@ -890,7 +931,7 @@ namespace OutfitSystem {
             return false;
         }
     }
-    bool ImportSettings(VMClassRegistry *registry, std::uint32_t stackId, StaticFunctionTag *) {
+    bool ImportSettings(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *) {
         std::string inputFile = GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\OutfitSystemData.json";
         std::ifstream file(inputFile);
         if (!file) {
@@ -918,336 +959,279 @@ namespace OutfitSystem {
 }
 
 bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine *registry) {
-    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, SInt32>(
+    registry->RegisterFunction("GetOutfitNameMaxLength",
+                               "SkyrimOutfitSystemNativeFuncs",
+                               GetOutfitNameMaxLength);
+    registry->RegisterFunction(
         "GetOutfitNameMaxLength",
         "SkyrimOutfitSystemNativeFuncs",
         GetOutfitNameMaxLength,
-        registry
-    ));
-    registry->SetFunctionFlags("SkyrimOutfitSystemNativeFuncs",
-                               "GetOutfitNameMaxLength",
-                               VMClassRegistry::kFunctionFlag_NoWait);
-    registry->RegisterFunction(new NativeFunction1 < StaticFunctionTag, VMResultArray < TESObjectARMO * > , Actor * > (
+        true
+    );
+    registry->RegisterFunction(
         "GetCarriedArmor",
-            "SkyrimOutfitSystemNativeFuncs",
-            GetCarriedArmor,
-            registry
-    ));
-    registry->RegisterFunction(new NativeFunction1 < StaticFunctionTag, VMResultArray < TESObjectARMO * > , Actor * > (
+        "SkyrimOutfitSystemNativeFuncs",
+        GetCarriedArmor
+    );
+    registry->RegisterFunction(
         "GetWornItems",
-            "SkyrimOutfitSystemNativeFuncs",
-            GetWornItems,
-            registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, Actor *>(
+        "SkyrimOutfitSystemNativeFuncs",
+        GetWornItems
+    );
+    registry->RegisterFunction(
         "RefreshArmorFor",
         "SkyrimOutfitSystemNativeFuncs",
-        RefreshArmorFor,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, VMResultArray<Actor *>>(
-        "GetActorNearPC",
+        RefreshArmorFor
+    );
+    registry->RegisterFunction(
+        "ActorNearPC",
         "SkyrimOutfitSystemNativeFuncs",
-        GetActorsNearPC,
-        registry
-    ));
+        ActorsNearPC
+    );
     //
     {  // armor form search utils
-        registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, bool>(
+        registry->RegisterFunction(
             "PrepArmorSearch",
             "SkyrimOutfitSystemNativeFuncs",
-            ArmorFormSearchUtils::Prep,
-            registry
-        ));
-        registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, VMResultArray<TESObjectARMO *>>(
+            ArmorFormSearchUtils::Prep
+        );
+        registry->RegisterFunction(
             "GetArmorSearchResultForms",
             "SkyrimOutfitSystemNativeFuncs",
-            ArmorFormSearchUtils::GetForms,
-            registry
-        ));
-        registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, VMResultArray<BSFixedString>>(
+            ArmorFormSearchUtils::GetForms
+        );
+        registry->RegisterFunction(
             "GetArmorSearchResultNames",
             "SkyrimOutfitSystemNativeFuncs",
-            ArmorFormSearchUtils::GetNames,
-            registry
-        ));
-        registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, void>(
+            ArmorFormSearchUtils::GetNames
+        );
+        registry->RegisterFunction(
             "ClearArmorSearch",
             "SkyrimOutfitSystemNativeFuncs",
-            ArmorFormSearchUtils::Clear,
-            registry
-        ));
+            ArmorFormSearchUtils::Clear
+        );
     }
     {  // body slot data
-        registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, BSFixedString>(
+        registry->RegisterFunction(
             "PrepOutfitBodySlotListing",
             "SkyrimOutfitSystemNativeFuncs",
-            BodySlotListing::Prep,
-            registry
-        ));
-        registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, VMResultArray<TESObjectARMO *>>(
+            BodySlotListing::Prep
+        );
+        registry->RegisterFunction(
             "GetOutfitBodySlotListingArmorForms",
             "SkyrimOutfitSystemNativeFuncs",
-            BodySlotListing::GetArmorForms,
-            registry
-        ));
-        registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, VMResultArray<BSFixedString>>(
+            BodySlotListing::GetArmorForms
+        );
+        registry->RegisterFunction(
             "GetOutfitBodySlotListingArmorNames",
             "SkyrimOutfitSystemNativeFuncs",
-            BodySlotListing::GetArmorNames,
-            registry
-        ));
-        registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, VMResultArray<SInt32>>(
+            BodySlotListing::GetArmorNames
+        );
+        registry->RegisterFunction(
             "GetOutfitBodySlotListingSlotIndices",
             "SkyrimOutfitSystemNativeFuncs",
-            BodySlotListing::GetSlotIndices,
-            registry
-        ));
-        registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, void>(
+            BodySlotListing::GetSlotIndices
+        );
+        registry->RegisterFunction(
             "ClearOutfitBodySlotListing",
             "SkyrimOutfitSystemNativeFuncs",
-            BodySlotListing::Clear,
-            registry
-        ));
+            BodySlotListing::Clear
+        );
     }
     {  // string sorts
-        registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BSFixedString>, VMArray<
-            BSFixedString>, bool>(
+        registry->RegisterFunction(
             "NaturalSort_ASCII",
             "SkyrimOutfitSystemNativeFuncs",
             StringSorts::NaturalSort_ASCII,
-            registry
-        ));
-        registry->SetFunctionFlags("SkyrimOutfitSystemNativeFuncs",
-                                   "NaturalSort_ASCII",
-                                   VMClassRegistry::kFunctionFlag_NoWait);
-        registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<BSFixedString>, VMArray<
-            BSFixedString>, VMArray<TESObjectARMO *>, bool>(
+            true
+        );
+        registry->RegisterFunction(
             "NaturalSortPairArmor_ASCII",
             "SkyrimOutfitSystemNativeFuncs",
-            StringSorts::NaturalSortPair_ASCII<TESObjectARMO *>,
-            registry
-        ));
-        registry->SetFunctionFlags("SkyrimOutfitSystemNativeFuncs",
-                                   "NaturalSortPairArmor_ASCII",
-                                   VMClassRegistry::kFunctionFlag_NoWait);
+            StringSorts::NaturalSortPair_ASCII<RE::TESObjectARMO *>,
+            true
+        );
     }
     {  // Utility
-        registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, std::uint32_t, BSFixedString>(
+        registry->RegisterFunction(
             "HexToInt32",
             "SkyrimOutfitSystemNativeFuncs",
             Utility::HexToInt32,
-            registry
-        ));
-        registry
-            ->SetFunctionFlags("SkyrimOutfitSystemNativeFuncs", "HexToInt32", VMClassRegistry::kFunctionFlag_NoWait);
-        registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, BSFixedString, std::uint32_t, SInt32>(
+            true
+        );
+        registry->RegisterFunction(
             "ToHex",
             "SkyrimOutfitSystemNativeFuncs",
             Utility::ToHex,
-            registry
-        ));
-        registry->SetFunctionFlags("SkyrimOutfitSystemNativeFuncs", "ToHex", VMClassRegistry::kFunctionFlag_NoWait);
+            true
+        );
     }
     //
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, TESObjectARMO *>(
+    registry->RegisterFunction(
         "AddArmorToOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        AddArmorToOutfit,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, TESObjectARMO *, BSFixedString>(
+        AddArmorToOutfit
+    );
+    registry->RegisterFunction(
         "ArmorConflictsWithOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        ArmorConflictsWithOutfit,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, BSFixedString>(
+        ArmorConflictsWithOutfit
+    );
+    registry->RegisterFunction(
         "CreateOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        CreateOutfit,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, BSFixedString>(
+        CreateOutfit
+    );
+    registry->RegisterFunction(
         "DeleteOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        DeleteOutfit,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, VMResultArray<TESObjectARMO *>, BSFixedString>(
+        DeleteOutfit
+    );
+    registry->RegisterFunction(
         "GetOutfitContents",
         "SkyrimOutfitSystemNativeFuncs",
-        GetOutfitContents,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, bool, BSFixedString>(
+        GetOutfitContents
+    );
+    registry->RegisterFunction(
         "GetOutfitFavoriteStatus",
         "SkyrimOutfitSystemNativeFuncs",
-        GetOutfitFavoriteStatus,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, bool, BSFixedString>(
+        GetOutfitFavoriteStatus
+    );
+    registry->RegisterFunction(
         "GetOutfitPassthroughStatus",
         "SkyrimOutfitSystemNativeFuncs",
-        GetOutfitPassthroughStatus,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, bool, BSFixedString>(
+        GetOutfitPassthroughStatus
+    );
+    registry->RegisterFunction(
         "GetOutfitEquipRequiredStatus",
         "SkyrimOutfitSystemNativeFuncs",
-        GetOutfitEquipRequiredStatus,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, bool>(
+        GetOutfitEquipRequiredStatus
+    );
+    registry->RegisterFunction(
         "SetOutfitFavoriteStatus",
         "SkyrimOutfitSystemNativeFuncs",
-        SetOutfitFavoriteStatus,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, bool>(
+        SetOutfitFavoriteStatus
+    );
+    registry->RegisterFunction(
         "SetOutfitPassthroughStatus",
         "SkyrimOutfitSystemNativeFuncs",
-        SetOutfitPassthroughStatus,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, bool>(
+        SetOutfitPassthroughStatus
+    );
+    registry->RegisterFunction(
         "SetOutfitEquipRequiredStatus",
         "SkyrimOutfitSystemNativeFuncs",
-        SetOutfitEquipRequiredStatus,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, bool>(
+        SetOutfitEquipRequiredStatus
+    );
+    registry->RegisterFunction(
         "IsEnabled",
         "SkyrimOutfitSystemNativeFuncs",
-        IsEnabled,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, BSFixedString>(
+        IsEnabled
+    );
+    registry->RegisterFunction(
         "GetSelectedOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        GetSelectedOutfit,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<BSFixedString>, bool>(
+        GetSelectedOutfit
+    );
+    registry->RegisterFunction(
         "ListOutfits",
         "SkyrimOutfitSystemNativeFuncs",
-        ListOutfits,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, TESObjectARMO *>(
+        ListOutfits
+    );
+    registry->RegisterFunction(
         "RemoveArmorFromOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        RemoveArmorFromOutfit,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, TESObjectARMO *, BSFixedString>(
+        RemoveArmorFromOutfit
+    );
+    registry->RegisterFunction(
         "RemoveConflictingArmorsFrom",
         "SkyrimOutfitSystemNativeFuncs",
-        RemoveConflictingArmorsFrom,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>(
+        RemoveConflictingArmorsFrom
+    );
+    registry->RegisterFunction(
         "RenameOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        RenameOutfit,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, bool, BSFixedString>(
+        RenameOutfit
+    );
+    registry->RegisterFunction(
         "OutfitExists",
         "SkyrimOutfitSystemNativeFuncs",
-        OutfitExists,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, VMArray<TESObjectARMO *>>(
+        OutfitExists
+    );
+    registry->RegisterFunction(
         "OverwriteOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        OverwriteOutfit,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, bool>(
+        OverwriteOutfit
+    );
+    registry->RegisterFunction(
         "SetEnabled",
         "SkyrimOutfitSystemNativeFuncs",
-        SetEnabled,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, BSFixedString>(
+        SetEnabled
+    );
+    registry->RegisterFunction(
         "SetSelectedOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        SetSelectedOutfit,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, Actor *>(
+        SetSelectedOutfit
+    );
+    registry->RegisterFunction(
         "AddActor",
         "SkyrimOutfitSystemNativeFuncs",
-        AddActor,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, Actor *>(
+        AddActor
+    );
+    registry->RegisterFunction(
         "RemoveActor",
         "SkyrimOutfitSystemNativeFuncs",
-        RemoveActor,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, bool>(
+        RemoveActor
+    );
+    registry->RegisterFunction(
         "SetLocationBasedAutoSwitchEnabled",
         "SkyrimOutfitSystemNativeFuncs",
-        SetLocationBasedAutoSwitchEnabled,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, bool>(
+        SetLocationBasedAutoSwitchEnabled
+    );
+    registry->RegisterFunction(
         "GetLocationBasedAutoSwitchEnabled",
         "SkyrimOutfitSystemNativeFuncs",
-        GetLocationBasedAutoSwitchEnabled,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, VMResultArray<std::uint32_t>>(
+        GetLocationBasedAutoSwitchEnabled
+    );
+    registry->RegisterFunction(
         "GetAutoSwitchLocationArray",
         "SkyrimOutfitSystemNativeFuncs",
-        GetAutoSwitchLocationArray,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, std::uint32_t, BGSLocation *, TESWeather *>(
+        GetAutoSwitchLocationArray
+    );
+    registry->RegisterFunction(
         "IdentifyLocationType",
         "SkyrimOutfitSystemNativeFuncs",
-        IdentifyLocationType,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BGSLocation *, TESWeather *>(
+        IdentifyLocationType
+    );
+    registry->RegisterFunction(
         "SetOutfitUsingLocation",
         "SkyrimOutfitSystemNativeFuncs",
-        SetOutfitUsingLocation,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, std::uint32_t, BSFixedString>(
+        SetOutfitUsingLocation
+    );
+    registry->RegisterFunction(
         "SetLocationOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        SetLocationOutfit,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, std::uint32_t>(
+        SetLocationOutfit
+    );
+    registry->RegisterFunction(
         "UnsetLocationOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        UnsetLocationOutfit,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, BSFixedString, std::uint32_t>(
+        UnsetLocationOutfit
+    );
+    registry->RegisterFunction(
         "GetLocationOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        GetLocationOutfit,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, bool>(
+        GetLocationOutfit
+    );
+    registry->RegisterFunction(
         "ExportSettings",
         "SkyrimOutfitSystemNativeFuncs",
-        ExportSettings,
-        registry
-    ));
-    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, bool>(
+        ExportSettings
+    );
+    registry->RegisterFunction(
         "ImportSettings",
         "SkyrimOutfitSystemNativeFuncs",
-        ImportSettings,
-        registry
-    ));
+        ImportSettings
+    );
 
     return true;
 }
