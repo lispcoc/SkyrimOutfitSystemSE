@@ -1,7 +1,7 @@
 #pragma once
-//#include "skse64/PapyrusVM.h"
+#include "RE/I/IVirtualMachine.h"
 
 namespace OutfitSystem
 {
-    bool RegisterPapyrus(VMClassRegistry* registry);
+    bool RegisterPapyrus(RE::BSScript::IVirtualMachine* registry);
 }

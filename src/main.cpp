@@ -1,16 +1,9 @@
 ﻿#include <ShlObj.h>
 
 #include "version.h"
-#include "ArmorAddonOverrideService.h"
 #include "OutfitSystem.h"
-#include "PlayerSkinning.h"
-
-#define DllExport   __declspec( dllexport )
-
-PluginHandle g_pluginHandle = kPluginHandle_Invalid;
-SKSEPapyrusInterface* g_Papyrus = nullptr;
-SKSEMessagingInterface* g_Messaging = nullptr;
-SKSESerializationInterface* g_Serialization = nullptr;
+//#include "ArmorAddonOverrideService.h"
+//#include "PlayerSkinning.h"
 
 std::uint32_t g_pluginSerializationSignature = 'cOft';
 
@@ -31,6 +24,30 @@ void WaitForDebugger(void)
     Sleep(1000 * 2);
 }
 
+namespace {
+void InitializeLog() {
+    auto path = logger::log_directory();
+		if (!path) {
+			util::report_and_fail("Failed to find standard logging directory"sv);
+		}
+
+		*path /= fmt::format("{}.log"sv, Plugin::NAME);
+		auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
+
+#ifndef NDEBUG
+    const auto level = spdlog::level::trace;
+#else
+    const auto level = spdlog::level::info;
+#endif
+
+    auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
+    log->set_level(level);
+    log->flush_on(level);
+
+    spdlog::set_default_logger(std::move(log));
+    spdlog::set_pattern("%g(%#): [%^%l%$] %v"s);
+}
+}
 
 extern "C" {
 
@@ -50,11 +67,7 @@ DllExport constinit auto SKSEPlugin_Version = []() {
 // Plugin Query for SE
 DllExport bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
 {
-    gLog.OpenRelative(CSIDL_MYDOCUMENTS, "\\My Games\\Skyrim Special Edition\\SKSE\\SkyrimOutfitSystemSE.log");
-    gLog.SetPrintLevel(IDebugLog::kLevel_DebugMessage);
-    gLog.SetLogLevel(IDebugLog::kLevel_DebugMessage);
-
-    _MESSAGE("SkyrimOutfitSystemSE v%s", SKYRIMOUTFITSYSTEMSE_VERSION_VERSTRING);
+    logger::info("SkyrimOutfitSystemSE v%s", SKYRIMOUTFITSYSTEMSE_VERSION_VERSTRING);
 
     a_info->infoVersion = PluginInfo::kInfoVersion;
     a_info->name = "SkyrimOutfitSystemSE";
@@ -64,7 +77,7 @@ DllExport bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
 
     if (a_skse->isEditor)
     {
-        _FATALERROR("[FATAL ERROR] Loaded in editor, marking as incompatible!\n");
+        logger::error("[FATAL ERROR] Loaded in editor, marking as incompatible!\n");
         return false;
     }
 
