@@ -185,7 +185,7 @@ if(MSVC)
             /Oi
         >
         /MP;
-        /std:c++17;
+        /std:c++20;
         /sdl-;
         /Gy;
         /W3;
@@ -267,6 +267,6 @@ target_include_directories(addrheader PRIVATE
         )
 
 target_compile_options(addrheader PRIVATE
-        /std:c++17;
+        /std:c++20;
         ${DEFAULT_CXX_EXCEPTION_HANDLING}
         )

@@ -31,7 +31,23 @@ void WaitForDebugger(void)
     Sleep(1000 * 2);
 }
 
+
 extern "C" {
+
+// Plugin Query for AE
+DllExport constinit auto SKSEPlugin_Version = []() {
+    SKSE::PluginVersionData v;
+
+    v.PluginVersion(Plugin::VERSION);
+    v.PluginName(Plugin::NAME);
+
+    v.UsesAddressLibrary(true);
+    v.CompatibleVersions({ SKSE::RUNTIME_LATEST });
+
+    return v;
+}();
+
+// Plugin Query for SE
 DllExport bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
 {
     gLog.OpenRelative(CSIDL_MYDOCUMENTS, "\\My Games\\Skyrim Special Edition\\SKSE\\SkyrimOutfitSystemSE.log");
@@ -106,13 +122,15 @@ void _RegisterAndEchoPapyrus(SKSEPapyrusInterface::RegisterFunctions callback, c
         _MESSAGE("Papyrus registration %s for %s.", "FAILED", module);
 };
 
-DllExport bool SKSEPlugin_Load(const SKSEInterface* a_skse)
+DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {
+    SKSE::Init(a_skse);
     _MESSAGE("loading");
     {  // Patches:
         OutfitSystem::ApplyPlayerSkinningHooks();
     }
     {  // Messaging callbacks.
+        SKSE::GetMessagingInterface()->RegisterListener();
         g_Messaging->RegisterListener(g_pluginHandle, "SKSE", Callback_Messaging_SKSE);
     }
     {  // Serialization callbacks.

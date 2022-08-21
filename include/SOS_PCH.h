@@ -8,6 +8,9 @@
 #pragma warning( push )
 #pragma warning( disable : 5053 ) // CommonLibSSE uses explicit(<expr>) vendor extension.
 #include "SKSE/Impl/PCH.h"
+#include <RE/Skyrim.h>
+#include <REL/Relocation.h>
+#include <SKSE/SKSE.h>
 #include <RE/A/Actor.h>
 #include <RE/M/Misc.h>
 #include "RE/T/TESObjectARMO.h"
