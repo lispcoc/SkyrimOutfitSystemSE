@@ -29,6 +29,11 @@ Armor[] Function GetWornItems    (Actor akSubject) Global Native
         Function RefreshArmorFor (Actor akSubject) Global Native ; force akSubject to update their ArmorAddons
 
 ;
+; Searching for actors. Used in menus.
+;
+Actor[] Function GetActorNearPC  () Global Native
+
+;
 ; Search through all armor forms defined in the game (excluding templated ones). 
 ; Filter by name or require the "playable" flag.
 ;
@@ -80,6 +85,8 @@ Bool     Function OutfitExists      (String asOutfitName) Global Native
          Function OverwriteOutfit   (String asOutfitName, Armor[] akArmors) Global Native
          Function SetEnabled        (Bool abEnabled) Global Native
          Function SetSelectedOutfit (String asOutfitName) Global Native
+         Function AddActor (Actor akSubject) Global Native
+         Function RemoveActor (Actor akSubject) Global Native
 
          Function SetLocationBasedAutoSwitchEnabled (Bool abEnabled) Global Native
 Bool     Function GetLocationBasedAutoSwitchEnabled () Global Native

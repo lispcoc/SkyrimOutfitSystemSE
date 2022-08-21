@@ -10,10 +10,17 @@ message Outfit {
   bool requires_equipped = 5;
 }
 
+message ActorOutfitAssignment {
+  string current_outfit_name = 1;
+  map<uint32, string> location_based_outfits = 2;
+}
+
 message OutfitSystem {
   bool enabled = 1;
-  string current_outfit_name = 2;
   repeated Outfit outfits = 3;
   bool location_based_auto_switch_enabled = 4;
-  map<uint32, string> location_based_outfits = 5;
+  map<uint64, ActorOutfitAssignment> actor_outfit_assignments = 6;
+
+  string OBSOLETE_current_outfit_name = 2;
+  map<uint32, string> OBSOLETE_location_based_outfits = 5;
 }

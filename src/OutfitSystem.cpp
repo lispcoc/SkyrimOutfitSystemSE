@@ -4,6 +4,7 @@
 #pragma warning( disable : 4267 ) // SKSE has some integer conversion when returning arrays. Returned arrays should be limited to 32-bit size().
 #pragma warning( disable : 5053 ) // SKSE uses explicit(<expr>) vendor extension.
 #include "skse64/PapyrusNativeFunctions.h"
+#include "RE/FormComponents/TESForm/TESObjectREFR/Actor/Character/PlayerCharacter.h"
 #pragma warning( pop )
 
 #include "skse64/PapyrusObjects.h"
@@ -24,6 +25,7 @@
 #include "RE/Inventory/InventoryEntryData.h"
 #include "RE/FormComponents/TESForm/BGSLocation.h"
 #include "RE/FormComponents/TESForm/TESWeather.h"
+#include "RE/FormComponents/TESForm/TESObjectCELL.h"
 #include "RE/FormComponents/TESForm/BGSKeyword/BGSKeyword.h"
 #include "RE/Misc/Misc.h"
 #pragma warning( pop )
@@ -37,6 +39,13 @@
 #include <algorithm>
 
 #include "google/protobuf/util/json_util.h"
+
+#define ERROR_AND_RETURN_EXPR_IF(condition, message, valueExpr, registry, stackId) \
+	if (condition)								\
+	{											\
+		registry->LogError(message, stackId);	\
+		return (valueExpr);						\
+	}
 
 // Needed for save and load of config JSON
 extern SKSESerializationInterface* g_Serialization;
@@ -139,7 +148,23 @@ extern SKSESerializationInterface* g_Serialization;
                 pm->UpdateEquipment(target);
             }
         }
-        //
+        VMResultArray<Actor*> GetActorsNearPC(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
+            VMResultArray<Actor*> result;
+            auto pc = RE::PlayerCharacter::GetSingleton();
+            ERROR_AND_RETURN_EXPR_IF(pc == nullptr, "Could not get PC Singleton.", result, registry, stackId);
+            auto pcCell = pc->GetParentCell();
+            ERROR_AND_RETURN_EXPR_IF(pcCell == nullptr, "Could not get cell of PC.", result, registry, stackId);
+            result.reserve(pcCell->references.size());
+            for (const auto& ref : pcCell->references) {
+                RE::TESObjectREFR* objectRefPtr = ref.get();
+                auto actorCastedPtr = (Actor*)Runtime_DynamicCast((void*) objectRefPtr, RTTI_TESObjectREFR, RTTI_Actor);
+                if (actorCastedPtr) result.push_back(actorCastedPtr);
+            }
+            result.shrink_to_fit();
+            return result;
+        }
+
+    //
         namespace ArmorFormSearchUtils {
             static struct {
                 std::vector<std::string>    names;
@@ -492,7 +517,7 @@ extern SKSESerializationInterface* g_Serialization;
         }
     BSFixedString GetSelectedOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
             auto& service = ArmorAddonOverrideService::GetInstance();
-            return service.currentOutfit().name.c_str();
+            return service.currentOutfit(RE::PlayerCharacter::GetSingleton()).name.c_str();
         }
         bool IsEnabled(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*) {
             auto& service = ArmorAddonOverrideService::GetInstance();
@@ -613,7 +638,15 @@ extern SKSESerializationInterface* g_Serialization;
         }
         void SetSelectedOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BSFixedString name) {
             auto& service = ArmorAddonOverrideService::GetInstance();
-            service.setOutfit(name.data);
+            service.setOutfit(name.data, RE::PlayerCharacter::GetSingleton());
+        }
+        void AddActor(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, Actor* target) {
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            service.addActor((RE::Actor*) target);
+        }
+        void RemoveActor(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, Actor* target) {
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            service.removeActor((RE::Actor*) target);
         }
         void SetLocationBasedAutoSwitchEnabled(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, bool value) {
             ArmorAddonOverrideService::GetInstance().setLocationBasedAutoSwitchEnabled(value);
@@ -670,7 +703,7 @@ extern SKSESerializationInterface* g_Serialization;
                 }
                 location = location->parentLoc;
             }
-            return service.checkLocationType(keywords, weather_flags);
+            return service.checkLocationType(keywords, weather_flags, RE::PlayerCharacter::GetSingleton());
         }
         UInt32 IdentifyLocationType(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, BGSLocation* location_skse, TESWeather* weather_skse) {
             // NOTE: Identify the location for Papyrus. In the event no location is identified, we lie to Papyrus and say "World".
@@ -691,7 +724,7 @@ extern SKSESerializationInterface* g_Serialization;
                 RE::DebugNotification(message, nullptr, false);
                 */
                 if (location.has_value()) {
-                    service.setOutfitUsingLocation(location.value());
+                    service.setOutfitUsingLocation(location.value(), RE::PlayerCharacter::GetSingleton());
                 }
             }
 
@@ -701,13 +734,13 @@ extern SKSESerializationInterface* g_Serialization;
                 // Location outfit assignment is never allowed to be empty string. Use unset instead.
                 return;
             }
-            return ArmorAddonOverrideService::GetInstance().setLocationOutfit(LocationType(location), name.data);
+            return ArmorAddonOverrideService::GetInstance().setLocationOutfit(LocationType(location), name.data, RE::PlayerCharacter::GetSingleton());
         }
         void UnsetLocationOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, UInt32 location) {
-            return ArmorAddonOverrideService::GetInstance().unsetLocationOutfit(LocationType(location));
+            return ArmorAddonOverrideService::GetInstance().unsetLocationOutfit(LocationType(location), RE::PlayerCharacter::GetSingleton());
         }
         BSFixedString GetLocationOutfit(VMClassRegistry* registry, UInt32 stackId, StaticFunctionTag*, UInt32 location) {
-            auto outfit = ArmorAddonOverrideService::GetInstance().getLocationOutfit(LocationType(location));
+            auto outfit = ArmorAddonOverrideService::GetInstance().getLocationOutfit(LocationType(location), RE::PlayerCharacter::GetSingleton());
             if (outfit.has_value()) {
                 return BSFixedString(outfit.value().c_str());
             } else {
@@ -793,6 +826,12 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         RefreshArmorFor,
         registry
         ));
+    registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, VMResultArray<Actor*>>(
+        "GetActorNearPC",
+        "SkyrimOutfitSystemNativeFuncs",
+        GetActorsNearPC,
+        registry
+    ));
     //
     {  // armor form search utils
         registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, bool>(
@@ -1011,6 +1050,18 @@ bool OutfitSystem::RegisterPapyrus(VMClassRegistry* registry) {
         SetSelectedOutfit,
         registry
         ));
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, Actor*>(
+        "AddActor",
+        "SkyrimOutfitSystemNativeFuncs",
+        AddActor,
+        registry
+    ));
+    registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, Actor*>(
+        "RemoveActor",
+        "SkyrimOutfitSystemNativeFuncs",
+        RemoveActor,
+        registry
+    ));
     registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, bool>(
         "SetLocationBasedAutoSwitchEnabled",
         "SkyrimOutfitSystemNativeFuncs",

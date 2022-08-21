@@ -410,6 +410,7 @@ EndFunction
             Else
                AddTextOptionST("OutfitContext_Toggle", "$SkyOutSys_OContext_ToggleOn", "", iContextFlags)
             EndIf
+            ; TODO MINOR BUG: Emits warning when no outfit is selected, esp when there are no outfits in the list.
             If SkyrimOutfitSystemNativeFuncs.GetOutfitFavoriteStatus(_sOutfitShowingContextMenu)
                AddTextOptionST("OutfitContext_Favorite", "$SkyOutSys_OContext_ToggleFavoriteOff", "", iContextFlags)
             Else
