@@ -144,7 +144,7 @@ void Callback_Serialization_Save(SKSE::SerializationInterface *intfc) {
     if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV4)) {
         try {
             auto &service = ArmorAddonOverrideService::GetInstance();
-            const auto &data = service.save(intfc);
+            const auto &data = service.save();
             const auto &data_ser = data.SerializeAsString();
             _assertWrite(intfc->WriteRecordData(data_ser.data(), static_cast<std::uint32_t>(data_ser.size())),
                          "Failed to write proto into SKSE record.");

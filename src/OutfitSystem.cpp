@@ -874,7 +874,7 @@ namespace OutfitSystem {
     bool ExportSettings(RE::BSScript::IVirtualMachine *registry, std::uint32_t stackId, RE::StaticFunctionTag *) {
         std::string outputFile = GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\OutfitSystemData.json";
         auto &service = ArmorAddonOverrideService::GetInstance();
-        proto::OutfitSystem data = service.save(g_Serialization);
+        proto::OutfitSystem data = service.save();
         std::string output;
         google::protobuf::util::JsonPrintOptions options;
         options.add_whitespace = true;
@@ -915,7 +915,7 @@ namespace OutfitSystem {
             return false;
         }
         auto &service = ArmorAddonOverrideService::GetInstance();
-        service.load(g_Serialization, data);
+        service.load(SKSE::GetSerializationInterface(), data);
         std::string message = "Read JSON config from " + inputFile;
         RE::DebugNotification(message.c_str(), nullptr, false);
         return true;

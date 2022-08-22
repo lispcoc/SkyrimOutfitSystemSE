@@ -139,7 +139,7 @@ std::unordered_set<RE::TESObjectARMO *> Outfit::computeDisplaySet(const std::uno
     return result;
 };
 
-void Outfit::load_legacy(SKSE::SerializationInterface *intfc, std::uint32_t version) {
+void Outfit::load_legacy(const SKSE::SerializationInterface *intfc, std::uint32_t version) {
     std::uint32_t size = 0;
     _assertRead(intfc->ReadRecordData(size), "Failed to read an outfit's armor count.");
     for (std::uint32_t i = 0; i < size; i++) {
@@ -159,7 +159,7 @@ void Outfit::load_legacy(SKSE::SerializationInterface *intfc, std::uint32_t vers
     }
 }
 
-void Outfit::load(const proto::Outfit &proto, SKSE::SerializationInterface *intfc) {
+void Outfit::load(const proto::Outfit &proto, const SKSE::SerializationInterface *intfc) {
     this->name = proto.name();
     for (const auto &formID : proto.armors()) {
         RE::FormID fixedID;
@@ -174,7 +174,7 @@ void Outfit::load(const proto::Outfit &proto, SKSE::SerializationInterface *intf
     this->requiresEquipped = proto.requires_equipped();
 }
 
-proto::Outfit Outfit::save(SKSE::SerializationInterface *) const {
+proto::Outfit Outfit::save() const {
     proto::Outfit out;
     out.set_name(this->name);
     for (const auto &armor : this->armors) {
@@ -437,7 +437,7 @@ void ArmorAddonOverrideService::reset() {
     this->locationBasedAutoSwitchEnabled = false;
 }
 
-void ArmorAddonOverrideService::load_legacy(SKSE::SerializationInterface *intfc, std::uint32_t version) {
+void ArmorAddonOverrideService::load_legacy(const SKSE::SerializationInterface *intfc, std::uint32_t version) {
     this->reset();
     //
     std::string selectedOutfitName;
@@ -501,7 +501,7 @@ void ArmorAddonOverrideService::load_legacy(SKSE::SerializationInterface *intfc,
     }
 }
 
-void ArmorAddonOverrideService::load(SKSE::SerializationInterface *intfc, const proto::OutfitSystem &data) {
+void ArmorAddonOverrideService::load(const SKSE::SerializationInterface *intfc, const proto::OutfitSystem &data) {
     this->reset();
     // Extract data from the protobuf struct.
     this->enabled = data.enabled();
@@ -545,7 +545,7 @@ void ArmorAddonOverrideService::load(SKSE::SerializationInterface *intfc, const 
     }
 }
 
-proto::OutfitSystem ArmorAddonOverrideService::save(SKSE::SerializationInterface *intfc) {
+proto::OutfitSystem ArmorAddonOverrideService::save() {
     proto::OutfitSystem out;
     out.set_enabled(this->enabled);
     for (const auto &actorAssn : actorOutfitAssignments) {
@@ -566,7 +566,7 @@ proto::OutfitSystem ArmorAddonOverrideService::save(SKSE::SerializationInterface
     }
     for (const auto &outfit : this->outfits) {
         auto newOutfit = out.add_outfits();
-        *newOutfit = outfit.second.save(intfc);
+        *newOutfit = outfit.second.save();
     }
     out.set_location_based_auto_switch_enabled(this->locationBasedAutoSwitchEnabled);
     return out;
