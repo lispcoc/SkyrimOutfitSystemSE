@@ -8,7 +8,8 @@
       "spdlog",
       "protobuf",
       "boost-stl-interfaces",
-      "rsm-binary-io"
+      "rsm-binary-io",
+      "xbyak"
     ]
   }
   

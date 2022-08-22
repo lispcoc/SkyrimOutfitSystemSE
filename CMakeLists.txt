@@ -110,7 +110,6 @@ add_library(SkyrimOutfitSystemSE SHARED
     include/version.h
     src/version.rc
     include/SOS_PCH.h
-    src/main.cpp
     src/main2.cpp
     include/cobb/strings.h
     include/cobb/utf8naturalsort.h
@@ -121,7 +120,6 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/ArmorAddonOverrideService.cpp
     include/OutfitSystem.h
     src/OutfitSystem.cpp
-    src/OutfitSystem2.cpp
     include/PlayerSkinning.h
     src/PlayerSkinning.cpp
     )
@@ -247,6 +245,7 @@ add_custom_command(TARGET SkyrimOutfitSystemSE POST_BUILD
 # Link with other targets.
 find_package(span-lite REQUIRED CONFIG)
 find_package(spdlog REQUIRED CONFIG)
+find_package(xbyak REQUIRED CONFIG)
 
 target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     CommonLibSSE
@@ -255,6 +254,7 @@ target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     nonstd::span-lite
     spdlog::spdlog
     ProtocolBuffers
+    xbyak::xbyak
 )
 
 ################################################################################
