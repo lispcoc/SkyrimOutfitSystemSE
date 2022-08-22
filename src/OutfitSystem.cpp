@@ -1012,7 +1012,7 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine *registry) {
         registry->RegisterFunction(
             "NaturalSortPairArmor_ASCII",
             "SkyrimOutfitSystemNativeFuncs",
-            StringSorts::NaturalSortPair_ASCII<RE::TESObjectARMO *>,
+            StringSorts::NaturalSortPair_ASCII,
             true
         );
     }
