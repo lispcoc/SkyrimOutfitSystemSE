@@ -93,11 +93,11 @@ DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface *a_skse) {
     }
 
     // Create Trampolines
-    if (!SKSE::GetTrampolineInterface()->AllocateFromBranchPool(1024 * 64)) {
+    if (!g_branchTrampoline.Create(1024 * 64)) {
         LOG(critical, "couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
     }
 
-    if (!SKSE::GetTrampolineInterface()->AllocateFromLocalPool(1024 * 64)) {
+    if (!g_localTrampoline.Create(1024 * 64, nullptr)) {
         LOG(critical, "couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
     }
 
