@@ -1,12 +1,6 @@
 #include "OutfitSystem.h"
 
-//#include "skse64/PapyrusObjects.h"
-//#include "skse64/PapyrusVM.h"
-
-//#include "skse64/GameRTTI.h"
-//#include "skse64/GameFormComponents.h"
-//#include "skse64/GameObjects.h"
-//#include "skse64/GameReferences.h"
+#include "Utility.h"
 
 #include "ArmorAddonOverrideService.h"
 
@@ -350,12 +344,14 @@ namespace OutfitSystem {
             );
             return result;
         }
-        std::vector<RE::BSFixedString> NaturalSortPair_ASCII(
+
+        // TODO: I'm pretty sure this mutates the second array, but I'm not sure if I've fixed this up properly.
+        template <typename T> std::vector<RE::BSFixedString> NaturalSortPair_ASCII(
             RE::BSScript::IVirtualMachine *registry,
             std::uint32_t stackId,
             RE::StaticFunctionTag *,
-            RE::BSScript::Array arr, // Array of string
-            RE::BSScript::Array second, // Array of forms (T)
+            RE::reference_array<RE::BSFixedString> arr, // Array of string
+            RE::reference_array<T*> second, // Array of forms (T)
             bool descending) {
             std::uint32_t size = arr.size();
             if (size != second.size()) {
@@ -365,19 +361,19 @@ namespace OutfitSystem {
                 result.reserve(size);
                 for (std::uint32_t i = 0; i < size; i++) {
                     RE::BSFixedString x;
-                    result.emplace_back(arr[i].GetString());
+                    result.emplace_back(arr[i]);
                 }
                 return result;
             }
             //
-            typedef std::pair<RE::BSFixedString, RE::BSScript::Array::value_type> _pair;
+            typedef std::pair<RE::BSFixedString, T*> _pair;
             std::vector<_pair> pairs;
             //
             std::vector<RE::BSFixedString> result;
             {  // Copy input array into output array
                 result.reserve(size);
                 for (std::uint32_t i = 0; i < size; i++) {
-                    pairs.emplace_back(arr[i].GetString(), second[i]);
+                    pairs.emplace_back(arr[i], second[i]);
                 }
             }
             std::sort(
@@ -1012,7 +1008,7 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine *registry) {
         registry->RegisterFunction(
             "NaturalSortPairArmor_ASCII",
             "SkyrimOutfitSystemNativeFuncs",
-            StringSorts::NaturalSortPair_ASCII,
+            StringSorts::NaturalSortPair_ASCII<RE::TESObjectARMO>,
             true
         );
     }
