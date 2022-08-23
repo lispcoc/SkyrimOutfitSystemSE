@@ -508,7 +508,7 @@ void ArmorAddonOverrideService::load(const SKSE::SerializationInterface *intfc, 
     std::map<RE::Actor *, ActorOutfitAssignments> actorOutfitAssignmentsLocal;
     for (const auto &actorAssn : data.actor_outfit_assignments()) {
         // Lookup the actor
-        RE::VMHandle handle;
+        std::uint64_t handle;
         RE::NiPointer<RE::Actor> actor;
         if (!intfc->ResolveHandle(actorAssn.first, handle))
             continue;

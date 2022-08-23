@@ -98,6 +98,7 @@ class ArmorAddonOverrideService {
       };
       bool enabled = true;
       std::map<cobb::istring, Outfit> outfits;
+      // TODO: You probably shouldn't use an Actor pointer to refer to actors. It works for the PlayerCharacter, but likely not for NPCs.
       std::map<RE::Actor*, ActorOutfitAssignments> actorOutfitAssignments;
       // Location-based switching
       bool locationBasedAutoSwitchEnabled = false;
