@@ -56,7 +56,7 @@ Int[]    Function GetOutfitBodySlotListingSlotIndices () Global Native
 ; String functions, to be synchronized with CobbAPI:
 ;
 String[] Function NaturalSort_ASCII          (String[] asStrings, Bool abDescending = False) Global Native
-String[] Function NaturalSortPairArmor_ASCII (String[] asStrings, Armor[] akForms, Bool abDescending = False) Global Native ; modifies akForms; returns sorted copy of asStrings
+Armor[]  Function NaturalSortPairArmor_ASCII (String[] asStrings, Armor[] akForms, Bool abDescending = False) Global Native ; uses asStrings to sort akForms
 ;
 Int      Function HexToInt32 (String asHex) Global Native
 String   Function ToHex      (Int aiValue, Int aiDigits) Global Native

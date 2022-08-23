@@ -254,8 +254,6 @@ find_package(xbyak REQUIRED CONFIG)
 
 target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     CommonLibSSE
-    skse64
-    skse64_common
     nonstd::span-lite
     spdlog::spdlog
     ProtocolBuffers

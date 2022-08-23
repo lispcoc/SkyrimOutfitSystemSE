@@ -345,25 +345,18 @@ namespace OutfitSystem {
             return result;
         }
 
-        // TODO: I'm pretty sure this mutates the second array, but I'm not sure if I've fixed this up properly.
-        template <typename T> std::vector<RE::BSFixedString> NaturalSortPair_ASCII(
+        // TODO: You need to change all the papyrus scripts that were assuming behavior here.
+        template <typename T> std::vector<T*> NaturalSortPair_ASCII(
             RE::BSScript::IVirtualMachine *registry,
             std::uint32_t stackId,
             RE::StaticFunctionTag *,
-            RE::reference_array<RE::BSFixedString> arr, // Array of string
-            RE::reference_array<T*> second, // Array of forms (T)
+            std::vector<RE::BSFixedString> arr, // Array of string
+            std::vector<T*> second, // Array of forms (T)
             bool descending) {
-            std::uint32_t size = arr.size();
+            std::size_t size = arr.size();
             if (size != second.size()) {
                 registry->TraceStack("The two arrays must be the same length.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);
-                //
-                std::vector<RE::BSFixedString> result;
-                result.reserve(size);
-                for (std::uint32_t i = 0; i < size; i++) {
-                    RE::BSFixedString x;
-                    result.emplace_back(arr[i]);
-                }
-                return result;
+                return second;
             }
             //
             typedef std::pair<RE::BSFixedString, T*> _pair;
@@ -390,7 +383,7 @@ namespace OutfitSystem {
                 result.push_back(pairs[i].first);
                 second[i] = pairs[i].second;
             }
-            return result;
+            return second;
         }
     }
     namespace Utility {
