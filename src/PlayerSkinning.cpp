@@ -43,7 +43,7 @@ namespace OutfitSystem
             if (!ShouldOverrideSkinning(target)) return false;
             auto& svc = ArmorAddonOverrideService::GetInstance();
             auto& outfit = svc.currentOutfit((RE::Actor *) target);
-            auto actor = reinterpret_cast<RE::Actor*>(Runtime_DynamicCast(static_cast<RE::TESObjectREFR*>(target), RTTI_TESObjectREFR, RTTI_Actor));
+            auto actor = skyrim_cast<RE::Actor*>(target);
             if (!actor) {
                 // Actor failed to cast...
                 LOG(info, "ShouldOverride: Failed to cast target to Actor.");
@@ -67,8 +67,8 @@ namespace OutfitSystem
         void Apply()
         {
             LOG(info, "Patching vanilla player skinning");
-            LOG(info, "TESObjectARMO_ApplyArmorAddon = %p", TESObjectARMO_ApplyArmorAddon.address() - RelocationManager::s_baseAddr);
-            LOG(info, "DontVanillaSkinPlayer_Hook = %p", DontVanillaSkinPlayer_Hook - RelocationManager::s_baseAddr);
+            LOG(info, "TESObjectARMO_ApplyArmorAddon = %p", TESObjectARMO_ApplyArmorAddon.address() - REL::Module::get().base());
+            LOG(info, "DontVanillaSkinPlayer_Hook = %p", DontVanillaSkinPlayer_Hook - REL::Module::get().base());
             {
                 struct DontVanillaSkinPlayer_Code : Xbyak::CodeGenerator
                 {
@@ -105,12 +105,12 @@ namespace OutfitSystem
                         dq(uintptr_t(ShouldOverride));
                     }
                 };
-
+                SKSE::GetTrampoline();
                 void* codeBuf = g_localTrampoline.StartAlloc();
                 DontVanillaSkinPlayer_Code code(codeBuf);
                 g_localTrampoline.EndAlloc(code.getCurr());
 
-				LOG(info, "AVI: Patching vanilla player skinning at addr = %llX. base = %llX", DontVanillaSkinPlayer_Hook, RelocationManager::s_baseAddr);
+				LOG(info, "AVI: Patching vanilla player skinning at addr = %llX. base = %llX", DontVanillaSkinPlayer_Hook, REL::Module::get().base());
                 g_branchTrampoline.Write5Branch(DontVanillaSkinPlayer_Hook,
                     uintptr_t(code.getCode()));
             }
@@ -142,8 +142,8 @@ namespace OutfitSystem
         void Apply()
         {
             LOG(info, "Patching shim worn flags");
-            LOG(info, "ShimWornFlags_Hook = %p", ShimWornFlags_Hook - RelocationManager::s_baseAddr);
-            LOG(info, "InventoryChanges_GetWornMask = %p", InventoryChanges_GetWornMask.address() - RelocationManager::s_baseAddr);
+            LOG(info, "ShimWornFlags_Hook = %p", ShimWornFlags_Hook - REL::Module::get().base());
+            LOG(info, "InventoryChanges_GetWornMask = %p", InventoryChanges_GetWornMask.address() - REL::Module::get().base());
             {
                 struct ShimWornFlags_Code : Xbyak::CodeGenerator
                 {
@@ -204,10 +204,15 @@ namespace OutfitSystem
     namespace CustomSkinPlayer
     {
         void Custom(RE::Actor* target, RE::ActorWeightModel * actorWeightModel) {
+            if (!skyrim_cast<RE::Actor*>(target)) {
+                // Actor failed to cast...
+                LOG(info, "Custom: Failed to cast target to Actor.");
+                return;
+            }
             // Get basic actor information (race and sex)
             if (!actorWeightModel)
                 return;
-            auto base = reinterpret_cast<RE::TESNPC*>(Runtime_DynamicCast(static_cast<RE::TESForm*>(target->data.objectReference), RTTI_TESForm, RTTI_TESNPC));
+            auto base = skyrim_cast<RE::TESNPC*>(target->data.objectReference);
             if (!base)
                 return;
             auto race = base->race;
@@ -217,12 +222,6 @@ namespace OutfitSystem
             auto& outfit = svc.currentOutfit((RE::Actor *) target);
 
             // Get actor inventory and equipped items
-            auto actor = reinterpret_cast<RE::Actor*>(Runtime_DynamicCast(static_cast<RE::TESObjectREFR*>(target), RTTI_TESObjectREFR, RTTI_Actor));
-            if (!actor) {
-                // Actor failed to cast...
-                LOG(info, "Custom: Failed to cast target to Actor.");
-                return;
-            }
             auto inventory = target->GetInventoryChanges();
             EquippedArmorVisitor visitor;
             if (inventory) {
@@ -261,8 +260,8 @@ namespace OutfitSystem
         void Apply()
         {
             LOG(info, "Patching custom skin player");
-            LOG(info, "CustomSkinPlayer_Hook = %p", CustomSkinPlayer_Hook - RelocationManager::s_baseAddr);
-            LOG(info, "InventoryChanges_ExecuteVisitorOnWorn = %p", InventoryChanges_ExecuteVisitorOnWorn.address() - RelocationManager::s_baseAddr);
+            LOG(info, "CustomSkinPlayer_Hook = %p", CustomSkinPlayer_Hook - REL::Module::get().base());
+            LOG(info, "InventoryChanges_ExecuteVisitorOnWorn = %p", InventoryChanges_ExecuteVisitorOnWorn.address() - REL::Module::get().base());
             {
                 struct CustomSkinPlayer_Code : Xbyak::CodeGenerator
                 {
@@ -399,8 +398,8 @@ namespace OutfitSystem
         void Apply()
         {
             LOG(info, "Patching fix for equip conflict check");
-            LOG(info, "FixEquipConflictCheck_Hook = %p", FixEquipConflictCheck_Hook - RelocationManager::s_baseAddr);
-            LOG(info, "BGSBipedObjectForm_TestBodyPartByIndex = %p", BGSBipedObjectForm_TestBodyPartByIndex.address() - RelocationManager::s_baseAddr);
+            LOG(info, "FixEquipConflictCheck_Hook = %p", FixEquipConflictCheck_Hook - REL::Module::get().base());
+            LOG(info, "BGSBipedObjectForm_TestBodyPartByIndex = %p", BGSBipedObjectForm_TestBodyPartByIndex.address() - REL::Module::get().base());
             {
                 struct FixEquipConflictCheck_Code : Xbyak::CodeGenerator
                 {
