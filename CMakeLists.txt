@@ -87,6 +87,8 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 ################################################################################
 # Sub-projects
 ################################################################################
+set(SKSE_SUPPORT_XBYAK 1)
+
 add_subdirectory(dependencies/CommonLibSSE)
 
 ################################################################################
@@ -141,6 +143,8 @@ target_include_directories(SkyrimOutfitSystemSE PUBLIC
 target_precompile_headers(SkyrimOutfitSystemSE PRIVATE
     include/SOS_PCH.h
 )
+
+target_compile_definitions(SkyrimOutfitSystemSE PRIVATE XBYAK_NO_OP_NAMES)
 
 ################################################################################
 # MSVC runtime library

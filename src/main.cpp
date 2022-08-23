@@ -93,13 +93,11 @@ DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface *a_skse) {
     }
 
     // Create Trampolines
-    if (!g_branchTrampoline.Create(1024 * 64)) {
-        LOG(critical, "couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
-    }
+    SKSE::AllocTrampoline(1024 * 64, true);
+    OutfitSystem::g_branchTrampoline = &SKSE::GetTrampoline();
 
-    if (!g_localTrampoline.Create(1024 * 64, nullptr)) {
-        LOG(critical, "couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
-    }
+    OutfitSystem::g_localTrampoline = new SKSE::Trampoline("local");
+    OutfitSystem::g_localTrampoline->create(1024 * 64);
 
     // Actual plugin load
     LOG(info, "Patching player skinning");

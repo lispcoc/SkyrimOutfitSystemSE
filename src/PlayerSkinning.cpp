@@ -1,15 +1,12 @@
-#define XBYAK_NO_OP_NAMES 1
-
 #include "ArmorAddonOverrideService.h"
 
 #include <xbyak/xbyak.h>
 
-//#include "skse64_common/Relocation.h"
-//#include "skse64_common/BranchTrampoline.h"
-//#include "skse64/GameRTTI.h"
-
 namespace OutfitSystem
 {
+    SKSE::Trampoline* g_localTrampoline = nullptr;
+    SKSE::Trampoline* g_branchTrampoline = nullptr;
+
     bool ShouldOverrideSkinning(RE::TESObjectREFR * target)
     {
         if (!ArmorAddonOverrideService::GetInstance().shouldOverride((RE::Actor *) target))
@@ -72,7 +69,7 @@ namespace OutfitSystem
             {
                 struct DontVanillaSkinPlayer_Code : Xbyak::CodeGenerator
                 {
-                    DontVanillaSkinPlayer_Code(void * buf) : CodeGenerator(4096, buf)
+                    DontVanillaSkinPlayer_Code()
                     {
                         Xbyak::Label j_Out;
                         Xbyak::Label f_ApplyArmorAddon;
@@ -105,14 +102,11 @@ namespace OutfitSystem
                         dq(uintptr_t(ShouldOverride));
                     }
                 };
-                SKSE::GetTrampoline();
-                void* codeBuf = g_localTrampoline.StartAlloc();
-                DontVanillaSkinPlayer_Code code(codeBuf);
-                g_localTrampoline.EndAlloc(code.getCurr());
+                DontVanillaSkinPlayer_Code gen;
+                void* code = g_localTrampoline->allocate(gen);
 
 				LOG(info, "AVI: Patching vanilla player skinning at addr = %llX. base = %llX", DontVanillaSkinPlayer_Hook, REL::Module::get().base());
-                g_branchTrampoline.Write5Branch(DontVanillaSkinPlayer_Hook,
-                    uintptr_t(code.getCode()));
+                g_branchTrampoline->write_branch<5>(DontVanillaSkinPlayer_Hook, code);
             }
             LOG(info, "Done");
         }
@@ -147,7 +141,7 @@ namespace OutfitSystem
             {
                 struct ShimWornFlags_Code : Xbyak::CodeGenerator
                 {
-                    ShimWornFlags_Code(void * buf) : CodeGenerator(4096, buf)
+                    ShimWornFlags_Code()
                     {
                         Xbyak::Label j_SuppressVanilla;
                         Xbyak::Label j_Out;
@@ -189,13 +183,11 @@ namespace OutfitSystem
                         dq(uintptr_t(OverrideWornFlags));
                     }
                 };
+                ShimWornFlags_Code gen;
+                void* code = g_localTrampoline->allocate(gen);
 
-                void* codeBuf = g_localTrampoline.StartAlloc();
-                ShimWornFlags_Code code(codeBuf);
-                g_localTrampoline.EndAlloc(code.getCurr());
-
-                g_branchTrampoline.Write5Branch(ShimWornFlags_Hook,
-                    uintptr_t(code.getCode()));
+                LOG(info, "AVI: Patching shim worn flags at addr = %llX. base = %llX", ShimWornFlags_Hook, REL::Module::get().base());
+                g_branchTrampoline->write_branch<5>(ShimWornFlags_Hook, code);
             }
             LOG(info, "Done");
         }
@@ -265,7 +257,7 @@ namespace OutfitSystem
             {
                 struct CustomSkinPlayer_Code : Xbyak::CodeGenerator
                 {
-                    CustomSkinPlayer_Code(void * buf) : CodeGenerator(4096, buf)
+                    CustomSkinPlayer_Code()
                     {
                         Xbyak::Label j_Out;
                         Xbyak::Label f_Custom;
@@ -309,13 +301,11 @@ namespace OutfitSystem
                         dq(uintptr_t(ShouldOverrideSkinning));
                     }
                 };
+                CustomSkinPlayer_Code gen;
+                void* code = g_localTrampoline->allocate(gen);
 
-                void* codeBuf = g_localTrampoline.StartAlloc();
-                CustomSkinPlayer_Code code(codeBuf);
-                g_localTrampoline.EndAlloc(code.getCurr());
-
-                g_branchTrampoline.Write5Branch(CustomSkinPlayer_Hook,
-                    uintptr_t(code.getCode()));
+                LOG(info, "AVI: Patching custom skin player at addr = %llX. base = %llX", CustomSkinPlayer_Hook, REL::Module::get().base());
+                g_branchTrampoline->write_branch<5>(CustomSkinPlayer_Hook, code);
             }
             LOG(info, "Done");
         }
@@ -403,7 +393,7 @@ namespace OutfitSystem
             {
                 struct FixEquipConflictCheck_Code : Xbyak::CodeGenerator
                 {
-                    FixEquipConflictCheck_Code(void* buf) : CodeGenerator(4096, buf)
+                    FixEquipConflictCheck_Code()
                     {
                         Xbyak::Label j_Out;
                         Xbyak::Label j_Exit;
@@ -454,13 +444,11 @@ namespace OutfitSystem
                         dq(uintptr_t(Inner));
                     }
                 };
+                FixEquipConflictCheck_Code gen;
+                void* code = g_localTrampoline->allocate(gen);
 
-                void* codeBuf = g_localTrampoline.StartAlloc();
-                FixEquipConflictCheck_Code code(codeBuf);
-                g_localTrampoline.EndAlloc(code.getCurr());
-
-                g_branchTrampoline.Write5Branch(FixEquipConflictCheck_Hook,
-                                                uintptr_t(code.getCode()));
+                LOG(info, "AVI: Patching fix equip conflict check at addr = %llX. base = %llX", FixEquipConflictCheck_Hook, REL::Module::get().base());
+                g_branchTrampoline->write_branch<5>(FixEquipConflictCheck_Hook, code);
             }
             LOG(info, "Done");
         }
