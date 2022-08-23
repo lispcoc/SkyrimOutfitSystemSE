@@ -124,7 +124,8 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/OutfitSystem.cpp
     include/PlayerSkinning.h
     src/PlayerSkinning.cpp
-    )
+    src/Utility.cpp
+)
 
 set(ROOT_NAMESPACE SkyrimOutfitSystemSE)
 
