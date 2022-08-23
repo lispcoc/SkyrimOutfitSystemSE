@@ -110,7 +110,7 @@ add_library(SkyrimOutfitSystemSE SHARED
     include/version.h
     src/version.rc
     include/SOS_PCH.h
-    src/main2.cpp
+    src/main.cpp
     include/cobb/strings.h
     include/cobb/utf8naturalsort.h
     src/cobb/utf8naturalsort.cpp

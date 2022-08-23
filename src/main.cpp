@@ -1,17 +1,9 @@
-﻿#include <ShlObj.h>
-
 #include "OutfitSystem.h"
-//#include "ArmorAddonOverrideService.h"
-//#include "PlayerSkinning.h"
 
-std::uint32_t g_pluginSerializationSignature = 'cOft';
+#include <ShlObj.h>
 
-void Callback_Messaging_SKSE(SKSEMessagingInterface::Message *message);
-void Callback_Serialization_Save(SKSESerializationInterface *intfc);
-void Callback_Serialization_Load(SKSESerializationInterface *intfc);
-
-void _assertWrite(bool result, const char *err);
-void _assertRead(bool result, const char *err);
+#include <PlayerSkinning.h>
+#include <ArmorAddonOverrideService.h>
 
 void WaitForDebugger(void) {
     while (!IsDebuggerPresent()) {
@@ -23,7 +15,7 @@ void WaitForDebugger(void) {
 
 namespace {
     void InitializeLog() {
-        auto path = logger::log_directory();
+        auto path = SKSE::log::log_directory();
         if (!path) {
             util::report_and_fail("Failed to find standard logging directory"sv);
         }
@@ -46,8 +38,13 @@ namespace {
     }
 }
 
-extern "C" {
+std::uint32_t g_pluginSerializationSignature = 'cOft';
 
+void Callback_Messaging_SKSE(SKSE::MessagingInterface::Message* message);
+void Callback_Serialization_Save(SKSE::SerializationInterface* intfc);
+void Callback_Serialization_Load(SKSE::SerializationInterface* intfc);
+
+extern "C" {
 // Plugin Query for AE
 DllExport constinit auto SKSEPlugin_Version = []() {
     SKSE::PluginVersionData v;
@@ -62,111 +59,92 @@ DllExport constinit auto SKSEPlugin_Version = []() {
 }();
 
 // Plugin Query for SE
-DllExport bool SKSEPlugin_Query(const SKSEInterface *a_skse, PluginInfo *a_info) {
-    logger::info("SkyrimOutfitSystemSE v%s", SKYRIMOUTFITSYSTEMSE_VERSION_VERSTRING);
+DllExport bool SKSEPlugin_Query(const SKSE::QueryInterface *a_skse, SKSE::PluginInfo *a_info) {
+    LOG(info, "Query: {} v{}", Plugin::NAME, Plugin::VERSION.string());
 
-    a_info->infoVersion = PluginInfo::kInfoVersion;
+    a_info->infoVersion = SKSE::PluginInfo::kVersion;
     a_info->name = "SkyrimOutfitSystemSE";
     a_info->version = 1;
 
-    g_pluginHandle = a_skse->GetPluginHandle();
-
-    if (a_skse->isEditor) {
-        logger::error("[FATAL ERROR] Loaded in editor, marking as incompatible!\n");
-        return false;
-    }
-
-    // NOTE: Version check is disabled since we're trying to use the Address Library
-    // if (a_skse->runtimeVersion > MAKE_EXE_VERSION(1, 5, 97) || a_skse->runtimeVersion < MAKE_EXE_VERSION(1, 5, 73))
-    // {
-    //     _FATALERROR("[FATAL ERROR] Unsupported runtime version %08X!\n", a_skse->runtimeVersion);
-    //     return false;
-    // }
-
-    g_Messaging = static_cast<SKSEMessagingInterface *>(a_skse->QueryInterface(kInterface_Messaging));
-    if (!g_Messaging) {
-        _FATALERROR("[FATAL ERROR] Couldn't get messaging interface.");
-        return false;
-    }
-    if (g_Messaging->interfaceVersion < SKSEMessagingInterface::kInterfaceVersion) {
-        _FATALERROR("[FATAL ERROR] Messaging interface too old.");
-        return false;
-    }
-
-    g_Serialization = static_cast<SKSESerializationInterface *>(a_skse->QueryInterface(kInterface_Serialization));
-    if (!g_Serialization) {
-        _FATALERROR("[FATAL ERROR] Couldn't get serialization interface.");
-        return false;
-    }
-    if (g_Serialization->version < SKSESerializationInterface::kVersion) {
-        _FATALERROR("[FATAL ERROR] Serialization interface too old.");
-        return false;
-    }
-
-    if (!g_branchTrampoline.Create(1024 * 64)) {
-        _FATALERROR("couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
-        return false;
-    }
-
-    if (!g_localTrampoline.Create(1024 * 64, nullptr)) {
-        _FATALERROR("couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
+    if (a_skse->IsEditor()) {
+        LOG(critical, "[FATAL ERROR] Loaded in editor, marking as incompatible!\n");
         return false;
     }
 
     return true;
 }
 
-void _RegisterAndEchoPapyrus(SKSEPapyrusInterface::RegisterFunctions callback, char *module) {
-    bool status = g_Papyrus->Register(callback);
-    if (status)
-        LOG(info, "Papyrus registration %s for %s.", "succeeded", module);
-    else
-        LOG(info, "Papyrus registration %s for %s.", "FAILED", module);
-} ;
-
+// Entry point
 DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface *a_skse) {
+    InitializeLog();
+    LOG(info, "Load: {} v{}", Plugin::NAME, Plugin::VERSION.string());
+
     SKSE::Init(a_skse);
-    LOG(info, "loading");
-    {  // Patches:
-        OutfitSystem::ApplyPlayerSkinningHooks();
+
+    // Check some interface versions
+    if (SKSE::GetMessagingInterface()->Version() < SKSE::MessagingInterface::kVersion) {
+        LOG(critical, "Messaging interface too old.");
+        return false;
     }
-    {  // Messaging callbacks.
-        SKSE::GetMessagingInterface()->RegisterListener();
-        g_Messaging->RegisterListener(g_pluginHandle, "SKSE", Callback_Messaging_SKSE);
+
+    if (SKSE::GetSerializationInterface()->Version() < SKSE::SerializationInterface::kVersion) {
+        LOG(critical, "Serialization interface too old.");
+        return false;
     }
-    {  // Serialization callbacks.
-        g_Serialization->SetUniqueID(g_pluginHandle, g_pluginSerializationSignature);
-        //g_ISKSESerialization->SetRevertCallback  (g_pluginHandle, Callback_Serialization_Revert);
-        g_Serialization->SetSaveCallback(g_pluginHandle, Callback_Serialization_Save);
-        g_Serialization->SetLoadCallback(g_pluginHandle, Callback_Serialization_Load);
+
+    // Create Trampolines
+    if (!SKSE::GetTrampolineInterface()->AllocateFromBranchPool(1024 * 64)) {
+        LOG(critical, "couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
     }
-    {  // Papyrus registrations
-        g_Papyrus = (SKSEPapyrusInterface *) a_skse->QueryInterface(kInterface_Papyrus);
-        char name[] = "SkyrimOutfitSystemNativeFuncs";
-        _RegisterAndEchoPapyrus(OutfitSystem::RegisterPapyrus, name);
+
+    if (!SKSE::GetTrampolineInterface()->AllocateFromLocalPool(1024 * 64)) {
+        LOG(critical, "couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
     }
+
+    // Actual plugin load
+    LOG(info, "Patching player skinning");
+    OutfitSystem::ApplyPlayerSkinningHooks();
+
+    // Messaging Callback
+    LOG(info, "Registering messaging callback");
+    SKSE::GetMessagingInterface()->RegisterListener(Callback_Messaging_SKSE);
+
+    // Serialization Callbacks
+    LOG(info, "Registering serialization callback");
+    SKSE::GetSerializationInterface()->SetUniqueID(g_pluginSerializationSignature);
+    SKSE::GetSerializationInterface()->SetSaveCallback(Callback_Serialization_Save);
+    SKSE::GetSerializationInterface()->SetLoadCallback(Callback_Serialization_Load);
+
+    // Papyrus Registrations
+    LOG(info, "Registering papyrus");
+    SKSE::GetPapyrusInterface()->Register(OutfitSystem::RegisterPapyrus);
+
     return true;
 }
-};
+}
 
-void Callback_Messaging_SKSE(SKSEMessagingInterface::Message *message) {
-    if (message->type == SKSEMessagingInterface::kMessage_PostLoad) {
-    } else if (message->type == SKSEMessagingInterface::kMessage_PostPostLoad) {
-    } else if (message->type == SKSEMessagingInterface::kMessage_DataLoaded) {
-    } else if (message->type == SKSEMessagingInterface::kMessage_NewGame) {
+void Callback_Messaging_SKSE(SKSE::MessagingInterface::Message *message) {
+    if (message->type == SKSE::MessagingInterface::kPostLoad) {
+    } else if (message->type == SKSE::MessagingInterface::kPostPostLoad) {
+    } else if (message->type == SKSE::MessagingInterface::kDataLoaded) {
+    } else if (message->type == SKSE::MessagingInterface::kNewGame) {
         ArmorAddonOverrideService::GetInstance().reset();
-    } else if (message->type == SKSEMessagingInterface::kMessage_PreLoadGame) {
+    } else if (message->type == SKSE::MessagingInterface::kPreLoadGame) {
         ArmorAddonOverrideService::GetInstance()
             .reset(); // AAOS::load resets as well, but this is needed in case the save we're about to load doesn't have any AAOS data.
     }
-};
-void Callback_Serialization_Save(SKSESerializationInterface *intfc) {
+}
+
+void _assertWrite(bool result, const char *err);
+void _assertRead(bool result, const char *err);
+
+void Callback_Serialization_Save(SKSE::SerializationInterface *intfc) {
     LOG(info, "Writing savedata...");
     //
     if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV4)) {
         try {
             auto &service = ArmorAddonOverrideService::GetInstance();
-            const auto &data = service.save(intfc);
+            const auto &data = service.save();
             const auto &data_ser = data.SerializeAsString();
             _assertWrite(intfc->WriteRecordData(data_ser.data(), static_cast<std::uint32_t>(data_ser.size())),
                          "Failed to write proto into SKSE record.");
@@ -180,7 +158,7 @@ void Callback_Serialization_Save(SKSESerializationInterface *intfc) {
     //
     LOG(info, "Saving done!");
 }
-void Callback_Serialization_Load(SKSESerializationInterface *intfc) {
+void Callback_Serialization_Load(SKSE::SerializationInterface *intfc) {
     LOG(info, "Loading savedata...");
     //
     std::uint32_t
@@ -189,13 +167,12 @@ void Callback_Serialization_Load(SKSESerializationInterface *intfc) {
     std::uint32_t length;
     bool error = false;
     //
-    while (!error && intfc->GetNextRecordInfo(&type, &version, &length)) {
+    while (!error && intfc->GetNextRecordInfo(type, version, length)) {
         switch (type) {
         case ArmorAddonOverrideService::signature:
             try {
                 auto &service = ArmorAddonOverrideService::GetInstance();
                 if (version >= ArmorAddonOverrideService::kSaveVersionV4) {
-                    using namespace Serialization;
                     // Read data from protobuf.
                     std::vector<char> buf;
                     buf.insert(buf.begin(), length, 0);
