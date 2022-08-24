@@ -32,7 +32,7 @@ namespace OutfitSystem
         std::unordered_set<RE::TESObjectARMO*> equipped;
     };
 
-    REL::ID TESObjectARMO_ApplyArmorAddon(17392); // 0x00228AD0 in 1.5.73
+    REL::ID TESObjectARMO_ApplyArmorAddon(17792); // 0x00228AD0 in 1.5.73
 
     namespace DontVanillaSkinPlayer
     {
@@ -58,7 +58,7 @@ namespace OutfitSystem
             return outfit.computeDisplaySet(visitor.equipped).count(armor) == 0;
         }
 
-        REL::ID DontVanillaSkinPlayer_Hook_ID(24232);
+        REL::ID DontVanillaSkinPlayer_Hook_ID(24736);
         std::uintptr_t DontVanillaSkinPlayer_Hook(DontVanillaSkinPlayer_Hook_ID.address() + 0x302); // 0x00364652 in 1.5.73
 
         void Apply()
@@ -128,10 +128,10 @@ namespace OutfitSystem
             return mask;
         }
 
-        REL::ID ShimWornFlags_Hook_ID(24220);
-        std::uintptr_t ShimWornFlags_Hook(ShimWornFlags_Hook_ID.address() + 0x7C); // 0x00362F0C in 1.5.73
+        REL::ID ShimWornFlags_Hook_ID(24724);
+        std::uintptr_t ShimWornFlags_Hook(ShimWornFlags_Hook_ID.address() + 0x80); // 0x00362F0C in 1.5.73
 
-        REL::ID InventoryChanges_GetWornMask(15806); // 0x001D9040 in 1.5.73
+        REL::ID InventoryChanges_GetWornMask(16044); // 0x001D9040 in 1.5.73
 
         void Apply()
         {
@@ -244,10 +244,10 @@ namespace OutfitSystem
             }
         }
 
-        REL::ID CustomSkinPlayer_Hook_ID(24231);
+        REL::ID CustomSkinPlayer_Hook_ID(24735);
         std::uintptr_t CustomSkinPlayer_Hook(CustomSkinPlayer_Hook_ID.address() + 0x81); // 0x00364301 in 1.5.73
 
-        REL::ID InventoryChanges_ExecuteVisitorOnWorn(15856); // 0x001E51D0 in 1.5.73
+        REL::ID InventoryChanges_ExecuteVisitorOnWorn(16096); // 0x001E51D0 in 1.5.73
 
         void Apply()
         {
@@ -311,10 +311,10 @@ namespace OutfitSystem
         }
     }
 
-    REL::ID FixEquipConflictCheck_Hook_ID(36979);
+    REL::ID FixEquipConflictCheck_Hook_ID(38004);
     std::uintptr_t FixEquipConflictCheck_Hook(FixEquipConflictCheck_Hook_ID.address() + 0x97); // 0x0060CAC7 in 1.5.73
 
-    REL::ID BGSBipedObjectForm_TestBodyPartByIndex(14026); // 0x001820A0 in 1.5.73
+    REL::ID BGSBipedObjectForm_TestBodyPartByIndex(14119); // 0x001820A0 in 1.5.73
 
     namespace FixEquipConflictCheck
     {
