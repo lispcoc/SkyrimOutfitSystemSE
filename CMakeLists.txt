@@ -20,10 +20,6 @@ if(NOT CMAKE_CL_64)
     message(FATAL_ERROR "Must use a 64-bit toolchain!")
 endif()
 
-if(NOT "${VCPKG_TARGET_TRIPLET}" STREQUAL "x64-windows-static")
-    message(FATAL_ERROR "Must set VCPKG_TARGET_TRIPLET to x64-windows-static! It is currently ${VCPKG_TARGET_TRIPLET}")
-endif()
-
 ################################################################################
 # Find and configure Google Protocol Buffers
 ################################################################################
@@ -38,37 +34,6 @@ set(CMAKE_CONFIGURATION_TYPES
     "Release"
     CACHE STRING "" FORCE
 )
-
-################################################################################
-# Global compiler options
-################################################################################
-if(MSVC)
-    # remove default flags provided with CMake for MSVC
-    set(CMAKE_CXX_FLAGS "")
-    set(CMAKE_CXX_FLAGS_DEBUG "")
-    set(CMAKE_CXX_FLAGS_RELEASE "")
-endif()
-
-set(DEFAULT_CXX_EXCEPTION_HANDLING "/EHsc")
-
-################################################################################
-# Global linker options
-################################################################################
-if(MSVC)
-    # remove default flags provided with CMake for MSVC
-    set(CMAKE_EXE_LINKER_FLAGS "")
-    set(CMAKE_MODULE_LINKER_FLAGS "")
-    set(CMAKE_SHARED_LINKER_FLAGS "")
-    set(CMAKE_STATIC_LINKER_FLAGS "")
-    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS}")
-    set(CMAKE_MODULE_LINKER_FLAGS_DEBUG "${CMAKE_MODULE_LINKER_FLAGS}")
-    set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS}")
-    set(CMAKE_STATIC_LINKER_FLAGS_DEBUG "${CMAKE_STATIC_LINKER_FLAGS}")
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS}")
-    set(CMAKE_MODULE_LINKER_FLAGS_RELEASE "${CMAKE_MODULE_LINKER_FLAGS}")
-    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS}")
-    set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "${CMAKE_STATIC_LINKER_FLAGS}")
-endif()
 
 ################################################################################
 # Nuget packages function stub.
@@ -145,97 +110,40 @@ target_precompile_headers(SkyrimOutfitSystemSE PRIVATE
     include/SOS_PCH.h
 )
 
-target_compile_definitions(SkyrimOutfitSystemSE PRIVATE XBYAK_NO_OP_NAMES)
+target_compile_definitions(SkyrimOutfitSystemSE
+        PRIVATE
+        "SKYRIM_RUNTIME=${SKYRIM_RUNTIME}"
+        XBYAK_NO_OP_NAMES)
 
-################################################################################
-# MSVC runtime library
-################################################################################
-get_property(MSVC_RUNTIME_LIBRARY_DEFAULT TARGET SkyrimOutfitSystemSE PROPERTY MSVC_RUNTIME_LIBRARY)
-
-string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
-    $<$<CONFIG:Debug>:MultiThreadedDebug>
-    $<$<CONFIG:Release>:MultiThreaded>
-    $<$<NOT:$<OR:$<CONFIG:Debug>,$<CONFIG:Release>>>:${MSVC_RUNTIME_LIBRARY_DEFAULT}>
+target_compile_features(
+        SkyrimOutfitSystemSE
+        PRIVATE
+        cxx_std_20
 )
 
-set_target_properties(SkyrimOutfitSystemSE PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
+if(MSVC)
+    target_compile_options(SkyrimOutfitSystemSE PRIVATE
+            "/sdl"	    # Enable Additional Security Checks
+            "/utf-8"	# Set Source and Executable character sets to UTF-8
+            "/Zi"	    # Debug Information Format
 
-# Also force it on CommonLibSSE and Protobuf
-set_target_properties(CommonLibSSE PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
-set_target_properties(ProtocolBuffers PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
+            "/permissive-"   	# Standards conformance
+            "/Zc:preprocessor"	# Enable preprocessor conformance mode
+
+            "/wd4200"   # nonstandard extension used : zero-sized array in struct/union
+
+            "$<$<CONFIG:DEBUG>:>"
+            "$<$<CONFIG:RELEASE>:/Zc:inline;/JMC-;/Ob3>"
+            )
+    target_link_options(SkyrimOutfitSystemSE PRIVATE
+            "$<$<CONFIG:DEBUG>:/INCREMENTAL;/OPT:NOREF;/OPT:NOICF>"
+            "$<$<CONFIG:RELEASE>:/INCREMENTAL:NO;/OPT:REF;/OPT:ICF;/DEBUG:FULL>"
+            )
+endif()
 
 ################################################################################
 # Compile definitions
 ################################################################################
-target_compile_definitions(SkyrimOutfitSystemSE PRIVATE
-    "SKYRIM_RUNTIME=${SKYRIM_RUNTIME}"
-)
-
-################################################################################
-# Compile and link options
-################################################################################
-if(MSVC)
-    target_compile_options(SkyrimOutfitSystemSE PRIVATE
-        $<$<CONFIG:Debug>:
-            /GL-;
-            /Od;
-            /RTC1;
-            /fp:except;
-            /guard:cf;
-            /Y-
-        >
-        $<$<CONFIG:Release>:
-            /GL;
-            /O2;
-            /Oi
-        >
-        /MP;
-        /std:c++20;
-        /sdl-;
-        /Gy;
-        /W3;
-        /Zi;
-        /TP;
-        /experimental:external;
-        /external:anglebrackets;
-        /external:W0;
-        /Zc:alignedNew;
-        /Zc:auto;
-        /Zc:char8_t;
-        /Zc:__cplusplus;
-        /Zc:externC;
-        /Zc:externConstexpr;
-        /Zc:forScope;
-        /Zc:hiddenFriend;
-        /Zc:implicitNoexcept;
-        /Zc:lambda;
-        /Zc:noexceptTypes;
-        /Zc:preprocessor;
-        /Zc:referenceBinding;
-        /Zc:rvalueCast;
-        /Zc:sizedDealloc;
-        /Zc:strictStrings;
-        /Zc:ternary;
-        /Zc:threadSafeInit;
-        /Zc:tlsGuards;
-        /Zc:trigraphs;
-        /Zc:wchar_t;
-        /Zc:twoPhase-;
-        ${DEFAULT_CXX_EXCEPTION_HANDLING}
-    )
-    target_link_options(SkyrimOutfitSystemSE PRIVATE
-        $<$<CONFIG:Debug>:
-            /INCREMENTAL
-        >
-        $<$<CONFIG:Release>:
-            /OPT:REF;
-            /OPT:ICF;
-            /INCREMENTAL:NO
-        >
-        /DEBUG;
-        /SUBSYSTEM:WINDOWS
-    )
-endif()
 
 ################################################################################
 # Install steps
@@ -259,19 +167,3 @@ target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     ProtocolBuffers
     xbyak::xbyak
 )
-
-################################################################################
-# Address Library header generator
-################################################################################
-add_executable(addrheader
-        src/addrlib/main.cpp
-        )
-
-target_include_directories(addrheader PRIVATE
-        dependencies/AddressLibrary/
-        )
-
-target_compile_options(addrheader PRIVATE
-        /std:c++20;
-        ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )

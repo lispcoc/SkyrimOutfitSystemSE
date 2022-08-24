@@ -52,7 +52,7 @@ struct Outfit {
    std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equipped);
 
    void load(const proto::Outfit& proto, const SKSE::SerializationInterface*);
-   [[deprecated]] void load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version); // can throw ArmorAddonOverrideService::load_error
+   void load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version); // can throw ArmorAddonOverrideService::load_error
    proto::Outfit save() const; // can throw ArmorAddonOverrideService::save_error
 };
 const constexpr char* g_noOutfitName = "";
@@ -140,7 +140,7 @@ class ArmorAddonOverrideService {
       //
       void reset();
       void load(const SKSE::SerializationInterface* intfc, const proto::OutfitSystem& data); // can throw load_error
-      [[deprecated]] void load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version); // can throw load_error
+      void load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version); // can throw load_error
       proto::OutfitSystem save(); // can throw save_error
       //
       void dump() const;
