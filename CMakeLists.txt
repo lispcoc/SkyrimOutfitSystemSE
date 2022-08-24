@@ -20,6 +20,10 @@ if(NOT CMAKE_CL_64)
     message(FATAL_ERROR "Must use a 64-bit toolchain!")
 endif()
 
+if(NOT "${VCPKG_TARGET_TRIPLET}" STREQUAL "x64-windows-static")
+    message(FATAL_ERROR "Must set VCPKG_TARGET_TRIPLET to x64-windows-static! It is currently ${VCPKG_TARGET_TRIPLET}")
+endif()
+
 ################################################################################
 # Find and configure Google Protocol Buffers
 ################################################################################
@@ -69,6 +73,17 @@ add_library(ProtocolBuffers STATIC ${PROTO_SRC} ${PROTO_HDR})
 target_link_libraries(ProtocolBuffers PUBLIC protobuf::libprotobuf)
 
 target_include_directories(ProtocolBuffers PUBLIC ${CMAKE_CURRENT_BINARY_DIR}) # The headers are generated right into the output dir.
+
+################################################################################
+# MSVC runtime library
+################################################################################
+string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
+        $<$<CONFIG:Debug>:MultiThreadedDebug>
+        $<$<CONFIG:Release>:MultiThreaded>)
+
+# Also force it on CommonLibSSE and Protobuf
+set_target_properties(CommonLibSSE PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
+set_target_properties(ProtocolBuffers PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
 
 ################################################################################
 # Target
@@ -139,6 +154,8 @@ if(MSVC)
             "$<$<CONFIG:DEBUG>:/INCREMENTAL;/OPT:NOREF;/OPT:NOICF>"
             "$<$<CONFIG:RELEASE>:/INCREMENTAL:NO;/OPT:REF;/OPT:ICF;/DEBUG:FULL>"
             )
+
+    set_target_properties(SkyrimOutfitSystemSE PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
 endif()
 
 ################################################################################
