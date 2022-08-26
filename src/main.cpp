@@ -93,7 +93,7 @@ DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface *a_skse) {
     }
 
     // Create Trampolines
-    SKSE::AllocTrampoline(1024 * 64, true);
+    SKSE::AllocTrampoline(128, true);
     OutfitSystem::g_branchTrampoline = &SKSE::GetTrampoline();
 
     OutfitSystem::g_localTrampoline = new SKSE::Trampoline("local");
