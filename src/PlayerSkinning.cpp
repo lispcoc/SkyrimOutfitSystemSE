@@ -64,8 +64,8 @@ namespace OutfitSystem
         void Apply()
         {
             LOG(info, "Patching vanilla player skinning");
-            LOG(info, "TESObjectARMO_ApplyArmorAddon = %p", TESObjectARMO_ApplyArmorAddon.address() - REL::Module::get().base());
-            LOG(info, "DontVanillaSkinPlayer_Hook = %p", DontVanillaSkinPlayer_Hook - REL::Module::get().base());
+            LOG(info, "TESObjectARMO_ApplyArmorAddon = {:x}", TESObjectARMO_ApplyArmorAddon.address() - REL::Module::get().base());
+            LOG(info, "DontVanillaSkinPlayer_Hook = {:x}", DontVanillaSkinPlayer_Hook - REL::Module::get().base());
             {
                 struct DontVanillaSkinPlayer_Code : Xbyak::CodeGenerator
                 {
@@ -105,7 +105,7 @@ namespace OutfitSystem
                 DontVanillaSkinPlayer_Code gen;
                 void* code = g_localTrampoline->allocate(gen);
 
-				LOG(info, "AVI: Patching vanilla player skinning at addr = %llX. base = %llX", DontVanillaSkinPlayer_Hook, REL::Module::get().base());
+				LOG(info, "AVI: Patching vanilla player skinning at addr = {:x}. base = {:x}", DontVanillaSkinPlayer_Hook, REL::Module::get().base());
                 g_branchTrampoline->write_branch<5>(DontVanillaSkinPlayer_Hook, code);
             }
             LOG(info, "Done");
@@ -136,8 +136,8 @@ namespace OutfitSystem
         void Apply()
         {
             LOG(info, "Patching shim worn flags");
-            LOG(info, "ShimWornFlags_Hook = %p", ShimWornFlags_Hook - REL::Module::get().base());
-            LOG(info, "InventoryChanges_GetWornMask = %p", InventoryChanges_GetWornMask.address() - REL::Module::get().base());
+            LOG(info, "ShimWornFlags_Hook = {:x}", ShimWornFlags_Hook - REL::Module::get().base());
+            LOG(info, "InventoryChanges_GetWornMask = {:x}", InventoryChanges_GetWornMask.address() - REL::Module::get().base());
             {
                 struct ShimWornFlags_Code : Xbyak::CodeGenerator
                 {
@@ -186,7 +186,7 @@ namespace OutfitSystem
                 ShimWornFlags_Code gen;
                 void* code = g_localTrampoline->allocate(gen);
 
-                LOG(info, "AVI: Patching shim worn flags at addr = %llX. base = %llX", ShimWornFlags_Hook, REL::Module::get().base());
+                LOG(info, "AVI: Patching shim worn flags at addr = {:x}. base = {:x}", ShimWornFlags_Hook, REL::Module::get().base());
                 g_branchTrampoline->write_branch<5>(ShimWornFlags_Hook, code);
             }
             LOG(info, "Done");
@@ -244,16 +244,58 @@ namespace OutfitSystem
             }
         }
 
-        REL::ID CustomSkinPlayer_Hook_ID(24735);
-        std::uintptr_t CustomSkinPlayer_Hook(CustomSkinPlayer_Hook_ID.address() + 0x81); // 0x00364301 in 1.5.73
+        REL::ID CustomSkinPlayer_Hook_ID(24725);
+        std::uintptr_t CustomSkinPlayer_Hook(CustomSkinPlayer_Hook_ID.address() + 0x1EF); // 0x00364301 in 1.5.73
 
         REL::ID InventoryChanges_ExecuteVisitorOnWorn(16096); // 0x001E51D0 in 1.5.73
+        std::uintptr_t InventoryChanges_ExecuteVisitorOnWorn_Hook(InventoryChanges_ExecuteVisitorOnWorn.address() + 0x2A); // 0x00364301 in 1.5.73
+
+        void Print_RTTI(RE::InventoryChanges::IItemChangeVisitor* target) {
+            void* object = (void*) target;
+            void* vtable = *(void**)object;
+            void* info_block =  ((void**)vtable)[-1];
+            uintptr_t id = ((unsigned long*)info_block)[3];
+            uintptr_t info = id + REL::Module::get().base();
+            char* name = (char*)info + 16;
+            LOG(info, "vtable = {}, typeinfo = {}, typename = {}", vtable, info_block, name);
+        }
 
         void Apply()
         {
-            LOG(info, "Patching custom skin player");
-            LOG(info, "CustomSkinPlayer_Hook = %p", CustomSkinPlayer_Hook - REL::Module::get().base());
-            LOG(info, "InventoryChanges_ExecuteVisitorOnWorn = %p", InventoryChanges_ExecuteVisitorOnWorn.address() - REL::Module::get().base());
+            LOG(info, "Patching RTTI print");
+            LOG(info, "InventoryChanges_ExecuteVisitorOnWorn_Hook = {:x}", InventoryChanges_ExecuteVisitorOnWorn_Hook - REL::Module::get().base());
+            {
+                struct RTTI_Code : Xbyak::CodeGenerator
+                {
+                    RTTI_Code()
+                    {
+                        Xbyak::Label f_PrintRTTI;
+
+                        push(rcx);
+                        push(rdx);
+                        push(rax);
+                        mov(rcx, rdx);
+                        sub(rsp, 0x20);
+                        call(ptr[rip + f_PrintRTTI]);
+                        add(rsp, 0x20);
+                        pop(rax);
+                        pop(rdx);
+                        pop(rcx);
+                        
+
+                        jmp(ptr[rip]);
+                        dq(InventoryChanges_ExecuteVisitorOnWorn_Hook + 0x6);
+
+                        L(f_PrintRTTI);
+                        dq(uintptr_t(Print_RTTI));
+                    }
+                };
+                RTTI_Code gen;
+                void* code = g_localTrampoline->allocate(gen);
+
+                LOG(info, "AVI: Patching RTTI print at addr = {:x}. base = {:x}", InventoryChanges_ExecuteVisitorOnWorn_Hook, REL::Module::get().base());
+                // g_branchTrampoline->write_branch<6>(InventoryChanges_ExecuteVisitorOnWorn_Hook, code);
+            }
             {
                 struct CustomSkinPlayer_Code : Xbyak::CodeGenerator
                 {
@@ -280,7 +322,7 @@ namespace OutfitSystem
                         push(rdx);
                         push(rcx);
                         mov(rcx, rbx);
-                        mov(rdx, rdi);
+                        mov(rdx, r15);
                         sub(rsp, 0x20);
                         call(ptr[rip + f_Custom]);
                         add(rsp, 0x20);
@@ -304,7 +346,7 @@ namespace OutfitSystem
                 CustomSkinPlayer_Code gen;
                 void* code = g_localTrampoline->allocate(gen);
 
-                LOG(info, "AVI: Patching custom skin player at addr = %llX. base = %llX", CustomSkinPlayer_Hook, REL::Module::get().base());
+                LOG(info, "AVI: Patching custom skin player at addr = {}. base = {}", CustomSkinPlayer_Hook, REL::Module::get().base());
                 g_branchTrampoline->write_branch<5>(CustomSkinPlayer_Hook, code);
             }
             LOG(info, "Done");
@@ -388,8 +430,8 @@ namespace OutfitSystem
         void Apply()
         {
             LOG(info, "Patching fix for equip conflict check");
-            LOG(info, "FixEquipConflictCheck_Hook = %p", FixEquipConflictCheck_Hook - REL::Module::get().base());
-            LOG(info, "BGSBipedObjectForm_TestBodyPartByIndex = %p", BGSBipedObjectForm_TestBodyPartByIndex.address() - REL::Module::get().base());
+            LOG(info, "FixEquipConflictCheck_Hook = {:x}", FixEquipConflictCheck_Hook - REL::Module::get().base());
+            LOG(info, "BGSBipedObjectForm_TestBodyPartByIndex = {:x}", BGSBipedObjectForm_TestBodyPartByIndex.address() - REL::Module::get().base());
             {
                 struct FixEquipConflictCheck_Code : Xbyak::CodeGenerator
                 {
@@ -409,7 +451,9 @@ namespace OutfitSystem
                         // rdi: Actor
                         // rbx: Body Slot
                         push(rcx);
-                        mov(rcx, ptr[rsp + 0x18]);
+                        // Set RCX to the RDX argument of the patched function
+                        // RSP + Argument offset rel to original entry + Offset from push above + Offset from pushes in original entry 
+                        mov(rcx, ptr[rsp + 0x10 + 0x08 + 0xC8]);
                         sub(rsp, 0x20);
                         call(ptr[rip + f_ShouldOverride]);
                         add(rsp, 0x20);
@@ -447,7 +491,7 @@ namespace OutfitSystem
                 FixEquipConflictCheck_Code gen;
                 void* code = g_localTrampoline->allocate(gen);
 
-                LOG(info, "AVI: Patching fix equip conflict check at addr = %llX. base = %llX", FixEquipConflictCheck_Hook, REL::Module::get().base());
+                LOG(info, "AVI: Patching fix equip conflict check at addr = {:x}. dst = {}. base = {:x}", FixEquipConflictCheck_Hook, code, REL::Module::get().base());
                 g_branchTrampoline->write_branch<5>(FixEquipConflictCheck_Hook, code);
             }
             LOG(info, "Done");
