@@ -373,10 +373,11 @@ namespace OutfitSystem {
                 pairs.begin(),
                 pairs.end(),
                 [descending](const _pair &x, const _pair &y) {
-                    auto result = cobb::utf8::naturalcompare(std::string(x.first.data()), std::string(y.first.data()));
+                    std::string a(x.first.data());
+                    std::string b(y.first.data());
                     if (descending)
-                        result = -result;
-                    return result > 0;
+                        std::swap(a, b);
+                    return cobb::utf8::naturalcompare(a, b) > 0;
                 }
             );
             for (std::uint32_t i = 0; i < size; i++) {
