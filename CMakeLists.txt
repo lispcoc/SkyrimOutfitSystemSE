@@ -135,28 +135,25 @@ target_compile_features(SkyrimOutfitSystemSE PRIVATE
 
 if(MSVC)
     target_compile_options(SkyrimOutfitSystemSE PRIVATE
-            "/sdl"	    # Enable Additional Security Checks
-            "/utf-8"	# Set Source and Executable character sets to UTF-8
-            "/Zi"	    # Debug Information Format
+        "/sdl"	    # Enable Additional Security Checks
+        "/utf-8"	# Set Source and Executable character sets to UTF-8
+        "/Zi"	    # Debug Information Format
 
-            "/EHsc"     # C++ exception handling
+        "/EHsc"     # C++ exception handling
 
-            "/Zc:preprocessor"	# Enable preprocessor conformance mode
+        "/Zc:preprocessor"	# Enable preprocessor conformance mode
 
-            "/experimental:external"
-            "/external:anglebrackets"
-            "/external:W0"
+        "/experimental:external"
+        "/external:anglebrackets"
+        "/external:W0"
 
-            "/wd4200"   # nonstandard extension used : zero-sized array in struct/union
-
-            "$<$<CONFIG:DEBUG>:>"
-            "$<$<CONFIG:RELEASE>:/Zc:inline;/JMC-;/Ob3>"
-            )
+        "/wd4200"   # nonstandard extension used : zero-sized array in struct/union
+    )
 
     target_link_options(SkyrimOutfitSystemSE PRIVATE
-            "$<$<CONFIG:DEBUG>:/INCREMENTAL;/OPT:NOREF;/OPT:NOICF>"
-            "$<$<CONFIG:RELEASE>:/INCREMENTAL:NO;/OPT:REF;/OPT:ICF;/DEBUG:FULL>"
-            )
+        "$<$<CONFIG:DEBUG>:/INCREMENTAL;/OPT:NOREF;/OPT:NOICF>"
+        "$<$<CONFIG:RELEASE>:/INCREMENTAL:NO;/OPT:REF;/OPT:ICF;/DEBUG:FULL>"
+    )
 
     set_target_properties(SkyrimOutfitSystemSE PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
 endif()
