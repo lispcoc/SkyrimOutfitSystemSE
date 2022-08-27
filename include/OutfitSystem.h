@@ -1,5 +1,10 @@
 #pragma once
-#include "RE/I/IVirtualMachine.h"
+
+namespace RE {
+    namespace BSScript {
+        class IVirtualMachine;
+    }
+}
 
 namespace OutfitSystem
 {

@@ -1,5 +1,9 @@
 #pragma once
 
+namespace SKSE {
+    class Trampoline;
+}
+
 namespace OutfitSystem
 {
     extern SKSE::Trampoline* g_localTrampoline;

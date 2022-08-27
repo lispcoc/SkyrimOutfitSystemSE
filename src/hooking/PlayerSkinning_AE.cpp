@@ -1,3 +1,5 @@
+#ifdef SKYRIM_VERSION_IS_AE
+
 #include "ArmorAddonOverrideService.h"
 
 #include <xbyak/xbyak.h>
@@ -529,3 +531,4 @@ namespace OutfitSystem {
 		FixEquipConflictCheck::Apply();
 	}
 } // namespace OutfitSystem
+#endif

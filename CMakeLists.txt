@@ -4,15 +4,6 @@ set(CMAKE_SYSTEM_VERSION 8.1 CACHE STRING "" FORCE)
 
 project(SkyrimOutfitSystemSE CXX)
 
-set(SKYRIM_RUNTIME 1_5_73)
-
-if(${SKYRIM_RUNTIME} STREQUAL "1_5_97")
-    set(SKSE_RUNTIME_VERSION 0x01050610)
-elseif(${SKYRIM_RUNTIME} STREQUAL "1_5_73")
-    set(SKSE_RUNTIME_VERSION 0x01050490)
-endif()
-
-
 ################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
 ################################################################################
@@ -58,7 +49,14 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 ################################################################################
 set(SKSE_SUPPORT_XBYAK 1)
 
-add_subdirectory(dependencies/CommonLibSSE)
+message("SKYRIM_VERSION is ${SKYRIM_VERSION}")
+if("${SKYRIM_VERSION}" STREQUAL "AE")
+    add_subdirectory(dependencies/CommonLibSSE_AE)
+elseif("${SKYRIM_VERSION}" STREQUAL "PRE_AE")
+    add_subdirectory(dependencies/CommonLibSSE_PRE_AE)
+else()
+    message(FATAL_ERROR "Must set SKYRIM_VERSION to one of: PRE_AE, AE")
+endif()
 
 ################################################################################
 # Build Protocol Buffers
@@ -103,7 +101,8 @@ add_library(SkyrimOutfitSystemSE SHARED
     include/OutfitSystem.h
     src/OutfitSystem.cpp
     include/PlayerSkinning.h
-    src/PlayerSkinning.cpp
+    src/hooking/PlayerSkinning_AE.cpp
+    src/hooking/PlayerSkinning_PRE_AE.cpp
     src/Utility.cpp
 )
 
@@ -125,15 +124,13 @@ target_precompile_headers(SkyrimOutfitSystemSE PRIVATE
     include/SOS_PCH.h
 )
 
-target_compile_definitions(SkyrimOutfitSystemSE
-        PRIVATE
-        "SKYRIM_RUNTIME=${SKYRIM_RUNTIME}"
-        XBYAK_NO_OP_NAMES)
+target_compile_definitions(SkyrimOutfitSystemSE PRIVATE
+    XBYAK_NO_OP_NAMES
+    "SKYRIM_VERSION_IS_${SKYRIM_VERSION}"
+)
 
-target_compile_features(
-        SkyrimOutfitSystemSE
-        PRIVATE
-        cxx_std_20
+target_compile_features(SkyrimOutfitSystemSE PRIVATE
+    cxx_std_20
 )
 
 if(MSVC)
@@ -142,14 +139,20 @@ if(MSVC)
             "/utf-8"	# Set Source and Executable character sets to UTF-8
             "/Zi"	    # Debug Information Format
 
-            "/permissive-"   	# Standards conformance
+            "/EHsc"     # C++ exception handling
+
             "/Zc:preprocessor"	# Enable preprocessor conformance mode
+
+            "/experimental:external"
+            "/external:anglebrackets"
+            "/external:W0"
 
             "/wd4200"   # nonstandard extension used : zero-sized array in struct/union
 
             "$<$<CONFIG:DEBUG>:>"
             "$<$<CONFIG:RELEASE>:/Zc:inline;/JMC-;/Ob3>"
             )
+
     target_link_options(SkyrimOutfitSystemSE PRIVATE
             "$<$<CONFIG:DEBUG>:/INCREMENTAL;/OPT:NOREF;/OPT:NOICF>"
             "$<$<CONFIG:RELEASE>:/INCREMENTAL:NO;/OPT:REF;/OPT:ICF;/DEBUG:FULL>"

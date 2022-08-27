@@ -50,6 +50,7 @@ void Callback_Serialization_Save(SKSE::SerializationInterface* intfc);
 void Callback_Serialization_Load(SKSE::SerializationInterface* intfc);
 
 extern "C" {
+#if SKYRIM_VERSION_IS_AE
 	// Plugin Query for AE
 	DllExport constinit auto SKSEPlugin_Version = []() {
 		SKSE::PluginVersionData v;
@@ -62,8 +63,8 @@ extern "C" {
 
 		return v;
 	}();
-
-	// Plugin Query for SE
+#elif SKYRIM_VERSION_IS_PRE_AE
+    // Plugin Query for SE
 	DllExport bool SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info) {
 		LOG(info, "Query: {} v{}", Plugin::NAME, Plugin::VERSION.string());
 
@@ -78,6 +79,7 @@ extern "C" {
 
 		return true;
 	}
+#endif
 
 	// Entry point
 	DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse) {

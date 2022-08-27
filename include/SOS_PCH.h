@@ -5,12 +5,10 @@
 #ifndef SKYRIMOUTFITSYSTEMSE_SOS_PCH_H
 #define SKYRIMOUTFITSYSTEMSE_SOS_PCH_H
 
-#include <source_location>
-#include <utility>
-
 #include "version.h"
 
 #pragma warning(push)
+#if SKYRIM_VERSION_IS_AE
 #include "SKSE/Impl/PCH.h"
 #include <RE/Skyrim.h>
 #include <REL/Relocation.h>
@@ -27,6 +25,12 @@
 #include "RE/T/TESObjectREFR.h"
 #include "RE/I/IVirtualMachine.h"
 #include "RE/T/TESForm.h"
+#include "RE/I/IVirtualMachine.h"
+#elif SKYRIM_VERSION_IS_PRE_AE
+#include "RE/Skyrim.h"
+#include <xbyak/xbyak.h>
+#include "SKSE/SKSE.h"
+#endif
 
 #include "fmt/compile.h"
 
@@ -50,9 +54,11 @@ namespace util {
 namespace Plugin {
     using namespace std::literals;
 
-    inline constexpr REL::Version VERSION
-        {SKYRIMOUTFITSYSTEMSE_VERSION_MAJOR, SKYRIMOUTFITSYSTEMSE_VERSION_MINOR, SKYRIMOUTFITSYSTEMSE_VERSION_PATCH};
-
+#if SKYRIM_VERSION_IS_AE
+    inline constexpr REL::Version VERSION{SKYRIMOUTFITSYSTEMSE_VERSION_MAJOR, SKYRIMOUTFITSYSTEMSE_VERSION_MINOR, SKYRIMOUTFITSYSTEMSE_VERSION_PATCH};
+#elif SKYRIM_VERSION_IS_PRE_AE
+    inline constexpr REL::Version VERSION{SKYRIMOUTFITSYSTEMSE_VERSION_MAJOR, SKYRIMOUTFITSYSTEMSE_VERSION_MINOR, SKYRIMOUTFITSYSTEMSE_VERSION_PATCH, 0};
+#endif
     inline constexpr auto NAME = "SkyrimOutfitSystemSE"sv;
 }
 
