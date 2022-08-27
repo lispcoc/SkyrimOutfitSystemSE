@@ -27,9 +27,23 @@
 #include "RE/T/TESForm.h"
 #include "RE/I/IVirtualMachine.h"
 #elif SKYRIM_VERSION_IS_PRE_AE
-#include "RE/Skyrim.h"
-#include <xbyak/xbyak.h>
-#include "SKSE/SKSE.h"
+#include "SKSE/Impl/PCH.h"
+#include <RE/Skyrim.h>
+#include <REL/Relocation.h>
+#include <SKSE/SKSE.h>
+#include <RE/A/Actor.h>
+#include <RE/M/Misc.h>
+#include "RE/T/TESObjectARMO.h"
+#include "RE/P/PlayerCharacter.h"
+#include "RE/A/ActorEquipManager.h"
+#include "RE/I/InventoryChanges.h"
+#include "RE/I/InventoryEntryData.h"
+#include "RE/P/PlayerCharacter.h"
+#include "RE/T/TESObjectARMO.h"
+#include "RE/T/TESObjectREFR.h"
+#include "RE/I/IVirtualMachine.h"
+#include "RE/T/TESForm.h"
+#include "RE/I/IVirtualMachine.h"
 #endif
 
 #include "fmt/compile.h"

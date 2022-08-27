@@ -12,15 +12,9 @@ std::string GetRuntimePath() {
 	if (appPath[0])
 		return appPath;
 
-#if SKYRIM_VERSION_IS_AE
 	if (!SKSE::WinAPI::GetModuleFileName(SKSE::WinAPI::GetModuleHandle((const char*) nullptr), appPath, sizeof(appPath))) {
 		SKSE::stl::report_and_fail("Failed to get runtime path");
 	}
-#elif SKYRIM_VERSION_IS_PRE_AE
-    if (!GetModuleFileName(GetModuleHandle((const char*) nullptr), appPath, sizeof(appPath))) {
-        SKSE::stl::report_and_fail("Failed to get runtime path");
-    }
-#endif
 
 	return appPath;
 }
