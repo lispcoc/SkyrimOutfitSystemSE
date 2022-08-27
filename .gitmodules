@@ -1,6 +1,6 @@
 [submodule "dependencies/CommonLibSSE_AE"]
 	path = dependencies/CommonLibSSE_AE
-	url = ./CommonLibSSE.git
+	url = ../CommonLibSSE.git
 [submodule "dependencies/CommonLibSSE_PRE_AE"]
 	path = dependencies/CommonLibSSE_PRE_AE
-	url = ./CommonLibSSE.git
+	url = ../CommonLibSSE.git
