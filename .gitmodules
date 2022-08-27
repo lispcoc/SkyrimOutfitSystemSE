@@ -1,9 +1,6 @@
 [submodule "dependencies/CommonLibSSE_AE"]
 	path = dependencies/CommonLibSSE_AE
-	url = https://gitlab.com/metricexpansion/CommonLibSSE.git
-[submodule "dependencies/mapbox_eternal"]
-	path = dependencies/mapbox_eternal
-	url = https://github.com/mapbox/eternal.git
+	url = ./CommonLibSSE.git
 [submodule "dependencies/CommonLibSSE_PRE_AE"]
 	path = dependencies/CommonLibSSE_PRE_AE
-	url = git@gitlab.com:metricexpansion/CommonLibSSE.git
+	url = ./CommonLibSSE.git
