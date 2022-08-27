@@ -9,8 +9,7 @@ namespace OutfitSystem {
 	SKSE::Trampoline* g_branchTrampoline = nullptr;
 
 	bool ShouldOverrideSkinning(RE::TESObjectREFR* target) {
-		if (!ArmorAddonOverrideService::GetInstance().shouldOverride(
-			(RE::Actor*)target))
+		if (!ArmorAddonOverrideService::GetInstance().shouldOverride((RE::Actor*)target))
 			return false;
 		return target == RE::PlayerCharacter::GetSingleton();
 	}
@@ -36,8 +35,7 @@ namespace OutfitSystem {
 	REL::ID TESObjectARMO_ApplyArmorAddon(17792); // 0x00228AD0 in 1.5.73
 
 	namespace DontVanillaSkinPlayer {
-		bool _stdcall ShouldOverride(RE::TESObjectARMO* armor,
-			RE::TESObjectREFR* target) {
+		bool _stdcall ShouldOverride(RE::TESObjectARMO* armor, RE::TESObjectREFR* target) {
 			if (!ShouldOverrideSkinning(target))
 				return false;
 			auto& svc = ArmorAddonOverrideService::GetInstance();
@@ -61,15 +59,12 @@ namespace OutfitSystem {
 		}
 
 		REL::ID DontVanillaSkinPlayer_Hook_ID(24736);
-		std::uintptr_t DontVanillaSkinPlayer_Hook(
-			DontVanillaSkinPlayer_Hook_ID.address() + 0x302); // 0x00364652 in 1.5.73
+		std::uintptr_t DontVanillaSkinPlayer_Hook(DontVanillaSkinPlayer_Hook_ID.address() + 0x302); // 0x00364652 in 1.5.73
 
 		void Apply() {
 			LOG(info, "Patching vanilla player skinning");
-			LOG(info, "TESObjectARMO_ApplyArmorAddon = {:x}",
-				TESObjectARMO_ApplyArmorAddon.address() - REL::Module::get().base());
-			LOG(info, "DontVanillaSkinPlayer_Hook = {:x}",
-				DontVanillaSkinPlayer_Hook - REL::Module::get().base());
+			LOG(info, "TESObjectARMO_ApplyArmorAddon = {:x}", TESObjectARMO_ApplyArmorAddon.address() - REL::Module::get().base());
+			LOG(info, "DontVanillaSkinPlayer_Hook = {:x}", DontVanillaSkinPlayer_Hook - REL::Module::get().base());
 			{
 				struct DontVanillaSkinPlayer_Code : Xbyak::CodeGenerator {
 					DontVanillaSkinPlayer_Code() {
@@ -107,9 +102,7 @@ namespace OutfitSystem {
 				DontVanillaSkinPlayer_Code gen;
 				void* code = g_localTrampoline->allocate(gen);
 
-				LOG(info,
-					"AVI: Patching vanilla player skinning at addr = {:x}. base = {:x}",
-					DontVanillaSkinPlayer_Hook, REL::Module::get().base());
+				LOG(info, "Patching vanilla player skinning at addr = {:x}. base = {:x}", DontVanillaSkinPlayer_Hook, REL::Module::get().base());
 				g_branchTrampoline->write_branch<5>(DontVanillaSkinPlayer_Hook, code);
 			}
 			LOG(info, "Done");
@@ -117,8 +110,7 @@ namespace OutfitSystem {
 	} // namespace DontVanillaSkinPlayer
 
 	namespace ShimWornFlags {
-		std::uint32_t OverrideWornFlags(RE::InventoryChanges* inventory,
-			RE::TESObjectREFR* target) {
+		std::uint32_t OverrideWornFlags(RE::InventoryChanges* inventory, RE::TESObjectREFR* target) {
 			std::uint32_t mask = 0;
 			//
 			auto& svc = ArmorAddonOverrideService::GetInstance();
@@ -133,17 +125,14 @@ namespace OutfitSystem {
 		}
 
 		REL::ID ShimWornFlags_Hook_ID(24724);
-		std::uintptr_t ShimWornFlags_Hook(ShimWornFlags_Hook_ID.address() +
-			0x80); // 0x00362F0C in 1.5.73
+		std::uintptr_t ShimWornFlags_Hook(ShimWornFlags_Hook_ID.address() + 0x80); // 0x00362F0C in 1.5.73
 
 		REL::ID InventoryChanges_GetWornMask(16044); // 0x001D9040 in 1.5.73
 
 		void Apply() {
 			LOG(info, "Patching shim worn flags");
-			LOG(info, "ShimWornFlags_Hook = {:x}",
-				ShimWornFlags_Hook - REL::Module::get().base());
-			LOG(info, "InventoryChanges_GetWornMask = {:x}",
-				InventoryChanges_GetWornMask.address() - REL::Module::get().base());
+			LOG(info, "ShimWornFlags_Hook = {:x}", ShimWornFlags_Hook - REL::Module::get().base());
+			LOG(info, "InventoryChanges_GetWornMask = {:x}", InventoryChanges_GetWornMask.address() - REL::Module::get().base());
 			{
 				struct ShimWornFlags_Code : Xbyak::CodeGenerator {
 					ShimWornFlags_Code() {
@@ -190,8 +179,7 @@ namespace OutfitSystem {
 				ShimWornFlags_Code gen;
 				void* code = g_localTrampoline->allocate(gen);
 
-				LOG(info, "AVI: Patching shim worn flags at addr = {:x}. base = {:x}",
-					ShimWornFlags_Hook, REL::Module::get().base());
+				LOG(info, "Patching shim worn flags at addr = {:x}. base = {:x}", ShimWornFlags_Hook, REL::Module::get().base());
 				g_branchTrampoline->write_branch<5>(ShimWornFlags_Hook, code);
 			}
 			LOG(info, "Done");
@@ -237,13 +225,11 @@ namespace OutfitSystem {
 			// by the outfit.
 			std::unordered_set<RE::TESObjectARMO*> applySet;
 			for (const auto& item : displaySet) {
-				if (visitor.equipped.find(item) == visitor.equipped.end())
-					applySet.insert(item);
+				if (visitor.equipped.find(item) == visitor.equipped.end()) applySet.insert(item);
 			}
 
 			for (auto it = applySet.cbegin(); it != applySet.cend(); ++it) {
-				// TODO: [SlotPassthru] Also do the same iteration over the passthrough
-				// equipped items?
+				// TODO: [SlotPassthru] Also do the same iteration over the passthrough equipped items?
 				RE::TESObjectARMO* armor = *it;
 				if (armor) {
 					armor->ApplyArmorAddon(race, actorWeightModel, isFemale);
@@ -255,12 +241,14 @@ namespace OutfitSystem {
         // The function we wanted to patch (AE 24735 + 0x81) was inlined into AE 24725.
         // We might consider hooking both?
 		REL::ID CustomSkinPlayer_Hook_ID(24725);
-		std::uintptr_t CustomSkinPlayer_Hook(CustomSkinPlayer_Hook_ID.address() +
-			0x1EF); // 0x00364301 in 1.5.73
+		std::uintptr_t CustomSkinPlayer_Hook(CustomSkinPlayer_Hook_ID.address() + 0x1EF); // 0x00364301 in 1.5.73
 
 		REL::ID InventoryChanges_ExecuteVisitorOnWorn(16096); // 0x001E51D0 in 1.5.73
 
 		void Apply() {
+			LOG(info, "Patching custom skin player");
+			LOG(info, "CustomSkinPlayer_Hook = {:x}", CustomSkinPlayer_Hook - REL::Module::get().base());
+			LOG(info, "InventoryChanges_ExecuteVisitorOnWorn = {:x}", InventoryChanges_ExecuteVisitorOnWorn.address() - REL::Module::get().base());
 			{
 				struct CustomSkinPlayer_Code : Xbyak::CodeGenerator {
 					CustomSkinPlayer_Code() {
@@ -309,8 +297,7 @@ namespace OutfitSystem {
 				CustomSkinPlayer_Code gen;
 				void* code = g_localTrampoline->allocate(gen);
 
-				LOG(info, "AVI: Patching custom skin player at addr = {}. base = {}",
-					CustomSkinPlayer_Hook, REL::Module::get().base());
+				LOG(info, "AVI: Patching custom skin player at addr = {}. base = {}", CustomSkinPlayer_Hook, REL::Module::get().base());
 				g_branchTrampoline->write_branch<5>(CustomSkinPlayer_Hook, code);
 			}
 			LOG(info, "Done");
@@ -319,21 +306,20 @@ namespace OutfitSystem {
 
 	namespace FixEquipConflictCheck {
 		//
-		// When you try to equip an item, the game loops over the armors in your
-		// ActorWeightModel rather than your other worn items. Because we're tampering
-		// with what goes into the AWM, this means that conflict checks are run against
-		// your outfit instead of your equipment, unless we patch in a fix. (For
-		// example, if your outfit doesn't include a helmet, then you'd be able to stack
-		// helmets endlessly without this patch.)
-		//
-		// The loop in question is performed in Actor::Unk_120, which is also generally
-		// responsible for equipping items at all.
-		//
+        // When you try to equip an item, the game loops over the armors in your ActorWeightModel
+        // rather than your other worn items. Because we're tampering with what goes into the AWM,
+        // this means that conflict checks are run against your outfit instead of your equipment,
+        // unless we patch in a fix. (For example, if your outfit doesn't include a helmet, then
+        // you'd be able to stack helmets endlessly without this patch.)
+        //
+        // The loop in question is performed in Actor::Unk_120, which is also generally responsible
+        // for equipping items at all.
+        //
 		class _Visitor : public RE::InventoryChanges::IItemChangeVisitor {
 			//
-			// Bethesda used a visitor to add armor-addons to the ActorWeightModel in the
-			// first place (see call stack for DontVanillaSkinPlayer patch), so why not
-			// use a similar visitor to check for conflicts?
+			// Bethesda used a visitor to add armor-addons to the ActorWeightModel in the first
+			// place (see call stack for DontVanillaSkinPlayer patch), so why not use a similar
+			// visitor to check for conflicts?
 			//
 		public:
 			virtual ReturnType Visit(RE::InventoryEntryData* data) override {
@@ -344,20 +330,19 @@ namespace OutfitSystem {
 					if (armor->TestBodyPartByIndex(this->conflictIndex)) {
 						auto em = RE::ActorEquipManager::GetSingleton();
 						//
-						// TODO: The third argument to this call is meant to be a
-						// BaseExtraList*, and Bethesda supplies one when calling from Unk_120.
-						// Can we get away with a nullptr here, or do we have to find the
-						// BaseExtraList that contains an ExtraWorn?
-						//
-						// I'm not sure how to investigate this, but I did run one test, and
-						// that works properly: I gave myself ten Falmer Helmets and applied
-						// different enchantments to two of them (leaving the others
-						// unenchanted). In tests, I was unable to stack the helmets with each
-						// other or with other helmets, suggesting that the BaseExtraList may
-						// not be strictly necessary.
-						//
-						em->UnequipObject(this->target, form, nullptr, 1, nullptr, false, false,
-							true, false, nullptr);
+                        // TODO: The third argument to this call is meant to be a
+                        // BaseExtraList*, and Bethesda supplies one when calling from Unk_120.
+                        // Can we get away with a nullptr here, or do we have to find the
+                        // BaseExtraList that contains an ExtraWorn?
+                        //
+                        // I'm not sure how to investigate this, but I did run one test, and
+                        // that works properly: I gave myself ten Falmer Helmets and applied
+                        // different enchantments to two of them (leaving the others
+                        // unenchanted). In tests, I was unable to stack the helmets with each
+                        // other or with other helmets, suggesting that the BaseExtraList may
+                        // not be strictly necessary.
+                        //
+						em->UnequipObject(this->target, form, nullptr, 1, nullptr, false, false, true, false, nullptr);
 					}
 				}
 				return ReturnType::kContinue; // True to continue visiting
@@ -388,19 +373,15 @@ namespace OutfitSystem {
 			return (item->formType == RE::FormType::Armor);
 		}
 
-		REL::ID FixEquipConflictCheck_Hook_ID(38004);
-		std::uintptr_t FixEquipConflictCheck_Hook(
-			FixEquipConflictCheck_Hook_ID.address() + 0x97); // 0x0060CAC7 in 1.5.73
+        REL::ID FixEquipConflictCheck_Hook_ID(38004);
+        std::uintptr_t FixEquipConflictCheck_Hook(FixEquipConflictCheck_Hook_ID.address() + 0x97); // 0x0060CAC7 in 1.5.73
 
-		REL::ID BGSBipedObjectForm_TestBodyPartByIndex(14119); // 0x001820A0 in 1.5.73
+        REL::ID BGSBipedObjectForm_TestBodyPartByIndex(14119); // 0x001820A0 in 1.5.73
 
 		void Apply() {
 			LOG(info, "Patching fix for equip conflict check");
-			LOG(info, "FixEquipConflictCheck_Hook = {:x}",
-				FixEquipConflictCheck_Hook - REL::Module::get().base());
-			LOG(info, "BGSBipedObjectForm_TestBodyPartByIndex = {:x}",
-				BGSBipedObjectForm_TestBodyPartByIndex.address() -
-				REL::Module::get().base());
+			LOG(info, "FixEquipConflictCheck_Hook = {:x}", FixEquipConflictCheck_Hook - REL::Module::get().base());
+			LOG(info, "BGSBipedObjectForm_TestBodyPartByIndex = {:x}", BGSBipedObjectForm_TestBodyPartByIndex.address() - REL::Module::get().base());
 			{
 				struct FixEquipConflictCheck_Code : Xbyak::CodeGenerator {
 					FixEquipConflictCheck_Code() {
@@ -459,10 +440,7 @@ namespace OutfitSystem {
 				FixEquipConflictCheck_Code gen;
 				void* code = g_localTrampoline->allocate(gen);
 
-				LOG(info,
-					"AVI: Patching fix equip conflict check at addr = {:x}. dst = {}. base "
-					"= {:x}",
-					FixEquipConflictCheck_Hook, code, REL::Module::get().base());
+				LOG(info, "AVI: Patching fix equip conflict check at addr = {:x}. base = {:x}", FixEquipConflictCheck_Hook, REL::Module::get().base());
 				g_branchTrampoline->write_branch<5>(FixEquipConflictCheck_Hook, code);
 			}
 			LOG(info, "Done");
