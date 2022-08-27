@@ -391,7 +391,10 @@ namespace OutfitSystem {
 						// rdi: Actor
 						// rbx: Body Slot
 						push(rcx);
-						mov(rcx, ptr[rsp + 0x18]);
+						// Set RCX to the RDX argument of the patched function
+						// RSP + Argument offset rel to original entry + Offset from push above
+						// + Offset from pushes in original entry
+						mov(rcx, ptr[rsp + 0x10 + 0x08 + 0xC8]);
 						sub(rsp, 0x20);
 						call(ptr[rip + f_ShouldOverride]);
 						add(rsp, 0x20);
