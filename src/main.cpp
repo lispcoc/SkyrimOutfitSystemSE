@@ -13,6 +13,11 @@ void WaitForDebugger(void) {
     Sleep(1000 * 2);
 }
 
+int ReportHook(int reportType, char* message, int* returnValue) {
+    // Got an error
+    util::report_and_fail(message);
+}
+
 namespace {
     void InitializeLog() {
         auto path = SKSE::log::log_directory();
@@ -78,6 +83,11 @@ DllExport bool SKSEPlugin_Query(const SKSE::QueryInterface *a_skse, SKSE::Plugin
 DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface *a_skse) {
     InitializeLog();
     LOG(info, "Load: {} v{}", Plugin::NAME, Plugin::VERSION.string());
+
+#ifdef _DEBUG
+    // Intercept Visual C++ exceptions, but only if we're developing.
+    _CrtSetReportHook(ReportHook);
+#endif
 
     SKSE::Init(a_skse);
 

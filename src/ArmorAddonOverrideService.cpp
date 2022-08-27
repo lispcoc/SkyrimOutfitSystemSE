@@ -118,9 +118,12 @@ std::unordered_set<RE::TESObjectARMO *> Outfit::computeDisplaySet(const std::uno
     }
 
     // Unconditionally erase shields from the result, so that we can apply the correct one (if any)
-    for (auto it = result.begin(); it != result.end(); ++it) {
+    for (auto it = result.begin(); it != result.end();) {
         if (((*it)->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
-            result.erase(it);
+            it = result.erase(it);
+        }
+        else {
+            ++it;
         }
     }
 
