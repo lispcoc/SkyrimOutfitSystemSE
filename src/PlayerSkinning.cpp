@@ -249,6 +249,9 @@ namespace OutfitSystem {
 			}
 		}
 
+        // This hook is completely different from pre-AE.
+        // The function we wanted to patch (AE 24735 + 0x81) was inlined into AE 24725.
+        // We might consider hooking both?
 		REL::ID CustomSkinPlayer_Hook_ID(24725);
 		std::uintptr_t CustomSkinPlayer_Hook(CustomSkinPlayer_Hook_ID.address() +
 			0x1EF); // 0x00364301 in 1.5.73
