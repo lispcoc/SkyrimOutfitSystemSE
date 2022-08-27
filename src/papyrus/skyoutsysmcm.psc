@@ -718,7 +718,8 @@ EndFunction
                iIterator = iIterator + 1
             EndWhile
             ;
-            _sOutfitEditor_AddCandidates = SkyrimOutfitSystemNativeFuncs.NaturalSortPairArmor_ASCII(_sOutfitEditor_AddCandidates, _kOutfitEditor_AddCandidates)
+            _kOutfitEditor_AddCandidates = SkyrimOutfitSystemNativeFuncs.NaturalSortPairArmor_ASCII(_sOutfitEditor_AddCandidates, _kOutfitEditor_AddCandidates)
+            _sOutfitEditor_AddCandidates = SkyrimOutfitSystemNativeFuncs.NaturalSort_ASCII(_sOutfitEditor_AddCandidates)
             ;
             String[] sMenu = PrependStringToArray(_sOutfitEditor_AddCandidates, "$SkyOutSys_OEdit_AddCancel")
             ;
@@ -763,7 +764,8 @@ EndFunction
                iIterator = iIterator + 1
             EndWhile
             ;
-            _sOutfitEditor_AddCandidates = SkyrimOutfitSystemNativeFuncs.NaturalSortPairArmor_ASCII(_sOutfitEditor_AddCandidates, _kOutfitEditor_AddCandidates)
+            _kOutfitEditor_AddCandidates = SkyrimOutfitSystemNativeFuncs.NaturalSortPairArmor_ASCII(_sOutfitEditor_AddCandidates, _kOutfitEditor_AddCandidates)
+            _sOutfitEditor_AddCandidates = SkyrimOutfitSystemNativeFuncs.NaturalSort_ASCII(_sOutfitEditor_AddCandidates)
             ;
             String[] sMenu = PrependStringToArray(_sOutfitEditor_AddCandidates, "$SkyOutSys_OEdit_AddCancel")
             ;
@@ -832,7 +834,8 @@ EndFunction
             _kOutfitEditor_AddFromListCandidates = SkyrimOutfitSystemNativeFuncs.GetArmorSearchResultForms()
             SkyrimOutfitSystemNativeFuncs.ClearArmorSearch()
             ;
-            _sOutfitEditor_AddFromListCandidates = SkyrimOutfitSystemNativeFuncs.NaturalSortPairArmor_ASCII(_sOutfitEditor_AddFromListCandidates, _kOutfitEditor_AddFromListCandidates)
+            _kOutfitEditor_AddFromListCandidates = SkyrimOutfitSystemNativeFuncs.NaturalSortPairArmor_ASCII(_sOutfitEditor_AddFromListCandidates, _kOutfitEditor_AddFromListCandidates)
+            _sOutfitEditor_AddFromListCandidates = SkyrimOutfitSystemNativeFuncs.NaturalSort_ASCII(_sOutfitEditor_AddFromListCandidates)
          EndFunction
          ;
          State OutfitEditor_AddFromList_Menu

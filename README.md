@@ -19,7 +19,7 @@ Some files in the `dependencies` folder are from other places, and fall under th
 
 Before attempting to build this project, please have the following tools installed.
 
- * Visual Studio 2019 with the C++ Toolchain
+ * Visual Studio 2022 with the C++ Toolchain
  * [CMake 3.15 or newer](https://cmake.org)
  * [vcpkg @ 2020.11-1](https://github.com/microsoft/vcpkg/releases/tag/2020.11-1)
  * [ninja](https://ninja-build.org)
