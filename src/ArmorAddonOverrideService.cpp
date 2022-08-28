@@ -54,7 +54,7 @@ std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unor
 		result = armors;
 
 		// And now append equipped armors that *are compatible*.
-		for (auto candidate : equipped) {
+		for (const auto candidate : equipped) {
 			if (!conflictsWith(candidate)) {
 				result.emplace(candidate);
 			}
@@ -70,7 +70,7 @@ std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unor
 
 		// Only add my armors if they are covered by the equip mask
 		for (const auto armor : armors) {
-			std::uint32_t armorMask = static_cast<std::uint32_t>(armor->GetSlotMask());
+			auto armorMask = static_cast<std::uint32_t>(armor->GetSlotMask());
 			if ((armorMask & equippedMask) == armorMask) {
 				result.emplace(armor);
 			}
@@ -93,7 +93,7 @@ std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unor
 		}
 
 		// And now append equipped armors that *are compatible*.
-		for (auto candidate : equipped) {
+		for (const auto candidate : equipped) {
 			if (!conflictsWith(candidate)) {
 				result.emplace(candidate);
 			}
@@ -223,7 +223,7 @@ Outfit& ArmorAddonOverrideService::currentOutfit(RE::Actor* target) {
 	if (this->actorOutfitAssignments.at(target).currentOutfitName == g_noOutfitName)
 		return g_noOutfit;
 	try {
-		return this->outfits.at(this->actorOutfitAssignments.at(target).currentOutfitName);
+		return outfits.at(actorOutfitAssignments.at(target).currentOutfitName);
 	} catch (std::out_of_range) {
 		return g_noOutfit;
 	}

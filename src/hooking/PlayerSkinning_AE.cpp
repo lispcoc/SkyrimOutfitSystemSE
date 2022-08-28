@@ -112,9 +112,10 @@ namespace OutfitSystem {
 	namespace ShimWornFlags {
 		std::uint32_t OverrideWornFlags(RE::InventoryChanges* inventory, RE::TESObjectREFR* target) {
 			std::uint32_t mask = 0;
-			//
+			auto actor = skyrim_cast<RE::Actor*>(target);
+			if (!actor) return mask;
 			auto& svc = ArmorAddonOverrideService::GetInstance();
-			auto& outfit = svc.currentOutfit((RE::Actor*)target);
+			auto& outfit = svc.currentOutfit(actor);
 			EquippedArmorVisitor visitor;
 			inventory->ExecuteVisitorOnWorn(&visitor);
 			auto displaySet = outfit.computeDisplaySet(visitor.equipped);
@@ -145,9 +146,11 @@ namespace OutfitSystem {
 						// target in rsi
 						push(rcx);
 						mov(rcx, rsi);
+						sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
 						sub(rsp, 0x20);
 						call(ptr[rip + f_ShouldOverrideSkinning]);
 						add(rsp, 0x20);
+						add(rsp, 0x8);
 						pop(rcx);
 						test(al, al);
 						jnz(j_SuppressVanilla);
@@ -157,9 +160,11 @@ namespace OutfitSystem {
 						L(j_SuppressVanilla);
 						push(rdx);
 						mov(rdx, rsi);
+						sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
 						sub(rsp, 0x20);
 						call(ptr[rip + f_OverrideWornFlags]);
 						add(rsp, 0x20);
+						add(rsp, 0x8);
 						pop(rdx);
 
 						L(j_Out);
@@ -262,9 +267,11 @@ namespace OutfitSystem {
 
 						push(rcx);
 						mov(rcx, rbx);
+						sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
 						sub(rsp, 0x20);
 						call(ptr[rip + f_ShouldOverrideSkinning]);
 						add(rsp, 0x20);
+						add(rsp, 0x8);
 						pop(rcx);
 
 						test(al, al);
@@ -403,9 +410,11 @@ namespace OutfitSystem {
 						// RSP + Argument offset rel to original entry + Offset from push above
 						// + Offset from pushes in original entry
 						mov(rcx, ptr[rsp + 0x10 + 0x08 + 0xC8]);
+						sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
 						sub(rsp, 0x20);
 						call(ptr[rip + f_ShouldOverride]);
 						add(rsp, 0x20);
+						add(rsp, 0x8);
 						pop(rcx);
 						test(al, al);
 						mov(rax, 1);
@@ -477,9 +486,11 @@ namespace OutfitSystem {
 						push(rdx);
 						push(rax);
 						mov(rcx, rdx);
+						sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
 						sub(rsp, 0x20);
 						call(ptr[rip + f_PrintRTTI]);
 						add(rsp, 0x20);
+						add(rsp, 0x8);
 						pop(rax);
 						pop(rdx);
 						pop(rcx);
