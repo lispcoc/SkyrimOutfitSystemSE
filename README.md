@@ -2,9 +2,17 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/oxovhnk16gfn9ef3/branch/master?svg=true)](https://ci.appveyor.com/project/thekineticeffect/skyrimoutfitsystemse-mpt1j/branch/master)
 
-This mod is a resurrection of [aers's port](https://github.com/aers/SkyrimOutfitSystemSE) of David J Cobb's [Skyrim Outfit System](https://github.com/DavidJCobb/skyrim-outfit-system) for Skyrim SE.
+This mod is a resurrection of [aers's port](https://github.com/aers/SkyrimOutfitSystemSE) of David J Cobb's [Skyrim Outfit System](https://github.com/DavidJCobb/skyrim-outfit-system) for Skyrim SE, now able to run on newer Skyrim SE versions including Anniversary Edition.
 
-This version now features a better Quickselect system using UIExtensions menus and is also version independent from the SKSE/Skyrim runtimes version by use of the [Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/32444). It has been tested on Skyrim runtimes 1.5.73 to 1.5.97.
+This version also features a better Quickselect system using UIExtensions menus and is also version independent from the SKSE/Skyrim runtime version (except for pre-AE vs AE) by use of the [Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/32444).
+
+# Compatibility
+
+This mod supports AE and pre-AE with different DLLs.
+
+The pre-AE DLL supports runtimes 1.5.73 to 1.5.97.
+
+The AE DLL supports runtimes 1.6.317 to 1.6.353 (so far, it is only tested on 1.6.353).
 
 # License
 
@@ -19,22 +27,27 @@ Some files in the `dependencies` folder are from other places, and fall under th
 
 Before attempting to build this project, please have the following tools installed.
 
- * Visual Studio 2022 with the C++ Toolchain
- * [CMake 3.15 or newer](https://cmake.org)
- * [vcpkg @ 2020.11-1](https://github.com/microsoft/vcpkg/releases/tag/2020.11-1)
- * [ninja](https://ninja-build.org)
+ * Visual Studio 2022 with the C++ Toolchain, including MSVC and CMake
+ * [vcpkg](https://github.com/microsoft/vcpkg)
  * [Pyro](https://wiki.fireundubh.com/pyro)
+ * [ninja](https://ninja-build.org/)
  * git
 
 ## Build Steps
 
 ### Preparation
 
+#### Submodules
+
 First, make sure this project is cloned and that the submodules are initialized and updated:
 
     git submodule update --init
 
-This will download dependencies like `mapbox` and my custom fork of CommonLibSSE.
+This will initialize various submodules that contain the fork of CommonLibSSE that this mod uses.
+
+#### SKSE (Optional)
+
+If you want to edit and compile Papyrus scripts, you will need to download SKSE. If you only plan to work on the DLL itself, you can skip this step.
 
 You must also manually download SKSE64 2.0.15. Extract it into the `dependencies/skse64` subfolder. You want it such that `skse64_readme.txt` is directly inside of `dependencies/skse64`.
 
@@ -42,27 +55,32 @@ Make sure you have an installation of the exact version of `vcpkg` specified abo
 
 ### Building the C++ Plugin
 
-You will use CMake to build this project. This project is 64-bit statically linked and uses vcpkg to get some dependencies. 
+You will use CMake to build this project. This project is 64-bit statically linked and uses `vcpkg` to get obtain library dependencies. 
 
 Make sure to activate the x86-64 build tools as as follows:
 
-    "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+    "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
 
 First, create a build folder (anywhere is fine). For this example, we will create a folder called `build` inside the root of the project.
 
-`cd` into this build folder. Invoke CMake as follows:
+    mkdir build
+    cd build
 
-    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${PATH TO VCPKG TOOLCHAIN} -DVCPKG_TARGET_TRIPLET=x64-windows-static ../
+Now invoke CMake as follows:
 
-Note that `${PATH TO VCPKG TOOLCHAIN}` is supposed to be replaced with the path to the `vkpkg` toolchain, and described by the [vcpkg documentation](https://vcpkg.readthedocs.io/en/latest/users/integration/).
+    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${PATH TO VCPKG TOOLCHAIN} -DVCPKG_TARGET_TRIPLET=x64-windows-static -DSKYRIM_VERSION=AE ../
 
- > **NOTE:** This command may fail the first time, saying that "protoc.exe" could not be found. If this happens, rerun the cmake command above.
+Note that `${PATH TO VCPKG TOOLCHAIN}` is to be replaced with the path to the `vkpkg` toolchain, as described by the [vcpkg documentation](https://vcpkg.io/en/getting-started.html).
+
+> **NOTE:** This command may fail the first time, saying that "protoc.exe" could not be found. If this happens, rerun the cmake command above.
+
+> **WARNING:** `Ninja` is the only supported generator. MSBuild may or may not work.
+
+Take special note of the `-DSKYRIM_VERSION=AE` option. **This mod uses different DLLs for AE and pre-AE**. If you want to build the DLL for AE, use `AE` as shown. If you want to build for pre-AE, use `PRE_AE` instead. If you plan to contribute changes to this mod, they need to work with both variants.
 
 Once the project is successfully configured, build it by running
 
-    ninja -j
-
- > **NOTE:** `ninja` is the only supported build tool. MSBuild may or may not work.
+    cmake --build ./
 
 In a few moments, you should have `SkyrimOutfitSystemSE.dll` in the `mod_files` folder.
 
