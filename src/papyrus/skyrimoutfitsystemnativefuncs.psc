@@ -27,11 +27,11 @@ Int Function GetOutfitNameMaxLength() Global Native
 Armor[] Function GetCarriedArmor (Actor akSubject) Global Native
 Armor[] Function GetWornItems    (Actor akSubject) Global Native
         Function RefreshArmorFor (Actor akSubject) Global Native ; force akSubject to update their ArmorAddons
-
+        Function RefreshArmorForAllConfiguredActors () Global Native ; force all known actors to update their ArmorAddons
 ;
 ; Searching for actors. Used in menus.
 ;
-Actor[] Function GetActorNearPC  () Global Native
+Actor[] Function ActorNearPC  () Global Native
 
 ;
 ; Search through all armor forms defined in the game (excluding templated ones). 
@@ -75,7 +75,7 @@ Bool     Function GetOutfitPassthroughStatus(String asOutfitName) Global Native
          Function SetOutfitPassthroughStatus(String asOutfitName, Bool abPassthrough) Global Native
 Bool     Function GetOutfitEquipRequiredStatus(String asOutfitName) Global Native
          Function SetOutfitEquipRequiredStatus(String asOutfitName, Bool asEquipRequired) Global Native
-String   Function GetSelectedOutfit () Global Native
+String   Function GetSelectedOutfit (Actor actor) Global Native
 Bool     Function IsEnabled         () Global Native
 String[] Function ListOutfits       (Bool favoritesOnly = False) Global Native
          Function RemoveArmorFromOutfit (String asOutfitName, Armor akArmor) Global Native
@@ -84,17 +84,18 @@ Bool     Function RenameOutfit      (String asOutfitName, String asRenameTo) Glo
 Bool     Function OutfitExists      (String asOutfitName) Global Native
          Function OverwriteOutfit   (String asOutfitName, Armor[] akArmors) Global Native
          Function SetEnabled        (Bool abEnabled) Global Native
-         Function SetSelectedOutfit (String asOutfitName) Global Native
+         Function SetSelectedOutfit (Actor actor, String asOutfitName) Global Native
          Function AddActor (Actor akSubject) Global Native
          Function RemoveActor (Actor akSubject) Global Native
+Actor[]  Function ListActors() Global Native
 
          Function SetLocationBasedAutoSwitchEnabled (Bool abEnabled) Global Native
 Bool     Function GetLocationBasedAutoSwitchEnabled () Global Native
 Int[]    Function GetAutoSwitchLocationArray () Global Native
 Int      Function IdentifyLocationType (Location alLocation, Weather awWeather) Global Native
-         Function SetOutfitUsingLocation (Location alLocation, Weather awWeather) Global Native
-         Function SetLocationOutfit (Int aiLocationType, String asOutfitName) Global Native
-         Function UnsetLocationOutfit (Int aiLocationType) Global Native
-String   Function GetLocationOutfit (Int aiLocationType) Global Native
+         Function SetOutfitUsingLocation (Actor actor, Location alLocation, Weather awWeather) Global Native
+         Function SetLocationOutfit (Actor actor, Int aiLocationType, String asOutfitName) Global Native
+         Function UnsetLocationOutfit (Actor actor, Int aiLocationType) Global Native
+String   Function GetLocationOutfit (Actor actor, Int aiLocationType) Global Native
 Bool     Function ExportSettings () Global Native
 Bool     Function ImportSettings () Global Native

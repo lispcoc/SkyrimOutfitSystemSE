@@ -344,6 +344,14 @@ void ArmorAddonOverrideService::removeActor(RE::Actor* target) {
 	actorOutfitAssignments.erase(target);
 }
 
+std::unordered_set<RE::Actor*> ArmorAddonOverrideService::listActors() {
+    std::unordered_set<RE::Actor*> actors;
+    for (auto& assignment : actorOutfitAssignments) {
+        actors.insert(assignment.first);
+    }
+    return actors;
+}
+
 void ArmorAddonOverrideService::setLocationBasedAutoSwitchEnabled(bool newValue) noexcept {
 	locationBasedAutoSwitchEnabled = newValue;
 }

@@ -9,9 +9,12 @@ namespace OutfitSystem {
 	SKSE::Trampoline* g_branchTrampoline = nullptr;
 
 	bool ShouldOverrideSkinning(RE::TESObjectREFR* target) {
-		if (!ArmorAddonOverrideService::GetInstance().shouldOverride((RE::Actor*)target))
-			return false;
-		return target == RE::PlayerCharacter::GetSingleton();
+		if (!target) return false;
+		if (!ArmorAddonOverrideService::GetInstance().enabled) return false;
+		auto actor = skyrim_cast<RE::Actor*>(target);
+		if (!actor) return false;
+		if (!ArmorAddonOverrideService::GetInstance().shouldOverride(actor)) return false;
+		return true;
 	}
 
 	class EquippedArmorVisitor : public RE::InventoryChanges::IItemChangeVisitor {

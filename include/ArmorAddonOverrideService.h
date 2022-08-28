@@ -62,8 +62,12 @@ class ArmorAddonOverrideService {
    public:
       typedef Outfit Outfit;
       static constexpr std::uint32_t signature = 'AAOS';
-      // Uses protobufs starting with V4
-      enum { kSaveVersionV1 = 1, kSaveVersionV2 = 2, kSaveVersionV3 = 3, kSaveVersionV4 = 4 };
+      enum {
+		  kSaveVersionV1 = 1,
+		  kSaveVersionV2 = 2,
+		  kSaveVersionV3 = 3,
+		  kSaveVersionV4 = 4 // First version with protobuf
+	  };
       //
       static constexpr std::uint32_t ce_outfitNameMaxLength = 256; // SKSE caps serialized std::strings and const char*s to 256 bytes.
       //
@@ -124,7 +128,8 @@ class ArmorAddonOverrideService {
       void setOutfit(const char* name, RE::Actor* target);
       void addActor(RE::Actor* target);
       void removeActor(RE::Actor* target);
-    //
+      std::unordered_set<RE::Actor*> listActors();
+      //
       void setLocationBasedAutoSwitchEnabled(bool) noexcept;
       void setOutfitUsingLocation(LocationType location, RE::Actor* target);
       void setLocationOutfit(LocationType location, const char* name, RE::Actor* target);

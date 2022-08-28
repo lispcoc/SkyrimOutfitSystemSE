@@ -5,6 +5,9 @@ Int      _iOutfitNameMaxBytes = 256 ; should never change at run-time; can chang
 String[] _sOutfitNames
 String   _sSelectedOutfit = ""
 
+Actor    _aCurrentActor
+Actor[]  _kActorSelection_SelectCandidates
+
 String   _sEditingOutfit = ""
 String   _sOutfitShowingContextMenu = ""
 Int      _iOutfitEditorBodySlotPage = 0
@@ -45,7 +48,7 @@ Event OnConfigOpen()
    RefreshCache()
 EndEvent
 Event OnConfigClose()
-   SkyrimOutfitSystemNativeFuncs.RefreshArmorFor(Game.GetPlayer())
+   SkyrimOutfitSystemNativeFuncs.RefreshArmorForAllConfiguredActors()
    ResetOutfitBrowser()
    ResetOutfitEditor()
 EndEvent
@@ -72,7 +75,7 @@ EndFunction
 
 Function RefreshCache()
    _sOutfitNames    = SkyrimOutfitSystemNativeFuncs.ListOutfits()
-   _sSelectedOutfit = SkyrimOutfitSystemNativeFuncs.GetSelectedOutfit()
+   _sSelectedOutfit = SkyrimOutfitSystemNativeFuncs.GetSelectedOutfit(_aCurrentActor)
    ;
    _sOutfitNames = SkyrimOutfitSystemNativeFuncs.NaturalSort_ASCII(_sOutfitNames)
 EndFunction
@@ -80,6 +83,8 @@ EndFunction
 Function ResetOutfitBrowser()
    _iOutfitBrowserPage   = 0
    _iOutfitEditorBodySlotPage = 0
+   _kActorSelection_SelectCandidates = new Actor[1]
+   _aCurrentActor = Game.GetPlayer()
    _sEditingOutfit       = ""
    _sOutfitShowingContextMenu = ""
    _sOutfitNames = new String[1]
@@ -189,12 +194,12 @@ EndFunction
          EndIf
          Int iAutoswitchIndex = StringUtil.Substring(sState, 19) as Int
          If aiIndex == -1 ; user wants no outfit
-            SkyrimOutfitSystemNativeFuncs.UnsetLocationOutfit(iAutoswitchIndex)
+            SkyrimOutfitSystemNativeFuncs.UnsetLocationOutfit(_aCurrentActor, iAutoswitchIndex)
             SetMenuOptionValueST("$SkyOutSys_AutoswitchEdit_None")
          Else ; set the requested outfit
             String sOutfitName = _sOutfitNames[aiIndex]
-            SkyrimOutfitSystemNativeFuncs.SetLocationOutfit(iAutoswitchIndex, sOutfitName)
-            SetMenuOptionValueST(SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(iAutoswitchIndex))
+            SkyrimOutfitSystemNativeFuncs.SetLocationOutfit(_aCurrentActor, iAutoswitchIndex, sOutfitName)
+            SetMenuOptionValueST(SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(_aCurrentActor, iAutoswitchIndex))
          EndIf
          Return
       EndIf
@@ -220,7 +225,7 @@ EndFunction
          Int iAutoswitchIndex = StringUtil.Substring(sState, 19) as Int
          Bool bDelete = ShowMessage("$SkyOutSys_Confirm_UnsetAutoswitch_Text", True, "$SkyOutSys_Confirm_UnsetAutoswitch_Yes", "$SkyOutSys_Confirm_UnsetAutoswitch_No")
          If bDelete
-            SkyrimOutfitSystemNativeFuncs.UnsetLocationOutfit(iAutoswitchIndex)
+            SkyrimOutfitSystemNativeFuncs.UnsetLocationOutfit(_aCurrentActor, iAutoswitchIndex)
             SetMenuOptionValueST("")
          EndIf
          Return
@@ -234,6 +239,7 @@ EndFunction
          SetCursorFillMode(TOP_TO_BOTTOM)
          SetCursorPosition(0)
          AddToggleOptionST("OPT_Enabled", "$Enabled", SkyrimOutfitSystemNativeFuncs.IsEnabled())
+         AddMenuOptionST("OPT_SelectActorSelection", "$SkyOutSys_Text_SelectActorSelection", _aCurrentActor.GetBaseObject().GetName())
          AddEmptyOption()
          ;
          ; Quickslots:
@@ -241,6 +247,13 @@ EndFunction
          SkyOutSysQuickslotManager kQM = GetQuickslotManager()
          AddHeaderOption("$SkyOutSys_MCMHeader_Quickslots")
          AddToggleOptionST("OPT_QuickslotsEnabled", "$SkyOutSys_Text_EnableQuickslots", kQM.GetEnabled())
+         AddEmptyOption()
+         ;
+         ; Active actor selection
+         ;
+         AddHeaderOption("$SkyOutSys_Text_ActiveActorHeader")
+         AddMenuOptionST("OPT_AddActorSelection", "$SkyOutSys_Text_AddActorSelection", "")
+         AddMenuOptionST("OPT_RemoveActorSelection", "$SkyOutSys_Text_RemoveActorSelection", "")
          AddEmptyOption()
          ;
          ; Setting import/export
@@ -251,20 +264,22 @@ EndFunction
       ;/EndBlock/;
       ;/Block/; ; Right column
          SetCursorPosition(1)
-         AddHeaderOption("$SkyOutSys_MCMHeader_Autoswitch")
-         Int[] iIndices = SkyrimOutfitSystemNativeFuncs.GetAutoSwitchLocationArray()
-         Int iCount = iIndices.Length
-         AddToggleOptionST("OPT_AutoswitchEnabled", "$SkyOutSys_Text_EnableAutoswitch", SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
-         If SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled()
-            Int iIterator = 0
-            While iIterator < iCount
-               String sLocationOutfit = SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(iIndices[iIterator])
-               If sLocationOutfit == ""
-                  sLocationOutfit = "$SkyOutSys_AutoswitchEdit_None"
-               EndIf
-               AddMenuOptionST("OPT_AutoswitchEntry" + iIndices[iIterator], "$SkyOutSys_Text_Autoswitch" + iIndices[iIterator], sLocationOutfit)
-               iIterator = iIterator + 1
-            EndWhile
+         If _aCurrentActor == Game.GetPlayer()
+            AddHeaderOption("$SkyOutSys_MCMHeader_Autoswitch")
+            Int[] iIndices = SkyrimOutfitSystemNativeFuncs.GetAutoSwitchLocationArray()
+            Int iCount = iIndices.Length
+            AddToggleOptionST("OPT_AutoswitchEnabled", "$SkyOutSys_Text_EnableAutoswitch", SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
+            If SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled()
+               Int iIterator = 0
+               While iIterator < iCount
+                  String sLocationOutfit = SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(_aCurrentActor, iIndices[iIterator])
+                  If sLocationOutfit == ""
+                     sLocationOutfit = "$SkyOutSys_AutoswitchEdit_None"
+                  EndIf
+                  AddMenuOptionST("OPT_AutoswitchEntry" + iIndices[iIterator], "$SkyOutSys_Text_Autoswitch" + iIndices[iIterator], sLocationOutfit)
+                  iIterator = iIterator + 1
+               EndWhile
+            EndIf
          EndIf
       ;/EndBlock/;
 
@@ -275,6 +290,81 @@ EndFunction
          Bool bToggle = !SkyrimOutfitSystemNativeFuncs.IsEnabled()
          SkyrimOutfitSystemNativeFuncs.SetEnabled(bToggle)
          SetToggleOptionValueST(bToggle)
+      EndEvent
+   EndState
+   State OPT_AddActorSelection
+      Event OnMenuOpenST()
+         _kActorSelection_SelectCandidates = SkyrimOutfitSystemNativeFuncs.ActorNearPC()
+         String[] kActorNames = Utility.CreateStringArray(_kActorSelection_SelectCandidates.Length)
+         Int iIterator = 0
+         While iIterator < _kActorSelection_SelectCandidates.Length
+            kActorNames[iIterator] = _kActorSelection_SelectCandidates[iIterator].GetActorBase().GetName()
+            iIterator = iIterator + 1
+         EndWhile
+         String[] sMenu = PrependStringToArray(kActorNames, "$SkyOutSys_OEdit_AddCancel")
+         SetMenuDialogOptions(sMenu)
+         SetMenuDialogStartIndex(0)
+         SetMenuDialogDefaultIndex(0)
+      EndEvent
+      Event OnMenuAcceptST(Int aiIndex)
+         If aiIndex == 0 || aiIndex > _kActorSelection_SelectCandidates.Length
+            return
+         Endif
+         SkyrimOutfitSystemNativeFuncs.AddActor(_kActorSelection_SelectCandidates[aiIndex - 1])
+      EndEvent
+      Event OnDefaultST()
+      EndEvent
+   EndState
+   State OPT_RemoveActorSelection
+      Event OnMenuOpenST()
+         _kActorSelection_SelectCandidates = SkyrimOutfitSystemNativeFuncs.ListActors()
+         String[] kActorNames = Utility.CreateStringArray(_kActorSelection_SelectCandidates.Length)
+         Int iIterator = 0
+         While iIterator < _kActorSelection_SelectCandidates.Length
+            kActorNames[iIterator] = _kActorSelection_SelectCandidates[iIterator].GetActorBase().GetName()
+            iIterator = iIterator + 1
+         EndWhile
+         String[] sMenu = PrependStringToArray(kActorNames, "$SkyOutSys_OEdit_AddCancel")
+         SetMenuDialogOptions(sMenu)
+         SetMenuDialogStartIndex(0)
+         SetMenuDialogDefaultIndex(0)
+      EndEvent
+      Event OnMenuAcceptST(Int aiIndex)
+         If aiIndex == 0 || aiIndex > _kActorSelection_SelectCandidates.Length
+            return
+         Endif
+         If _kActorSelection_SelectCandidates[aiIndex - 1] == Game.GetPlayer()
+            return
+         Endif
+         SkyrimOutfitSystemNativeFuncs.RemoveActor(_kActorSelection_SelectCandidates[aiIndex - 1])
+         SkyrimOutfitSystemNativeFuncs.RefreshArmorFor(_kActorSelection_SelectCandidates[aiIndex - 1])
+      EndEvent
+      Event OnDefaultST()
+      EndEvent
+   EndState
+   State OPT_SelectActorSelection
+      Event OnMenuOpenST()
+         _kActorSelection_SelectCandidates = SkyrimOutfitSystemNativeFuncs.ListActors()
+         String[] kActorNames = Utility.CreateStringArray(_kActorSelection_SelectCandidates.Length)
+         Int iIterator = 0
+         While iIterator < _kActorSelection_SelectCandidates.Length
+            kActorNames[iIterator] = _kActorSelection_SelectCandidates[iIterator].GetActorBase().GetName()
+            iIterator = iIterator + 1
+         EndWhile
+         String[] sMenu = PrependStringToArray(kActorNames, "$SkyOutSys_OEdit_AddCancel")
+         SetMenuDialogOptions(sMenu)
+         SetMenuDialogStartIndex(0)
+         SetMenuDialogDefaultIndex(0)
+      EndEvent
+      Event OnMenuAcceptST(Int aiIndex)
+         If aiIndex == 0 || aiIndex > _kActorSelection_SelectCandidates.Length
+            return
+         Endif
+         _aCurrentActor = _kActorSelection_SelectCandidates[aiIndex - 1]
+         RefreshCache()
+         ForcePageReset()
+      EndEvent
+      Event OnDefaultST()
       EndEvent
    EndState
    State OPT_QuickslotsEnabled
@@ -479,9 +569,9 @@ EndFunction
       State OutfitContext_Toggle
          Event OnSelectST()
             If _sSelectedOutfit == _sOutfitShowingContextMenu
-               SkyrimOutfitSystemNativeFuncs.SetSelectedOutfit("")
+               SkyrimOutfitSystemNativeFuncs.SetSelectedOutfit(_aCurrentActor, "")
             Else
-               SkyrimOutfitSystemNativeFuncs.SetSelectedOutfit(_sOutfitShowingContextMenu)
+               SkyrimOutfitSystemNativeFuncs.SetSelectedOutfit(_aCurrentActor, _sOutfitShowingContextMenu)
             EndIf
             RefreshCache()
             ForcePageReset()
