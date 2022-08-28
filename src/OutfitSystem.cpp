@@ -121,8 +121,7 @@ namespace OutfitSystem {
 	void RefreshArmorFor(RE::BSScript::IVirtualMachine* registry,
 		std::uint32_t stackId,
 		RE::StaticFunctionTag*,
-		RE::Actor* target_skse) {
-		auto target = (RE::Actor*)(target_skse);
+		RE::Actor* target) {
 		ERROR_AND_RETURN_IF(target == nullptr, "Cannot refresh armor on a None RE::Actor.", registry, stackId);
 		auto pm = target->currentProcess;
 		if (pm) {
@@ -138,6 +137,29 @@ namespace OutfitSystem {
 			pm->UpdateEquipment(target);
 		}
 	}
+	void RefreshArmorForAllConfiguredActors(RE::BSScript::IVirtualMachine* registry,
+						 std::uint32_t stackId,
+						 RE::StaticFunctionTag*) {
+		auto& service = ArmorAddonOverrideService::GetInstance();
+		auto actors = service.listActors();
+		for (auto& actor : actors) {
+			if (!actor) continue;
+			auto pm = actor->currentProcess;
+			if (pm) {
+				//
+				// "SetEquipFlag" tells the process manager that the RE::Actor's
+				// equipment has changed, and that their ArmorAddons should
+				// be updated. If you need to find it in Skyrim Special, you
+				// should see a call near the start of EquipManager's func-
+				// tion to equip an item.
+				//
+				// NOTE: AIProcess is also called as RE::ActorProcessManager
+				pm->SetEquipFlag(RE::AIProcess::Flag::kUnk01);
+				pm->UpdateEquipment(actor);
+			}
+		}
+	}
+
 	std::vector<RE::Actor*> ActorsNearPC(RE::BSScript::IVirtualMachine* registry,
 		std::uint32_t stackId,
 		RE::StaticFunctionTag*) {
@@ -546,9 +568,11 @@ namespace OutfitSystem {
 	}
 	RE::BSFixedString GetSelectedOutfit(RE::BSScript::IVirtualMachine* registry,
 		std::uint32_t stackId,
-		RE::StaticFunctionTag*) {
+		RE::StaticFunctionTag*,
+		RE::Actor* actor) {
+		if (!actor) return RE::BSFixedString("");
 		auto& service = ArmorAddonOverrideService::GetInstance();
-		return service.currentOutfit(RE::PlayerCharacter::GetSingleton()).name.c_str();
+		return service.currentOutfit(actor).name.c_str();
 	}
 	bool IsEnabled(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*) {
 		auto& service = ArmorAddonOverrideService::GetInstance();
@@ -699,9 +723,11 @@ namespace OutfitSystem {
 	void SetSelectedOutfit(RE::BSScript::IVirtualMachine* registry,
 		std::uint32_t stackId,
 		RE::StaticFunctionTag*,
+	    RE::Actor* actor,
 		RE::BSFixedString name) {
+		if (!actor) return;
 		auto& service = ArmorAddonOverrideService::GetInstance();
-		service.setOutfit(name.data(), RE::PlayerCharacter::GetSingleton());
+		service.setOutfit(name.data(), actor);
 	}
 	void AddActor(RE::BSScript::IVirtualMachine* registry,
 		std::uint32_t stackId,
@@ -716,6 +742,24 @@ namespace OutfitSystem {
 		RE::Actor* target) {
 		auto& service = ArmorAddonOverrideService::GetInstance();
 		service.removeActor((RE::Actor*)target);
+	}
+	std::vector<RE::Actor*> ListActors(RE::BSScript::IVirtualMachine* registry,
+					 std::uint32_t stackId,
+					 RE::StaticFunctionTag*) {
+		auto& service = ArmorAddonOverrideService::GetInstance();
+		auto actors = service.listActors();
+		std::vector<RE::Actor*> actorVec;
+		for (auto& actor : actors) {
+			actorVec.push_back(actor);
+		}
+		std::sort(
+			actorVec.begin(),
+			actorVec.end(),
+			[](const RE::Actor* x, const RE::Actor* y) {
+				return x < y;
+			}
+		);
+		return actorVec;
 	}
 	void SetLocationBasedAutoSwitchEnabled(RE::BSScript::IVirtualMachine* registry,
 		std::uint32_t stackId,
@@ -795,14 +839,14 @@ namespace OutfitSystem {
 			.value_or(LocationType::World));
 	}
 	void SetOutfitUsingLocation(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
-
+		RE::Actor* actor,
 		RE::BGSLocation* location_skse,
 		RE::TESWeather* weather_skse) {
 		// NOTE: Location can be NULL.
 		auto& service = ArmorAddonOverrideService::GetInstance();
-
+		if (!actor) return;
 		if (service.locationBasedAutoSwitchEnabled) {
-			auto location = identifyLocation((RE::BGSLocation*)location_skse, (RE::TESWeather*)weather_skse);
+			auto location = identifyLocation(location_skse, weather_skse);
 			// Debug notifications for location classification.
 			/*
 			const char* locationName = locationTypeStrings[static_cast<std::uint32_t>(location)];
@@ -811,35 +855,38 @@ namespace OutfitSystem {
 			RE::DebugNotification(message, nullptr, false);
 			*/
 			if (location.has_value()) {
-				service.setOutfitUsingLocation(location.value(), RE::PlayerCharacter::GetSingleton());
+				service.setOutfitUsingLocation(location.value(), actor);
 			}
 		}
 
 	}
 	void SetLocationOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
-
+	    RE::Actor* actor,
 		std::uint32_t location,
 		RE::BSFixedString name) {
+		if (!actor) return;
 		if (strcmp(name.data(), "") == 0) {
 			// Location outfit assignment is never allowed to be empty string. Use unset instead.
 			return;
 		}
 		return ArmorAddonOverrideService::GetInstance()
-			.setLocationOutfit(LocationType(location), name.data(), RE::PlayerCharacter::GetSingleton());
+			.setLocationOutfit(LocationType(location), name.data(), actor);
 	}
 	void UnsetLocationOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
-
+		RE::Actor* actor,
 		std::uint32_t location) {
+		if (!actor) return;
 		return ArmorAddonOverrideService::GetInstance()
-			.unsetLocationOutfit(LocationType(location), RE::PlayerCharacter::GetSingleton());
+			.unsetLocationOutfit(LocationType(location), actor);
 	}
 	RE::BSFixedString GetLocationOutfit(RE::BSScript::IVirtualMachine* registry,
 		std::uint32_t stackId,
 		RE::StaticFunctionTag*,
-
+		RE::Actor* actor,
 		std::uint32_t location) {
+		if (!actor) return RE::BSFixedString("");
 		auto outfit = ArmorAddonOverrideService::GetInstance()
-			.getLocationOutfit(LocationType(location), RE::PlayerCharacter::GetSingleton());
+			.getLocationOutfit(LocationType(location), actor);
 		if (outfit.has_value()) {
 			return RE::BSFixedString(outfit.value().c_str());
 		} else {
@@ -922,6 +969,11 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
 		"RefreshArmorFor",
 		"SkyrimOutfitSystemNativeFuncs",
 		RefreshArmorFor
+	);
+	registry->RegisterFunction(
+		"RefreshArmorForAllConfiguredActors",
+		"SkyrimOutfitSystemNativeFuncs",
+		RefreshArmorForAllConfiguredActors
 	);
 	registry->RegisterFunction(
 		"ActorNearPC",
@@ -1121,6 +1173,11 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
 		"RemoveActor",
 		"SkyrimOutfitSystemNativeFuncs",
 		RemoveActor
+	);
+	registry->RegisterFunction(
+		"ListActors",
+		"SkyrimOutfitSystemNativeFuncs",
+		ListActors
 	);
 	registry->RegisterFunction(
 		"SetLocationBasedAutoSwitchEnabled",
