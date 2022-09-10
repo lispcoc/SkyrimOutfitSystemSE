@@ -148,7 +148,7 @@ namespace OutfitSystem {
 
 						// target in rsi
 						push(rcx);
-						mov(rcx, rsi);
+						mov(rcx, rbx);
 						sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
 						sub(rsp, 0x20);
 						call(ptr[rip + f_ShouldOverrideSkinning]);
