@@ -46,8 +46,6 @@
 #include "RE/I/IVirtualMachine.h"
 #endif
 
-#include "fmt/compile.h"
-
 #ifdef NDEBUG
 #	include <spdlog/sinks/basic_file_sink.h>
 #else
