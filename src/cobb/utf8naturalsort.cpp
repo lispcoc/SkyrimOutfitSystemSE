@@ -16,12 +16,12 @@ namespace cobb {
                 unicodechar c_b = utf8::get(b, i_b);
                 if (!isNumber(c_a) || !isNumber(c_b)) {
                     //
-                    // For non-numeric characters, just do a character code comparison. 
-                    // This won't internationalize -- it won't even handle accented 
+                    // For non-numeric characters, just do a character code comparison.
+                    // This won't internationalize -- it won't even handle accented
                     // characters in English.
                     //
-                    c_a = std::towlower(c_a); // not sure about this; seems to use two-byte chars when unicode can be up to four bytes, no?
-                    c_b = std::towlower(c_b); // then again, anything past the two-byte mark probably isn't even a "letter" as Westerners conceive of them...
+                    c_a = std::towlower(c_a);// not sure about this; seems to use two-byte chars when unicode can be up to four bytes, no?
+                    c_b = std::towlower(c_b);// then again, anything past the two-byte mark probably isn't even a "letter" as Westerners conceive of them...
                     if (c_a == c_b)
                         continue;
                     return c_b - c_a;
@@ -46,7 +46,7 @@ namespace cobb {
                     return n_b - n_a;
             }
             //
-            // If we've reached this point, then we've reached the end of ONE OF the 
+            // If we've reached this point, then we've reached the end of ONE OF the
             // strings (and they don't end in digits).
             //
             if (i_a != a.end())
@@ -55,5 +55,5 @@ namespace cobb {
                 return -1;
             return 0;
         }
-    }
-}
+    }// namespace utf8
+}// namespace cobb

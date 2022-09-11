@@ -16,19 +16,19 @@ namespace cobb {
             //
             c = iterator[0];
             ++iterator;
-            if (c < 0x80) // single-byte glyph
+            if (c < 0x80)// single-byte glyph
                 return;
-            if (!_is_bytecount(c)) // error
-                return;
-            //
-            c = iterator[0];
-            ++iterator;
-            if (!_is_continuation(c)) // error
+            if (!_is_bytecount(c))// error
                 return;
             //
             c = iterator[0];
             ++iterator;
-            if (!_is_continuation(c)) // error
+            if (!_is_continuation(c))// error
+                return;
+            //
+            c = iterator[0];
+            ++iterator;
+            if (!_is_continuation(c))// error
                 return;
             //
             c = iterator[0];
@@ -93,7 +93,7 @@ namespace cobb {
             char c = iterator[2];
             if (!_is_continuation(c))
                 return invalid_glyph;
-            if ((a & 0xF0) == 0xE0) { // three bytes
+            if ((a & 0xF0) == 0xE0) {// three bytes
                 result = (a & 0xF) << 12;
                 result |= (b & 0x3F) << 6;
                 result |= (c & 0x3F);
@@ -141,7 +141,7 @@ namespace cobb {
             char c = iterator[2];
             if (!_is_continuation(c))
                 return invalid_glyph;
-            if ((a & 0xF0) == 0xE0) { // three bytes
+            if ((a & 0xF0) == 0xE0) {// three bytes
                 result = (a & 0xF) << 12;
                 result |= (b & 0x3F) << 6;
                 result |= (c & 0x3F);
@@ -172,23 +172,23 @@ namespace cobb {
             char d = iterator[3];
             if (!_is_bytecount(a))
                 return invalid_glyph;
-            {  // 2 bytes
+            {// 2 bytes
                 if (!_is_continuation(b))
                     return invalid_glyph;
                 if ((a & 0xE0) == 0xC0)
                     return (a << 0x08) | b;
             }
-            {  // 3 bytes
+            {// 3 bytes
                 if (!_is_continuation(c))
                     return invalid_glyph;
                 if ((a & 0xF0) == 0xE0)
                     return (a << 0x10) | (b << 0x08) | c;
             }
-            {  // 4 bytes
+            {// 4 bytes
                 if (!_is_continuation(d))
                     return invalid_glyph;
                 return (a << 0x18) | (b << 0x10) | (c << 0x08) | d;
             }
         }
-    }
-};
+    }// namespace utf8
+};   // namespace cobb

@@ -17,7 +17,7 @@ namespace OutfitSystem {
         return true;
     }
 
-    class EquippedArmorVisitor : public RE::InventoryChanges::IItemChangeVisitor {
+    class EquippedArmorVisitor: public RE::InventoryChanges::IItemChangeVisitor {
         //
         // If the player has a shield equipped, and if we're not overriding that
         // shield, then we need to grab the equipped shield's worn-flags.
@@ -29,20 +29,20 @@ namespace OutfitSystem {
                 auto armor = reinterpret_cast<RE::TESObjectARMO*>(form);
                 equipped.emplace(armor);
             }
-            return ReturnType::kContinue; // Return true to "continue visiting".
+            return ReturnType::kContinue;// Return true to "continue visiting".
         };
 
         std::unordered_set<RE::TESObjectARMO*> equipped;
     };
 
-    REL::ID TESObjectARMO_ApplyArmorAddon(17792); // 0x00228AD0 in 1.5.73
+    REL::ID TESObjectARMO_ApplyArmorAddon(17792);// 0x00228AD0 in 1.5.73
 
     namespace DontVanillaSkinPlayer {
         bool _stdcall ShouldOverride(RE::TESObjectARMO* armor, RE::TESObjectREFR* target) {
             if (!ShouldOverrideSkinning(target))
                 return false;
             auto& svc = ArmorAddonOverrideService::GetInstance();
-            auto& outfit = svc.currentOutfit((RE::Actor*)target);
+            auto& outfit = svc.currentOutfit((RE::Actor*) target);
             auto actor = skyrim_cast<RE::Actor*>(target);
             if (!actor) {
                 // Actor failed to cast...
@@ -53,8 +53,7 @@ namespace OutfitSystem {
             EquippedArmorVisitor visitor;
             if (inventory) {
                 inventory->ExecuteVisitorOnWorn(&visitor);
-            }
-            else {
+            } else {
                 LOG(info, "ShouldOverride: Unable to get target inventory.");
                 return true;
             }
@@ -63,14 +62,14 @@ namespace OutfitSystem {
         }
 
         REL::ID DontVanillaSkinPlayer_Hook_ID(24736);
-        std::uintptr_t DontVanillaSkinPlayer_Hook(DontVanillaSkinPlayer_Hook_ID.address() + 0x302); // 0x00364652 in 1.5.73
+        std::uintptr_t DontVanillaSkinPlayer_Hook(DontVanillaSkinPlayer_Hook_ID.address() + 0x302);// 0x00364652 in 1.5.73
 
         void Apply() {
             LOG(info, "Patching vanilla player skinning");
             LOG(info, "TESObjectARMO_ApplyArmorAddon = {:x}", TESObjectARMO_ApplyArmorAddon.address() - REL::Module::get().base());
             LOG(info, "DontVanillaSkinPlayer_Hook = {:x}", DontVanillaSkinPlayer_Hook - REL::Module::get().base());
             {
-                struct DontVanillaSkinPlayer_Code : Xbyak::CodeGenerator {
+                struct DontVanillaSkinPlayer_Code: Xbyak::CodeGenerator {
                     DontVanillaSkinPlayer_Code() {
                         Xbyak::Label j_Out;
                         Xbyak::Label f_ApplyArmorAddon;
@@ -111,7 +110,7 @@ namespace OutfitSystem {
             }
             LOG(info, "Done");
         }
-    } // namespace DontVanillaSkinPlayer
+    }// namespace DontVanillaSkinPlayer
 
     namespace ShimWornFlags {
         std::uint32_t OverrideWornFlags(RE::InventoryChanges* inventory, RE::TESObjectREFR* target) {
@@ -130,16 +129,16 @@ namespace OutfitSystem {
         }
 
         REL::ID ShimWornFlags_Hook_ID(24724);
-        std::uintptr_t ShimWornFlags_Hook(ShimWornFlags_Hook_ID.address() + 0x80); // 0x00362F0C in 1.5.73
+        std::uintptr_t ShimWornFlags_Hook(ShimWornFlags_Hook_ID.address() + 0x80);// 0x00362F0C in 1.5.73
 
-        REL::ID InventoryChanges_GetWornMask(16044); // 0x001D9040 in 1.5.73
+        REL::ID InventoryChanges_GetWornMask(16044);// 0x001D9040 in 1.5.73
 
         void Apply() {
             LOG(info, "Patching shim worn flags");
             LOG(info, "ShimWornFlags_Hook = {:x}", ShimWornFlags_Hook - REL::Module::get().base());
             LOG(info, "InventoryChanges_GetWornMask = {:x}", InventoryChanges_GetWornMask.address() - REL::Module::get().base());
             {
-                struct ShimWornFlags_Code : Xbyak::CodeGenerator {
+                struct ShimWornFlags_Code: Xbyak::CodeGenerator {
                     ShimWornFlags_Code() {
                         Xbyak::Label j_SuppressVanilla;
                         Xbyak::Label j_Out;
@@ -150,7 +149,7 @@ namespace OutfitSystem {
                         // target in rbx
                         push(rcx);
                         mov(rcx, rbx);
-                        sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
+                        sub(rsp, 0x8);// Ensure 16-byte alignment of stack pointer
                         sub(rsp, 0x20);
                         call(ptr[rip + f_ShouldOverrideSkinning]);
                         add(rsp, 0x20);
@@ -164,7 +163,7 @@ namespace OutfitSystem {
                         L(j_SuppressVanilla);
                         push(rdx);
                         mov(rdx, rbx);
-                        sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
+                        sub(rsp, 0x8);// Ensure 16-byte alignment of stack pointer
                         sub(rsp, 0x20);
                         call(ptr[rip + f_OverrideWornFlags]);
                         add(rsp, 0x20);
@@ -193,7 +192,7 @@ namespace OutfitSystem {
             }
             LOG(info, "Done");
         }
-    } // namespace ShimWornFlags
+    }// namespace ShimWornFlags
 
     namespace CustomSkinPlayer {
         void Custom(RE::Actor* target, RE::ActorWeightModel* actorWeightModel) {
@@ -212,15 +211,14 @@ namespace OutfitSystem {
             bool isFemale = base->IsFemale();
             //
             auto& svc = ArmorAddonOverrideService::GetInstance();
-            auto& outfit = svc.currentOutfit((RE::Actor*)target);
+            auto& outfit = svc.currentOutfit((RE::Actor*) target);
 
             // Get actor inventory and equipped items
             auto inventory = target->GetInventoryChanges();
             EquippedArmorVisitor visitor;
             if (inventory) {
                 inventory->ExecuteVisitorOnWorn(&visitor);
-            }
-            else {
+            } else {
                 LOG(info, "Custom: Unable to get target inventory.");
                 return;
             }
@@ -251,16 +249,16 @@ namespace OutfitSystem {
         // The function we wanted to patch (AE 24735 + 0x81) was inlined into AE 24725.
         // We might consider hooking both?
         REL::ID CustomSkinPlayer_Hook_ID(24725);
-        std::uintptr_t CustomSkinPlayer_Hook(CustomSkinPlayer_Hook_ID.address() + 0x1EF); // 0x00364301 in 1.5.73
+        std::uintptr_t CustomSkinPlayer_Hook(CustomSkinPlayer_Hook_ID.address() + 0x1EF);// 0x00364301 in 1.5.73
 
-        REL::ID InventoryChanges_ExecuteVisitorOnWorn(16096); // 0x001E51D0 in 1.5.73
+        REL::ID InventoryChanges_ExecuteVisitorOnWorn(16096);// 0x001E51D0 in 1.5.73
 
         void Apply() {
             LOG(info, "Patching custom skin player");
             LOG(info, "CustomSkinPlayer_Hook = {:x}", CustomSkinPlayer_Hook - REL::Module::get().base());
             LOG(info, "InventoryChanges_ExecuteVisitorOnWorn = {:x}", InventoryChanges_ExecuteVisitorOnWorn.address() - REL::Module::get().base());
             {
-                struct CustomSkinPlayer_Code : Xbyak::CodeGenerator {
+                struct CustomSkinPlayer_Code: Xbyak::CodeGenerator {
                     CustomSkinPlayer_Code() {
                         Xbyak::Label j_Out;
                         Xbyak::Label f_Custom;
@@ -272,7 +270,7 @@ namespace OutfitSystem {
 
                         push(rcx);
                         mov(rcx, rbx);
-                        sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
+                        sub(rsp, 0x8);// Ensure 16-byte alignment of stack pointer
                         sub(rsp, 0x20);
                         call(ptr[rip + f_ShouldOverrideSkinning]);
                         add(rsp, 0x20);
@@ -314,7 +312,7 @@ namespace OutfitSystem {
             }
             LOG(info, "Done");
         }
-    } // namespace CustomSkinPlayer
+    }// namespace CustomSkinPlayer
 
     namespace FixEquipConflictCheck {
         //
@@ -327,7 +325,7 @@ namespace OutfitSystem {
         // The loop in question is performed in Actor::Unk_120, which is also generally responsible
         // for equipping items at all.
         //
-        class _Visitor : public RE::InventoryChanges::IItemChangeVisitor {
+        class _Visitor: public RE::InventoryChanges::IItemChangeVisitor {
             //
             // Bethesda used a visitor to add armor-addons to the ActorWeightModel in the first
             // place (see call stack for DontVanillaSkinPlayer patch), so why not use a similar
@@ -357,7 +355,7 @@ namespace OutfitSystem {
                         em->UnequipObject(this->target, form, nullptr, 1, nullptr, false, false, true, false, nullptr);
                     }
                 }
-                return ReturnType::kContinue; // True to continue visiting
+                return ReturnType::kContinue;// True to continue visiting
             };
 
             RE::Actor* target;
@@ -370,8 +368,7 @@ namespace OutfitSystem {
                 visitor.conflictIndex = bodyPartForNewItem;
                 visitor.target = target;
                 inventory->ExecuteVisitorOnWorn(&visitor);
-            }
-            else {
+            } else {
                 LOG(info, "OverridePlayerSkinning: Conflict check failed: no inventory!");
             }
         }
@@ -387,16 +384,16 @@ namespace OutfitSystem {
         }
 
         REL::ID FixEquipConflictCheck_Hook_ID(38004);
-        std::uintptr_t FixEquipConflictCheck_Hook(FixEquipConflictCheck_Hook_ID.address() + 0x97); // 0x0060CAC7 in 1.5.73
+        std::uintptr_t FixEquipConflictCheck_Hook(FixEquipConflictCheck_Hook_ID.address() + 0x97);// 0x0060CAC7 in 1.5.73
 
-        REL::ID BGSBipedObjectForm_TestBodyPartByIndex(14119); // 0x001820A0 in 1.5.73
+        REL::ID BGSBipedObjectForm_TestBodyPartByIndex(14119);// 0x001820A0 in 1.5.73
 
         void Apply() {
             LOG(info, "Patching fix for equip conflict check");
             LOG(info, "FixEquipConflictCheck_Hook = {:x}", FixEquipConflictCheck_Hook - REL::Module::get().base());
             LOG(info, "BGSBipedObjectForm_TestBodyPartByIndex = {:x}", BGSBipedObjectForm_TestBodyPartByIndex.address() - REL::Module::get().base());
             {
-                struct FixEquipConflictCheck_Code : Xbyak::CodeGenerator {
+                struct FixEquipConflictCheck_Code: Xbyak::CodeGenerator {
                     FixEquipConflictCheck_Code() {
                         Xbyak::Label j_Out;
                         Xbyak::Label j_Exit;
@@ -416,7 +413,7 @@ namespace OutfitSystem {
                         // RSP + Argument offset rel to original entry + Offset from push above
                         // + Offset from pushes in original entry
                         mov(rcx, ptr[rsp + 0x10 + 0x08 + 0xC8]);
-                        sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
+                        sub(rsp, 0x8);// Ensure 16-byte alignment of stack pointer
                         sub(rsp, 0x20);
                         call(ptr[rip + f_ShouldOverride]);
                         add(rsp, 0x20);
@@ -460,31 +457,30 @@ namespace OutfitSystem {
             }
             LOG(info, "Done");
         }
-    } // namespace FixEquipConflictCheck
+    }// namespace FixEquipConflictCheck
 
     namespace RTTIPrinter {
         void Print_RTTI(RE::InventoryChanges::IItemChangeVisitor* target) {
-            void* object = (void*)target;
-            void* vtable = *(void**)object;
-            void* info_block = ((void**)vtable)[-1];
-            uintptr_t id = ((unsigned long*)info_block)[3];
+            void* object = (void*) target;
+            void* vtable = *(void**) object;
+            void* info_block = ((void**) vtable)[-1];
+            uintptr_t id = ((unsigned long*) info_block)[3];
             uintptr_t info = id + REL::Module::get().base();
-            char* name = (char*)info + 16;
+            char* name = (char*) info + 16;
             LOG(info, "vtable = {}, typeinfo = {}, typename = {}", vtable, info_block,
                 name);
         }
 
-        REL::ID InventoryChanges_ExecuteVisitorOnWorn(16096); // 0x001E51D0 in 1.5.73
+        REL::ID InventoryChanges_ExecuteVisitorOnWorn(16096);// 0x001E51D0 in 1.5.73
         std::uintptr_t InventoryChanges_ExecuteVisitorOnWorn_Hook(
-            InventoryChanges_ExecuteVisitorOnWorn.address() +
-            0x2A); // 0x00364301 in 1.5.73
+            InventoryChanges_ExecuteVisitorOnWorn.address() + 0x2A);// 0x00364301 in 1.5.73
 
         void Apply() {
             LOG(info, "Patching RTTI print");
             LOG(info, "InventoryChanges_ExecuteVisitorOnWorn_Hook = {:x}",
                 InventoryChanges_ExecuteVisitorOnWorn_Hook - REL::Module::get().base());
             {
-                struct RTTI_Code : Xbyak::CodeGenerator {
+                struct RTTI_Code: Xbyak::CodeGenerator {
                     RTTI_Code() {
                         Xbyak::Label f_PrintRTTI;
 
@@ -492,7 +488,7 @@ namespace OutfitSystem {
                         push(rdx);
                         push(rax);
                         mov(rcx, rdx);
-                        sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
+                        sub(rsp, 0x8);// Ensure 16-byte alignment of stack pointer
                         sub(rsp, 0x20);
                         call(ptr[rip + f_PrintRTTI]);
                         add(rsp, 0x20);
@@ -517,7 +513,7 @@ namespace OutfitSystem {
                     InventoryChanges_ExecuteVisitorOnWorn_Hook, code);
             }
         }
-    } // namespace RTTIPrinter
+    }// namespace RTTIPrinter
 
     void ApplyPlayerSkinningHooks() {
         DontVanillaSkinPlayer::Apply();
@@ -525,5 +521,5 @@ namespace OutfitSystem {
         CustomSkinPlayer::Apply();
         FixEquipConflictCheck::Apply();
     }
-} // namespace OutfitSystem
+}// namespace OutfitSystem
 #endif

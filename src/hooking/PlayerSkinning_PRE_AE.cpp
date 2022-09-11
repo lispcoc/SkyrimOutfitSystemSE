@@ -28,13 +28,13 @@ namespace OutfitSystem {
             if (form && form->formType == RE::FormType::Armor) {
                 equipped.emplace(skyrim_cast<RE::TESObjectARMO*>(form));
             }
-            return ReturnType::kContinue; // Return true to "continue visiting".
+            return ReturnType::kContinue;// Return true to "continue visiting".
         };
 
         std::unordered_set<RE::TESObjectARMO*> equipped;
     };
 
-    REL::ID TESObjectARMO_ApplyArmorAddon(17392); // 0x00228AD0 in 1.5.73
+    REL::ID TESObjectARMO_ApplyArmorAddon(17392);// 0x00228AD0 in 1.5.73
 
     namespace DontVanillaSkinPlayer {
         bool _stdcall ShouldOverride(RE::TESObjectARMO* armor, RE::TESObjectREFR* target) {
@@ -61,7 +61,7 @@ namespace OutfitSystem {
         }
 
         REL::ID DontVanillaSkinPlayer_Hook_ID(24232);
-        std::uintptr_t DontVanillaSkinPlayer_Hook(DontVanillaSkinPlayer_Hook_ID.address() + 0x302); // 0x00364652 in 1.5.73
+        std::uintptr_t DontVanillaSkinPlayer_Hook(DontVanillaSkinPlayer_Hook_ID.address() + 0x302);// 0x00364652 in 1.5.73
 
         void Apply() {
             LOG(info, "Patching vanilla player skinning");
@@ -109,7 +109,7 @@ namespace OutfitSystem {
             }
             LOG(info, "Done");
         }
-    } // namespace DontVanillaSkinPlayer
+    }// namespace DontVanillaSkinPlayer
 
     namespace ShimWornFlags {
         std::uint32_t OverrideWornFlags(RE::InventoryChanges* inventory, RE::TESObjectREFR* target) {
@@ -128,9 +128,9 @@ namespace OutfitSystem {
         }
 
         REL::ID ShimWornFlags_Hook_ID(24220);
-        std::uintptr_t ShimWornFlags_Hook(ShimWornFlags_Hook_ID.address() + 0x7C); // 0x00362F0C in 1.5.73
+        std::uintptr_t ShimWornFlags_Hook(ShimWornFlags_Hook_ID.address() + 0x7C);// 0x00362F0C in 1.5.73
 
-        REL::ID InventoryChanges_GetWornMask(15806); // 0x001D9040 in 1.5.73
+        REL::ID InventoryChanges_GetWornMask(15806);// 0x001D9040 in 1.5.73
 
         void Apply() {
             LOG(info, "Patching shim worn flags");
@@ -148,7 +148,7 @@ namespace OutfitSystem {
                         // target in rsi
                         push(rcx);
                         mov(rcx, rsi);
-                        sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
+                        sub(rsp, 0x8);// Ensure 16-byte alignment of stack pointer
                         sub(rsp, 0x20);
                         call(ptr[rip + f_ShouldOverrideSkinning]);
                         add(rsp, 0x20);
@@ -162,7 +162,7 @@ namespace OutfitSystem {
                         L(j_SuppressVanilla);
                         push(rdx);
                         mov(rdx, rsi);
-                        sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
+                        sub(rsp, 0x8);// Ensure 16-byte alignment of stack pointer
                         sub(rsp, 0x20);
                         call(ptr[rip + f_OverrideWornFlags]);
                         add(rsp, 0x20);
@@ -191,7 +191,7 @@ namespace OutfitSystem {
             }
             LOG(info, "Done");
         }
-    } // namespace ShimWornFlags
+    }// namespace ShimWornFlags
 
     namespace CustomSkinPlayer {
         void Custom(RE::Actor* target, RE::ActorWeightModel* actorWeightModel) {
@@ -245,9 +245,9 @@ namespace OutfitSystem {
         }
 
         REL::ID CustomSkinPlayer_Hook_ID(24231);
-        std::uintptr_t CustomSkinPlayer_Hook(CustomSkinPlayer_Hook_ID.address() + 0x81); // 0x00364301 in 1.5.73
+        std::uintptr_t CustomSkinPlayer_Hook(CustomSkinPlayer_Hook_ID.address() + 0x81);// 0x00364301 in 1.5.73
 
-        REL::ID InventoryChanges_ExecuteVisitorOnWorn(15856); // 0x001E51D0 in 1.5.73
+        REL::ID InventoryChanges_ExecuteVisitorOnWorn(15856);// 0x001E51D0 in 1.5.73
 
         void Apply() {
             LOG(info, "Patching custom skin player");
@@ -266,7 +266,7 @@ namespace OutfitSystem {
 
                         push(rcx);
                         mov(rcx, rbx);
-                        sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
+                        sub(rsp, 0x8);// Ensure 16-byte alignment of stack pointer
                         sub(rsp, 0x20);
                         call(ptr[rip + f_ShouldOverrideSkinning]);
                         add(rsp, 0x20);
@@ -308,7 +308,7 @@ namespace OutfitSystem {
             }
             LOG(info, "Done");
         }
-    } // namespace CustomSkinPlayer
+    }// namespace CustomSkinPlayer
 
     namespace FixEquipConflictCheck {
         //
@@ -351,11 +351,11 @@ namespace OutfitSystem {
                         em->UnequipObject(this->target, form, nullptr, 1, nullptr, false, false, true, false, nullptr);
                     }
                 }
-                return ReturnType::kContinue; // True to continue visiting
+                return ReturnType::kContinue;// True to continue visiting
             };
 
             RE::Actor* target;
-            std::uint32_t     conflictIndex = 0;
+            std::uint32_t conflictIndex = 0;
         };
         void Inner(std::uint32_t bodyPartForNewItem, RE::Actor* target) {
             auto inventory = target->GetInventoryChanges();
@@ -380,9 +380,9 @@ namespace OutfitSystem {
         }
 
         REL::ID FixEquipConflictCheck_Hook_ID(36979);
-        std::uintptr_t FixEquipConflictCheck_Hook(FixEquipConflictCheck_Hook_ID.address() + 0x97); // 0x0060CAC7 in 1.5.73
+        std::uintptr_t FixEquipConflictCheck_Hook(FixEquipConflictCheck_Hook_ID.address() + 0x97);// 0x0060CAC7 in 1.5.73
 
-        REL::ID BGSBipedObjectForm_TestBodyPartByIndex(14026); // 0x001820A0 in 1.5.73
+        REL::ID BGSBipedObjectForm_TestBodyPartByIndex(14026);// 0x001820A0 in 1.5.73
 
         void Apply() {
             LOG(info, "Patching fix for equip conflict check");
@@ -409,7 +409,7 @@ namespace OutfitSystem {
                         // RSP + Argument offset rel to original entry + Offset from push above
                         // + Offset from pushes in original entry
                         mov(rcx, ptr[rsp + 0x10 + 0x08 + 0xC8]);
-                        sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
+                        sub(rsp, 0x8);// Ensure 16-byte alignment of stack pointer
                         sub(rsp, 0x20);
                         call(ptr[rip + f_ShouldOverride]);
                         add(rsp, 0x20);
@@ -453,7 +453,7 @@ namespace OutfitSystem {
             }
             LOG(info, "Done");
         }
-    } // namespace FixEquipConflictCheck
+    }// namespace FixEquipConflictCheck
 
     void ApplyPlayerSkinningHooks() {
         DontVanillaSkinPlayer::Apply();
@@ -461,5 +461,5 @@ namespace OutfitSystem {
         CustomSkinPlayer::Apply();
         FixEquipConflictCheck::Apply();
     }
-} // namespace OutfitSystem
+}// namespace OutfitSystem
 #endif
