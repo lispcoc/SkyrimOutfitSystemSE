@@ -1,0 +1,217 @@
+//
+// Created by m on 9/11/2022.
+//
+
+#include "hooking/Patches.hpp"
+
+#include "ArmorAddonOverrideService.h"
+
+namespace Hooking {
+    bool ShouldOverrideSkinning(RE::TESObjectREFR* target) {
+        if (!target) {
+            LOG(warn, "Target was null");
+            return false;
+        }
+        if (!ArmorAddonOverrideService::GetInstance().enabled) return false;
+        auto actor = skyrim_cast<RE::Actor*>(target);
+        if (!actor) {
+            LOG(warn, "Target failed to cast to RE::Actor");
+            return false;
+        }
+        if (!ArmorAddonOverrideService::GetInstance().shouldOverride(actor)) return false;
+        return true;
+    }
+
+    class EquippedArmorVisitor: public RE::InventoryChanges::IItemChangeVisitor {
+        //
+        // If the player has a shield equipped, and if we're not overriding that
+        // shield, then we need to grab the equipped shield's worn-flags.
+        //
+    public:
+        virtual ReturnType Visit(RE::InventoryEntryData* data) override {
+            auto form = data->object;
+            if (form && form->formType == RE::FormType::Armor) {
+                equipped.emplace(skyrim_cast<RE::TESObjectARMO*>(form));
+            }
+            return ReturnType::kContinue;// Return true to "continue visiting".
+        };
+
+        std::unordered_set<RE::TESObjectARMO*> equipped;
+    };
+
+    namespace DontVanillaSkinPlayer {
+        bool ShouldOverride(RE::TESObjectARMO* armor, RE::TESObjectREFR* target) {
+            if (!ShouldOverrideSkinning(target)) { return false; }
+            auto& svc = ArmorAddonOverrideService::GetInstance();
+            auto& outfit = svc.currentOutfit((RE::Actor*) target);
+            auto actor = skyrim_cast<RE::Actor*>(target);
+            if (!actor) {
+                // Actor failed to cast...
+                LOG(warn, "ShouldOverride: Failed to cast target to Actor.");
+                return true;
+            }
+            auto inventory = target->GetInventoryChanges();
+            EquippedArmorVisitor visitor;
+            if (inventory) {
+                inventory->ExecuteVisitorOnWorn(&visitor);
+            } else {
+                LOG(warn, "ShouldOverride: Unable to get target inventory.");
+                return true;
+            }
+            // Block the item (return true) if the item isn't in the display set.
+            return outfit.computeDisplaySet(visitor.equipped).count(armor) == 0;
+        }
+    }// namespace DontVanillaSkinPlayer
+
+    namespace ShimWornFlags {
+        std::uint32_t OverrideWornFlags(RE::InventoryChanges* inventory, RE::TESObjectREFR* target) {
+            std::uint32_t mask = 0;
+            auto actor = skyrim_cast<RE::Actor*>(target);
+            if (!actor) return mask;
+            auto& svc = ArmorAddonOverrideService::GetInstance();
+            auto& outfit = svc.currentOutfit(actor);
+            EquippedArmorVisitor visitor;
+            inventory->ExecuteVisitorOnWorn(&visitor);
+            auto displaySet = outfit.computeDisplaySet(visitor.equipped);
+            for (auto& armor : displaySet) {
+                mask |= static_cast<std::uint32_t>(armor->GetSlotMask());
+            }
+            return mask;
+        }
+    }// namespace ShimWornFlags
+
+    namespace CustomSkinPlayer {
+        void Custom(RE::Actor* target, RE::ActorWeightModel* actorWeightModel) {
+            if (!skyrim_cast<RE::Actor*>(target)) {
+                // Actor failed to cast...
+                LOG(info, "Custom: Failed to cast target to Actor.");
+                return;
+            }
+            // Get basic actor information (race and sex)
+            if (!actorWeightModel)
+                return;
+            auto base = skyrim_cast<RE::TESNPC*>(target->data.objectReference);
+            if (!base)
+                return;
+            auto race = base->race;
+            bool isFemale = base->IsFemale();
+            //
+            auto& svc = ArmorAddonOverrideService::GetInstance();
+            auto& outfit = svc.currentOutfit((RE::Actor*) target);
+
+            // Get actor inventory and equipped items
+            auto inventory = target->GetInventoryChanges();
+            EquippedArmorVisitor visitor;
+            if (inventory) {
+                inventory->ExecuteVisitorOnWorn(&visitor);
+            } else {
+                LOG(info, "Custom: Unable to get target inventory.");
+                return;
+            }
+
+            // Compute the display set.
+            auto displaySet = outfit.computeDisplaySet(visitor.equipped);
+
+            // Compute the remaining items to be applied to the player
+            // We assume that the DontVanillaSkinPlayer already passed through
+            // the equipped items that will be shown, so we only need to worry about the
+            // items that are not equipped but which are in the outfit or which are masked
+            // by the outfit.
+            std::unordered_set<RE::TESObjectARMO*> applySet;
+            for (const auto& item : displaySet) {
+                if (visitor.equipped.find(item) == visitor.equipped.end()) applySet.insert(item);
+            }
+
+            for (auto it = applySet.cbegin(); it != applySet.cend(); ++it) {
+                // TODO: [SlotPassthru] Also do the same iteration over the passthrough equipped items?
+                RE::TESObjectARMO* armor = *it;
+                if (armor) {
+                    armor->ApplyArmorAddon(race, actorWeightModel, isFemale);
+                }
+            }
+        }
+    }// namespace CustomSkinPlayer
+
+    namespace FixEquipConflictCheck {
+        //
+        // When you try to equip an item, the game loops over the armors in your ActorWeightModel
+        // rather than your other worn items. Because we're tampering with what goes into the AWM,
+        // this means that conflict checks are run against your outfit instead of your equipment,
+        // unless we patch in a fix. (For example, if your outfit doesn't include a helmet, then
+        // you'd be able to stack helmets endlessly without this patch.)
+        //
+        // The loop in question is performed in Actor::Unk_120, which is also generally responsible
+        // for equipping items at all.
+        //
+        class _Visitor: public RE::InventoryChanges::IItemChangeVisitor {
+            //
+            // Bethesda used a visitor to add armor-addons to the ActorWeightModel in the first
+            // place (see call stack for DontVanillaSkinPlayer patch), so why not use a similar
+            // visitor to check for conflicts?
+            //
+        public:
+            virtual ReturnType Visit(RE::InventoryEntryData* data) override {
+                // TODO: [SlotPassthru] We might be able to leave this as-is.
+                auto form = data->object;
+                if (form && form->formType == RE::FormType::Armor) {
+                    auto armor = skyrim_cast<RE::TESObjectARMO*>(form);
+                    if (armor && armor->TestBodyPartByIndex(this->conflictIndex)) {
+                        auto em = RE::ActorEquipManager::GetSingleton();
+                        //
+                        // TODO: The third argument to this call is meant to be a
+                        // BaseExtraList*, and Bethesda supplies one when calling from Unk_120.
+                        // Can we get away with a nullptr here, or do we have to find the
+                        // BaseExtraList that contains an ExtraWorn?
+                        //
+                        // I'm not sure how to investigate this, but I did run one test, and
+                        // that works properly: I gave myself ten Falmer Helmets and applied
+                        // different enchantments to two of them (leaving the others
+                        // unenchanted). In tests, I was unable to stack the helmets with each
+                        // other or with other helmets, suggesting that the BaseExtraList may
+                        // not be strictly necessary.
+                        //
+                        em->UnequipObject(this->target, form, nullptr, 1, nullptr, false, false, true, false, nullptr);
+                    }
+                }
+                return ReturnType::kContinue;// True to continue visiting
+            };
+
+            RE::Actor* target;
+            std::uint32_t conflictIndex = 0;
+        };
+        void Inner(std::uint32_t bodyPartForNewItem, RE::Actor* target) {
+            auto inventory = target->GetInventoryChanges();
+            if (inventory) {
+                _Visitor visitor;
+                visitor.conflictIndex = bodyPartForNewItem;
+                visitor.target = target;
+                inventory->ExecuteVisitorOnWorn(&visitor);
+            } else {
+                LOG(info, "OverridePlayerSkinning: Conflict check failed: no inventory!");
+            }
+        }
+        bool ShouldOverride(RE::TESForm* item) {
+            //
+            // We only hijack equipping for armors, so I'd like for this patch to only
+            // apply to armors as well. It shouldn't really matter -- before I added
+            // this check, weapons and the like tested in-game with no issues, likely
+            // because they're handled very differently -- but I just wanna be sure.
+            // We should use vanilla code whenever we don't need to NOT use it.
+            //
+            return (item->formType == RE::FormType::Armor);
+        }
+    }// namespace FixEquipConflictCheck
+
+    namespace RTTIPrinter {
+        void Print_RTTI(RE::InventoryChanges::IItemChangeVisitor* target) {
+            void* object = (void*) target;
+            void* vtable = *(void**) object;
+            void* info_block = ((void**) vtable)[-1];
+            uintptr_t id = ((unsigned long*) info_block)[3];
+            uintptr_t info = id + REL::Module::get().base();
+            char* name = (char*) info + 16;
+            LOG(info, "vtable = {}, typeinfo = {}, typename = {}", vtable, info_block,
+                name);
+        }
+    }// namespace RTTIPrinter
+}// namespace Hooking

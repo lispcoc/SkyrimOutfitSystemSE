@@ -101,8 +101,9 @@ add_library(SkyrimOutfitSystemSE SHARED
     include/OutfitSystem.h
     src/OutfitSystem.cpp
     include/PlayerSkinning.h
-    src/hooking/PlayerSkinning_AE.cpp
-    src/hooking/PlayerSkinning_PRE_AE.cpp
+    src/hooking/Hooks_AE.cpp
+    src/hooking/Hooks_PRE_AE.cpp
+    src/hooking/Patches.cpp
     src/Utility.cpp
 )
 

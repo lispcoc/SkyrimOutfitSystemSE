@@ -3,7 +3,7 @@
 #include <ShlObj.h>
 
 #include <ArmorAddonOverrideService.h>
-#include <PlayerSkinning.h>
+#include <hooking/Hooks.hpp>
 
 void WaitForDebugger(void) {
     while (!IsDebuggerPresent()) {
@@ -106,14 +106,14 @@ DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse) {
 
     // Create Trampolines
     SKSE::AllocTrampoline(128, true);
-    OutfitSystem::g_branchTrampoline = &SKSE::GetTrampoline();
+    Hooking::g_branchTrampoline = &SKSE::GetTrampoline();
 
-    OutfitSystem::g_localTrampoline = new SKSE::Trampoline("local");
-    OutfitSystem::g_localTrampoline->create(1024 * 64);
+    Hooking::g_localTrampoline = new SKSE::Trampoline("local");
+    Hooking::g_localTrampoline->create(1024 * 64);
 
     // Actual plugin load
     LOG(info, "Patching player skinning");
-    OutfitSystem::ApplyPlayerSkinningHooks();
+    Hooking::ApplyPlayerSkinningHooks();
 
     // Messaging Callback
     LOG(info, "Registering messaging callback");
