@@ -26,8 +26,7 @@ namespace OutfitSystem {
         virtual ReturnType Visit(RE::InventoryEntryData* data) override {
             auto form = data->object;
             if (form && form->formType == RE::FormType::Armor) {
-                auto armor = reinterpret_cast<RE::TESObjectARMO*>(form);
-                equipped.emplace(armor);
+                equipped.emplace(skyrim_cast<RE::TESObjectARMO*>(form));
             }
             return ReturnType::kContinue;// Return true to "continue visiting".
         };
@@ -336,8 +335,8 @@ namespace OutfitSystem {
                 // TODO: [SlotPassthru] We might be able to leave this as-is.
                 auto form = data->object;
                 if (form && form->formType == RE::FormType::Armor) {
-                    auto armor = reinterpret_cast<RE::TESObjectARMO*>(form);
-                    if (armor->TestBodyPartByIndex(this->conflictIndex)) {
+                    auto armor = skyrim_cast<RE::TESObjectARMO*>(form);
+                    if (armor && armor->TestBodyPartByIndex(this->conflictIndex)) {
                         auto em = RE::ActorEquipManager::GetSingleton();
                         //
                         // TODO: The third argument to this call is meant to be a

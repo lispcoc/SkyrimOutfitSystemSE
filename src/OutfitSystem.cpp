@@ -53,8 +53,10 @@ namespace OutfitSystem {
             virtual ReturnType Visit(RE::InventoryEntryData* data) override {
                 // Return true to continue, or else false to break.
                 const auto form = data->object;
-                if (form && form->formType == RE::FormType::Armor)
-                    this->list.push_back(reinterpret_cast<RE::TESObjectARMO*>(form));
+                if (form && form->formType == RE::FormType::Armor) {
+                    auto armor = skyrim_cast<RE::TESObjectARMO*>(form);
+                    if (armor) this->list.push_back(armor);
+                }
                 return ReturnType::kContinue;
             };
 
@@ -95,8 +97,10 @@ namespace OutfitSystem {
         public:
             virtual ReturnType Visit(RE::InventoryEntryData* data) override {
                 auto form = data->object;
-                if (form && form->formType == RE::FormType::Armor)
-                    this->list.push_back(reinterpret_cast<RE::TESObjectARMO*>(form));
+                if (form && form->formType == RE::FormType::Armor) {
+                    auto armor = skyrim_cast<RE::TESObjectARMO*>(form);
+                    if (armor) this->list.push_back(armor);
+                }
                 return ReturnType::kContinue;
             };
 
