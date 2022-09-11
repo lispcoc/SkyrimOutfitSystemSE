@@ -146,7 +146,7 @@ namespace OutfitSystem {
 						Xbyak::Label f_GetWornMask;
 						Xbyak::Label f_OverrideWornFlags;
 
-						// target in rsi
+						// target in rbx
 						push(rcx);
 						mov(rcx, rbx);
 						sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
@@ -162,7 +162,7 @@ namespace OutfitSystem {
 
 						L(j_SuppressVanilla);
 						push(rdx);
-						mov(rdx, rsi);
+						mov(rdx, rbx);
 						sub(rsp, 0x8); // Ensure 16-byte alignment of stack pointer
 						sub(rsp, 0x20);
 						call(ptr[rip + f_OverrideWornFlags]);
