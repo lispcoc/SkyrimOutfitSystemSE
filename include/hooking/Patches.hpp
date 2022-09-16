@@ -25,6 +25,11 @@ namespace Hooking {
         bool ShouldOverride(RE::TESForm* item);
     }// namespace FixEquipConflictCheck
 
+    namespace FixSkillLeveling {
+        struct Visitor;
+        bool Inner(RE::BipedAnim* biped, Visitor* visitor);
+    }// namespace FixSkillLeveling
+
     namespace RTTIPrinter {
         void Print_RTTI(RE::InventoryChanges::IItemChangeVisitor* target);
     }

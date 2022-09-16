@@ -202,6 +202,27 @@ namespace Hooking {
         }
     }// namespace FixEquipConflictCheck
 
+    namespace FixSkillLeveling {
+        struct Visitor {
+            RE::TESObjectARMO** shield;
+            RE::TESObjectARMO** torso;
+            std::uint32_t light;
+            std::uint32_t heavy;
+        };
+        static_assert(sizeof(Visitor) == 0x18);
+
+        bool Inner(RE::BipedAnim* biped, Visitor* visitor) {
+            auto target = biped->actorRef.get();
+            if (!target) return false;
+            auto actor = skyrim_cast<RE::Actor*>(target.get());
+            if (!actor) return false;
+            if (!ShouldOverrideSkinning(actor)) return false;
+            visitor->light = 0;
+            visitor->heavy = 5;
+            return true;
+        }
+    }// namespace FixSkillLeveling
+
     namespace RTTIPrinter {
         void Print_RTTI(RE::InventoryChanges::IItemChangeVisitor* target) {
             void* object = (void*) target;
