@@ -278,6 +278,55 @@ namespace Hooking {
         }
     }// namespace FixEquipConflictCheck
 
+    namespace FixSkillLeveling {
+        REL::ID GetSkillToLevel_Hook_ID(37589);
+        std::uintptr_t GetSkillToLevel_Hook(GetSkillToLevel_Hook_ID.address() + 0x52);
+
+        REL::ID BipedAnim_VisitGetWornArmorTypeVisitor(37688);
+
+        void Apply() {
+            LOG(info, "Patching fix for skill level");
+            LOG(info, "GetSkillToLevel_Hook = {:x}", GetSkillToLevel_Hook - REL::Module::get().base());
+            LOG(info, "BipedAnim__GetActorRaceBodyArmorPtrPtr = {:x}", BipedAnim_VisitGetWornArmorTypeVisitor.address() - REL::Module::get().base());
+            {
+                struct FixSkillLeveling_Code: Xbyak::CodeGenerator {
+                    FixSkillLeveling_Code() {
+                        Xbyak::Label j_Out;
+                        Xbyak::Label f_Inner;
+                        Xbyak::Label f_VisitGetWornArmorTypeVisitor;
+
+                        push(rcx);
+                        push(rdx);
+                        sub(rsp, 0x20);
+                        call(ptr[rip + f_Inner]);
+                        add(rsp, 0x20);
+                        pop(rdx);
+                        pop(rcx);
+                        test(al, al);
+                        jnz(j_Out);
+                        call(ptr[rip + f_VisitGetWornArmorTypeVisitor]);
+
+                        L(j_Out);
+                        jmp(ptr[rip]);
+                        dq(GetSkillToLevel_Hook + 0x5);
+
+                        L(f_VisitGetWornArmorTypeVisitor);
+                        dq(BipedAnim_VisitGetWornArmorTypeVisitor.address());
+
+                        L(f_Inner);
+                        dq(uintptr_t(Inner));
+                    }
+                };
+                FixSkillLeveling_Code gen;
+                void* code = g_localTrampoline->allocate(gen);
+
+                LOG(info, "AVI: Patching skill level logic at addr = {:x}. base = {:x}", GetSkillToLevel_Hook, REL::Module::get().base());
+                g_branchTrampoline->write_branch<5>(GetSkillToLevel_Hook, code);
+            }
+            LOG(info, "Done");
+        }
+    }// namespace FixSkillLeveling
+
     namespace RTTIPrinter {
     }
 
@@ -286,6 +335,7 @@ namespace Hooking {
         ShimWornFlags::Apply();
         CustomSkinPlayer::Apply();
         FixEquipConflictCheck::Apply();
+        FixSkillLeveling::Apply();
     }
 }// namespace Hooking
 
