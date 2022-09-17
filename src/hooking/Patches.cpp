@@ -4,6 +4,8 @@
 
 #include "hooking/Patches.hpp"
 
+#include <bit>
+
 #include "ArmorAddonOverrideService.h"
 
 namespace Hooking {
@@ -37,6 +39,24 @@ namespace Hooking {
         };
 
         std::unordered_set<RE::TESObjectARMO*> equipped;
+    };
+
+    class EquippedVisitorFn: public RE::InventoryChanges::IItemChangeVisitor {
+        //
+        // If the player has a shield equipped, and if we're not overriding that
+        // shield, then we need to grab the equipped shield's worn-flags.
+        //
+    public:
+        explicit EquippedVisitorFn(std::function<ReturnType(RE::TESBoundObject*)> callable) : callable(callable) {};
+        virtual ReturnType Visit(RE::InventoryEntryData* data) override {
+            auto form = data->object;
+            if (form) {
+                callable(data->object);
+            }
+            return ReturnType::kContinue;// Return true to "continue visiting".
+        };
+
+        std::function<ReturnType(RE::TESBoundObject*)> callable;
     };
 
     namespace DontVanillaSkinPlayer {
@@ -211,14 +231,34 @@ namespace Hooking {
         };
         static_assert(sizeof(Visitor) == 0x18);
 
-        bool Inner(RE::BipedAnim* biped, Visitor* visitor) {
-            auto target = biped->actorRef.get();
+        bool Inner(RE::BipedAnim* biped, Visitor* bipedVisitor) {
+            auto target = biped->actorRef.get(); // Retain via smart pointer.
             if (!target) return false;
             auto actor = skyrim_cast<RE::Actor*>(target.get());
             if (!actor) return false;
             if (!ShouldOverrideSkinning(actor)) return false;
-            visitor->light = 0;
-            visitor->heavy = 5;
+            auto inventory = target->GetInventoryChanges();
+            if (!inventory) return false;
+            EquippedVisitorFn inventoryVisitor([&](RE::TESBoundObject* form) {
+                using ReturnType = RE::InventoryChanges::IItemChangeVisitor::ReturnType;
+                ReturnType returnValue(ReturnType::kContinue);
+                if (form->formType == RE::FormType::Armor) {
+                    auto armor = skyrim_cast<RE::TESObjectARMO*>(form);
+                    if (!armor) return returnValue;
+                    RE::BIPED_MODEL::ArmorType armorType = armor->GetArmorType();
+                    auto mask = static_cast<std::uint32_t>(armor->GetSlotMask());
+                    // Exclude shields.
+                    if (armor->IsShield()) return returnValue;
+                    // Count the number of slots taken by the armor. Body slot counts double.
+                    int count = 0;
+                    if (mask & static_cast<std::uint32_t>(RE::BIPED_MODEL::BipedObjectSlot::kBody)) count++;
+                    count += std::popcount(mask);
+                    if (armorType == RE::BIPED_MODEL::ArmorType::kLightArmor) bipedVisitor->light += count;
+                    if (armorType == RE::BIPED_MODEL::ArmorType::kHeavyArmor) bipedVisitor->heavy += count;
+                }
+                return returnValue;
+            });
+            inventory->ExecuteVisitorOnWorn(&inventoryVisitor);
             return true;
         }
     }// namespace FixSkillLeveling

@@ -27,7 +27,7 @@ namespace Hooking {
 
     namespace FixSkillLeveling {
         struct Visitor;
-        bool Inner(RE::BipedAnim* biped, Visitor* visitor);
+        bool Inner(RE::BipedAnim* biped, Visitor* bipedVisitor);
     }// namespace FixSkillLeveling
 
     namespace RTTIPrinter {
