@@ -279,7 +279,6 @@ namespace Hooking {
     }// namespace FixEquipConflictCheck
 
     namespace FixSkillLeveling {
-        // Technically, we wanted 38539, but that guy got inlined into here.
         REL::ID GetSkillToLevel_Hook_ID(37589);
         std::uintptr_t GetSkillToLevel_Hook(GetSkillToLevel_Hook_ID.address() + 0x52);
 
@@ -296,8 +295,6 @@ namespace Hooking {
                         Xbyak::Label f_Inner;
                         Xbyak::Label f_VisitGetWornArmorTypeVisitor;
 
-                        // The parent function already reserves the required 0x20 bytes of
-                        // stack space for the functions it calls, so we won't do it again
                         push(rcx);
                         push(rdx);
                         sub(rsp, 0x20);
