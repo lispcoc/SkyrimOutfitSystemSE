@@ -281,6 +281,85 @@ namespace Hooking {
         }
     }// namespace FixEquipConflictCheck
 
+
+    namespace FixSkillLeveling {
+        // Technically, we wanted 38539, but that guy got inlined into here.
+        REL::ID SkillMutationFunction_Hook_ID(38627);
+        std::uintptr_t SkillMutationFunction_Hook(SkillMutationFunction_Hook_ID.address() + 0x373);
+
+        REL::ID BipedAnim_GetActorRaceBodyArmorPtrPtr(15696);
+
+        void Apply() {
+            LOG(info, "Patching fix for skill level");
+            LOG(info, "SkillMutationFunction_Hook_ID = {:x}", SkillMutationFunction_Hook - REL::Module::get().base());
+            LOG(info, "BipedAnim_GetActorRaceBodyArmorPtrPtr = {:x}", BipedAnim_GetActorRaceBodyArmorPtrPtr.address() - REL::Module::get().base());
+            {
+                struct FixSkillLeveling_Code: Xbyak::CodeGenerator {
+                    FixSkillLeveling_Code() {
+                        Xbyak::Label f_Inner;
+                        Xbyak::Label f_GetActorRaceBodyArmorPtrPtr;
+                        Xbyak::Label j_ResumeNormally;
+                        Xbyak::Label j_SkipLoop;
+
+                        // In the original code, the Visitor lives exclusively
+                        // in the registers. The mapping is
+                        //   RE::TESObjectARMO** shield = r13
+                        //   RE::TESObjectARMO** torso = rbx
+                        //   std::uint32_t light = ebp (32-bit)
+                        //   std::uint32_t heavy = r15d (32-bit)
+                        // All these registers are non-volatile
+
+                        push(rcx); // 8
+                        // We now push the register data onto the stack, laid out as the struct would be.
+                        sub(rsp, 0x4); // Fake a push of the r15d
+                        mov(ptr[rsp], r15d); // 4
+                        sub(rsp, 0x4); // Fake a push of the ebp
+                        mov(ptr[rsp], ebp);// 4
+                        push(rbx); // 8
+                        push(r13); // 8
+                        // We don't need to fixup rsp because the pushes above should leave it 16-byte aligned
+                        // rcx is already the right value, so just set rdx to point to the data we pushed
+                        mov(rdx, rsp); // rsp points to the start of the pushed data
+                        sub(rsp, 0x20);
+                        call(ptr[rip + f_Inner]);
+                        add(rsp, 0x20);
+                        pop(r13);
+                        pop(rbx);
+                        mov(ebp, ptr[rsp]); // Fake a pop of ebp
+                        add(rsp, 0x4);
+                        mov(r15d, ptr[rsp]); // Fake a pop of r15d
+                        add(rsp, 0x4);
+                        pop(rcx);
+                        test(al, al);
+                        jnz(j_SkipLoop);
+                        call(ptr[rip + f_GetActorRaceBodyArmorPtrPtr]);
+
+                        L(j_ResumeNormally);
+                        jmp(ptr[rip]);
+                        dq(SkillMutationFunction_Hook + 0x5);
+
+                        L(j_SkipLoop);
+                        mov(r12, 0x0);
+                        jmp(ptr[rip]);
+                        dq(SkillMutationFunction_Hook + 0x7b);
+
+                        L(f_GetActorRaceBodyArmorPtrPtr);
+                        dq(BipedAnim_GetActorRaceBodyArmorPtrPtr.address());
+
+                        L(f_Inner);
+                        dq(uintptr_t(Inner));
+                    }
+                };
+                FixSkillLeveling_Code gen;
+                void* code = g_localTrampoline->allocate(gen);
+
+                LOG(info, "AVI: Patching skill mutation logic at addr = {:x}. base = {:x}", SkillMutationFunction_Hook, REL::Module::get().base());
+                g_branchTrampoline->write_branch<5>(SkillMutationFunction_Hook, code);
+            }
+            LOG(info, "Done");
+        }
+    }// namespace FixSkillLeveling
+
     namespace RTTIPrinter {
         REL::ID InventoryChanges_ExecuteVisitorOnWorn(16096);// 0x001E51D0 in 1.5.73
         std::uintptr_t InventoryChanges_ExecuteVisitorOnWorn_Hook(
@@ -331,6 +410,10 @@ namespace Hooking {
         ShimWornFlags::Apply();
         CustomSkinPlayer::Apply();
         FixEquipConflictCheck::Apply();
+        FixSkillLeveling::Apply();
+#if _DEBUG
+        RTTIPrinter::Apply();
+#endif
     }
 }// namespace Hooking
 
