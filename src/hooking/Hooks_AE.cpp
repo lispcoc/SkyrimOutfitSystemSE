@@ -1,7 +1,7 @@
 //
 // Created by m on 9/11/2022.
 //
-#ifdef SKYRIM_VERSION_IS_AE
+#ifdef SKYRIM_VERSION_IS_SOME_AE
 
 #include "hooking/Hooks.hpp"
 
