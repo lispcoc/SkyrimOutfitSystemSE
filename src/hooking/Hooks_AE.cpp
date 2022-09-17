@@ -305,16 +305,16 @@ namespace Hooking {
                         // in the registers. The mapping is
                         //   RE::TESObjectARMO** shield = r13
                         //   RE::TESObjectARMO** torso = rbx
-                        //   std::uint32_t light = ebp (32-bit)
-                        //   std::uint32_t heavy = r15d (32-bit)
+                        //   std::uint32_t light = r15d (32-bit)
+                        //   std::uint32_t heavy = ebp (32-bit)
                         // All these registers are non-volatile
 
                         push(rcx); // 8
                         // We now push the register data onto the stack, laid out as the struct would be.
-                        sub(rsp, 0x4); // Fake a push of the r15d
-                        mov(ptr[rsp], r15d); // 4
                         sub(rsp, 0x4); // Fake a push of the ebp
                         mov(ptr[rsp], ebp);// 4
+                        sub(rsp, 0x4); // Fake a push of the r15d
+                        mov(ptr[rsp], r15d); // 4
                         push(rbx); // 8
                         push(r13); // 8
                         // We don't need to fixup rsp because the pushes above should leave it 16-byte aligned
@@ -325,9 +325,9 @@ namespace Hooking {
                         add(rsp, 0x20);
                         pop(r13);
                         pop(rbx);
-                        mov(ebp, ptr[rsp]); // Fake a pop of ebp
-                        add(rsp, 0x4);
                         mov(r15d, ptr[rsp]); // Fake a pop of r15d
+                        add(rsp, 0x4);
+                        mov(ebp, ptr[rsp]); // Fake a pop of ebp
                         add(rsp, 0x4);
                         pop(rcx);
                         test(al, al);
