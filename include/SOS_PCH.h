@@ -7,8 +7,12 @@
 
 #include "version.h"
 
+#if SKYRIM_VERSION_IS_AE1 || SKYRIM_VERSION_IS_AE2
+#define SKYRIM_VERSION_IS_SOME_AE 1
+#endif
+
 #pragma warning(push)
-#if SKYRIM_VERSION_IS_AE
+#if SKYRIM_VERSION_IS_SOME_AE
 #include "SKSE/Impl/PCH.h"
 #include <RE/Skyrim.h>
 #include <REL/Relocation.h>
@@ -66,7 +70,7 @@ namespace util {
 namespace Plugin {
     using namespace std::literals;
 
-#if SKYRIM_VERSION_IS_AE
+#if SKYRIM_VERSION_IS_SOME_AE
     inline constexpr REL::Version VERSION{SKYRIMOUTFITSYSTEMSE_VERSION_MAJOR, SKYRIMOUTFITSYSTEMSE_VERSION_MINOR, SKYRIMOUTFITSYSTEMSE_VERSION_PATCH};
 #elif SKYRIM_VERSION_IS_PRE_AE
     inline constexpr REL::Version VERSION{SKYRIMOUTFITSYSTEMSE_VERSION_MAJOR, SKYRIMOUTFITSYSTEMSE_VERSION_MINOR, SKYRIMOUTFITSYSTEMSE_VERSION_PATCH, 0};
