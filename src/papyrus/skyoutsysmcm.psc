@@ -238,6 +238,10 @@ EndFunction
       ;/Block/; ; Left column
          SetCursorFillMode(TOP_TO_BOTTOM)
          SetCursorPosition(0)
+         If SKSE.GetPluginVersion("SkyrimOutfitSystemSE") == -1
+            AddHeaderOption("$SkyOutSys_Text_WarningHeader")
+            return
+         EndIf
          AddToggleOptionST("OPT_Enabled", "$Enabled", SkyrimOutfitSystemNativeFuncs.IsEnabled())
          AddMenuOptionST("OPT_SelectActorSelection", "$SkyOutSys_Text_SelectActorSelection", _aCurrentActor.GetBaseObject().GetName())
          AddEmptyOption()
