@@ -20,20 +20,7 @@ Invoke-CmdScript "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Aux
 # Run cmake to set up proto compiler (need to do this)
 cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_TOOLCHAIN_FILE=C:\Tools\vcpkg\scripts\buildsystems\vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DSKYRIM_VERSION=PRE_AE ../
 
-# Run cmake to build PRE_AE version
-cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -DVCPKG_TARGET_TRIPLET=x64-windows-static -DSKYRIM_VERSION=PRE_AE ../
+# Run cmake to build
+cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -DVCPKG_TARGET_TRIPLET=x64-windows-static ../
 # Finally, build the thing
 cmake --build . -j
-mv SkyrimOutfitSystemSE.dll SkyrimOutfitSystemSE_PRE_AE.dll
-
-# Run cmake to build AE1 version
-cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -DVCPKG_TARGET_TRIPLET=x64-windows-static -DSKYRIM_VERSION=AE1 ../
-# Finally, build the thing
-cmake --build . -j
-mv SkyrimOutfitSystemSE.dll SkyrimOutfitSystemSE_AE1.dll
-
-# Run cmake to build AE2 version
-cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -DVCPKG_TARGET_TRIPLET=x64-windows-static -DSKYRIM_VERSION=AE2 ../
-# Finally, build the thing
-cmake --build . -j
-mv SkyrimOutfitSystemSE.dll SkyrimOutfitSystemSE_AE2.dll
