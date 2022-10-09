@@ -345,4 +345,4 @@ namespace HookingPREAE {
         FixEquipConflictCheck::Apply();
         FixSkillLeveling::Apply();
     }
-}// namespace Hooking
+}// namespace HookingPREAE

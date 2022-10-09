@@ -549,7 +549,7 @@ void ArmorAddonOverrideService::load(const SKSE::SerializationInterface* intfc, 
             cobb::istring(data.obsolete_current_outfit_name().data(), data.obsolete_current_outfit_name().size());
         for (const auto& locOutfitData : data.obsolete_location_based_outfits()) {
             this->actorOutfitAssignments[RE::PlayerCharacter::GetSingleton()->GetHandle().native_handle()].locationOutfits.emplace(LocationType(locOutfitData.first),
-                                                                                                      cobb::istring(locOutfitData.second.data(), locOutfitData.second.size()));
+                                                                                                                                   cobb::istring(locOutfitData.second.data(), locOutfitData.second.size()));
         }
     }
 }

@@ -4,9 +4,8 @@ namespace RE {
     namespace BSScript {
         class IVirtualMachine;
     }
-}
+}// namespace RE
 
-namespace OutfitSystem
-{
+namespace OutfitSystem {
     bool RegisterPapyrus(RE::BSScript::IVirtualMachine* registry);
 }

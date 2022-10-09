@@ -4,10 +4,10 @@
 
 #include "ArmorAddonOverrideService.h"
 
+#include "RE/REAugments.h"
 #include "cobb/strings.h"
 #include "cobb/utf8naturalsort.h"
 #include "cobb/utf8string.h"
-#include "RE/REAugments.h"
 
 #include <algorithm>
 

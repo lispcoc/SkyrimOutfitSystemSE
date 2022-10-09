@@ -14,9 +14,9 @@
 #include <SKSE/SKSE.h>
 
 #ifdef NDEBUG
-#	include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #else
-#	include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #endif
 #pragma warning(pop)
 
@@ -28,17 +28,17 @@ namespace util {
     using SKSE::stl::report_and_fail;
 }
 
-#define DllExport __declspec( dllexport )
+#define DllExport __declspec(dllexport)
 
 namespace Plugin {
     using namespace std::literals;
 
     inline constexpr REL::Version VERSION{SKYRIMOUTFITSYSTEMSE_VERSION_MAJOR, SKYRIMOUTFITSYSTEMSE_VERSION_MINOR, SKYRIMOUTFITSYSTEMSE_VERSION_PATCH};
     inline constexpr auto NAME = "SkyrimOutfitSystemSE"sv;
-}
+}// namespace Plugin
 
 namespace RE {
     using RawActorHandle = RE::ActorHandle::native_handle_type;
 }
 
-#endif //SKYRIMOUTFITSYSTEMSE_SOS_PCH_H
+#endif//SKYRIMOUTFITSYSTEMSE_SOS_PCH_H

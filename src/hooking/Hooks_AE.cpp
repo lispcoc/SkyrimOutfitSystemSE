@@ -286,7 +286,6 @@ namespace HookingAE {
         }
     }// namespace FixEquipConflictCheck
 
-
     namespace FixSkillLeveling {
         using namespace Hooking::FixSkillLeveling;
 
@@ -316,25 +315,25 @@ namespace HookingAE {
                         //   std::uint32_t heavy = ebp (32-bit)
                         // All these registers are non-volatile
 
-                        push(rcx); // 8
+                        push(rcx);// 8
                         // We now push the register data onto the stack, laid out as the struct would be.
-                        sub(rsp, 0x4); // Fake a push of the ebp
-                        mov(ptr[rsp], ebp);// 4
-                        sub(rsp, 0x4); // Fake a push of the r15d
-                        mov(ptr[rsp], r15d); // 4
-                        push(rbx); // 8
-                        push(r13); // 8
+                        sub(rsp, 0x4);      // Fake a push of the ebp
+                        mov(ptr[rsp], ebp); // 4
+                        sub(rsp, 0x4);      // Fake a push of the r15d
+                        mov(ptr[rsp], r15d);// 4
+                        push(rbx);          // 8
+                        push(r13);          // 8
                         // We don't need to fixup rsp because the pushes above should leave it 16-byte aligned
                         // rcx is already the right value, so just set rdx to point to the data we pushed
-                        mov(rdx, rsp); // rsp points to the start of the pushed data
+                        mov(rdx, rsp);// rsp points to the start of the pushed data
                         sub(rsp, 0x20);
                         call(ptr[rip + f_Inner]);
                         add(rsp, 0x20);
                         pop(r13);
                         pop(rbx);
-                        mov(r15d, ptr[rsp]); // Fake a pop of r15d
+                        mov(r15d, ptr[rsp]);// Fake a pop of r15d
                         add(rsp, 0x4);
-                        mov(ebp, ptr[rsp]); // Fake a pop of ebp
+                        mov(ebp, ptr[rsp]);// Fake a pop of ebp
                         add(rsp, 0x4);
                         pop(rcx);
                         test(al, al);
@@ -424,4 +423,4 @@ namespace HookingAE {
         RTTIPrinter::Apply();
 #endif
     }
-}// namespace Hooking
+}// namespace HookingAE

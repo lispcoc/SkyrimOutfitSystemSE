@@ -44,14 +44,14 @@ namespace Hooking {
         std::unordered_set<RE::TESObjectARMO*> equipped;
     };
 
-    template <typename F>
+    template<typename F>
     class EquippedVisitorFn: public RE::IItemChangeVisitorAugment {
         //
         // If the player has a shield equipped, and if we're not overriding that
         // shield, then we need to grab the equipped shield's worn-flags.
         //
     public:
-        explicit EquippedVisitorFn(F callable) : callable(callable) {};
+        explicit EquippedVisitorFn(F callable) : callable(callable){};
         virtual VisitorReturn Visit(RE::InventoryEntryData* data) override {
             auto form = data->object;
             if (form) {
@@ -237,7 +237,7 @@ namespace Hooking {
         static_assert(sizeof(Visitor) == 0x18);
 
         bool Inner(RE::BipedAnim* biped, Visitor* bipedVisitor) {
-            auto target = biped->actorRef.get(); // Retain via smart pointer.
+            auto target = biped->actorRef.get();// Retain via smart pointer.
             if (!target) return false;
             auto actor = skyrim_cast<RE::Actor*>(target.get());
             if (!actor) return false;

@@ -4,9 +4,8 @@ namespace SKSE {
     class Trampoline;
 }
 
-namespace OutfitSystem
-{
+namespace OutfitSystem {
     extern SKSE::Trampoline* g_localTrampoline;
     extern SKSE::Trampoline* g_branchTrampoline;
     void ApplyPlayerSkinningHooks();
-}
+}// namespace OutfitSystem
