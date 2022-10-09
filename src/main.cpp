@@ -66,8 +66,7 @@ DllExport constinit auto SKSEPlugin_Version = []() {
 
 // Plugin Query for SE
 DllExport bool SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info) {
-    LOG(info, "Query: {} v{}", Plugin::NAME, Plugin::VERSION.string());
-
+    Sleep(10000);
     a_info->infoVersion = SKSE::PluginInfo::kVersion;
     a_info->name = "SkyrimOutfitSystemSE";
     a_info->version = 1;
@@ -84,6 +83,9 @@ DllExport bool SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::Plugin
 DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse) {
     InitializeLog();
     LOG(info, "Load: {} v{}", Plugin::NAME, Plugin::VERSION.string());
+
+    auto gameVersion = REL::Relocate("SE", "AE");
+    LOG(info, "Game type: {}", gameVersion);
 
 #ifdef _DEBUG
     // Intercept Visual C++ exceptions, but only if we're developing.

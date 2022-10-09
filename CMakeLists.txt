@@ -72,7 +72,7 @@ string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
         $<$<CONFIG:Debug>:MultiThreadedDebug>
         $<$<CONFIG:Release>:MultiThreaded>)
 
-# Also force it on CommonLibSSE and Protobuf
+# Also force it on Protobuf
 set_target_properties(ProtocolBuffers PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
 
 ################################################################################
@@ -119,6 +119,8 @@ target_precompile_headers(SkyrimOutfitSystemSE PRIVATE
 
 target_compile_definitions(SkyrimOutfitSystemSE PRIVATE
     XBYAK_NO_OP_NAMES
+    ENABLE_SKYRIM_SE
+    ENABLE_SKYRIM_AE
 )
 
 target_compile_features(SkyrimOutfitSystemSE PRIVATE
