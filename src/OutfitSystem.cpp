@@ -29,7 +29,6 @@ namespace OutfitSystem {
     std::int32_t GetOutfitNameMaxLength(RE::BSScript::IVirtualMachine* registry,
                                         std::uint32_t stackId,
                                         RE::StaticFunctionTag*) {
-        LOG(trace, "Enter GetOutfitNameMaxLength");
         LogExit exitPrint("GetOutfitNameMaxLength"sv);
         return ArmorAddonOverrideService::ce_outfitNameMaxLength;
     }
@@ -37,7 +36,6 @@ namespace OutfitSystem {
                                                     std::uint32_t stackId,
                                                     RE::StaticFunctionTag*,
                                                     RE::Actor* target) {
-        LOG(trace, "Enter GetCarriedArmor {}", (void*) target);
         LogExit exitPrint("GetCarriedArmor"sv);
         std::vector<RE::TESObjectARMO*> result;
         if (target == nullptr) {
@@ -85,7 +83,6 @@ namespace OutfitSystem {
         std::uint32_t stackId,
         RE::StaticFunctionTag*,
         RE::Actor* target) {
-        LOG(trace, "Enter GetWornItems {}", (void*) target);
         LogExit exitPrint("GetWornItems"sv);
         std::vector<RE::TESObjectARMO*> result;
         if (target == nullptr) {
@@ -129,7 +126,6 @@ namespace OutfitSystem {
                          std::uint32_t stackId,
                          RE::StaticFunctionTag*,
                          RE::Actor* target) {
-        LOG(trace, "Enter RefreshArmorFor {}", (void*) target);
         LogExit exitPrint("RefreshArmorFor"sv);
         ERROR_AND_RETURN_IF(target == nullptr, "Cannot refresh armor on a None RE::Actor.", registry, stackId);
         auto pm = target->GetActorRuntimeData().currentProcess;
@@ -149,7 +145,6 @@ namespace OutfitSystem {
     void RefreshArmorForAllConfiguredActors(RE::BSScript::IVirtualMachine* registry,
                                             std::uint32_t stackId,
                                             RE::StaticFunctionTag*) {
-        LOG(trace, "Enter RefreshArmorForAllConfiguredActors");
         LogExit exitPrint("RefreshArmorForAllConfiguredActors"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         auto actors = service.listActors();
@@ -176,7 +171,6 @@ namespace OutfitSystem {
     std::vector<RE::Actor*> ActorsNearPC(RE::BSScript::IVirtualMachine* registry,
                                          std::uint32_t stackId,
                                          RE::StaticFunctionTag*) {
-        LOG(trace, "Enter RefreshArmorForAllConfiguredActors");
         LogExit exitPrint("RefreshArmorForAllConfiguredActors"sv);
         std::vector<RE::Actor*> result;
         auto pc = RE::PlayerCharacter::GetSingleton();
@@ -201,7 +195,6 @@ namespace OutfitSystem {
             std::vector<RE::TESObjectARMO*> armors;
             //
             void setup(std::string nameFilter, bool mustBePlayable) {
-                LOG(trace, "Enter ArmorFormSearchUtils.setup");
                 LogExit exitPrint("ArmorFormSearchUtils.setup"sv);
                 auto data = RE::TESDataHandler::GetSingleton();
                 auto& list = data->GetFormArray(RE::FormType::Armor);
@@ -250,14 +243,12 @@ namespace OutfitSystem {
                   RE::StaticFunctionTag*,
                   RE::BSFixedString filter,
                   bool mustBePlayable) {
-            LOG(trace, "Enter ArmorFormSearchUtils.Prep");
             LogExit exitPrint("ArmorFormSearchUtils.Prep"sv);
             data.setup(filter.data(), mustBePlayable);
         }
         std::vector<RE::TESObjectARMO*> GetForms(RE::BSScript::IVirtualMachine* registry,
                                                  std::uint32_t stackId,
                                                  RE::StaticFunctionTag*) {
-            LOG(trace, "Enter ArmorFormSearchUtils.GetForms");
             LogExit exitPrint("ArmorFormSearchUtils.GetForms"sv);
             std::vector<RE::TESObjectARMO*> result;
             auto& list = data.armors;
@@ -273,7 +264,6 @@ namespace OutfitSystem {
         std::vector<RE::BSFixedString> GetNames(RE::BSScript::IVirtualMachine* registry,
                                                 std::uint32_t stackId,
                                                 RE::StaticFunctionTag*) {
-            LOG(trace, "Enter ArmorFormSearchUtils.GetNames");
             LogExit exitPrint("ArmorFormSearchUtils.GetNames"sv);
             std::vector<RE::BSFixedString> result;
             auto& list = data.names;
@@ -282,7 +272,6 @@ namespace OutfitSystem {
             return result;
         }
         void Clear(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*) {
-            LOG(trace, "Enter ArmorFormSearchUtils.Clear");
             LogExit exitPrint("ArmorFormSearchUtils.Clear"sv);
             data.clear();
         }
@@ -299,7 +288,6 @@ namespace OutfitSystem {
         } data;
         //
         void Clear(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*) {
-            LOG(trace, "Enter BodySlotListing.Clear");
             LogExit exitPrint("BodySlotListing.Clear"sv);
             data.bodySlots.clear();
             data.armorNames.clear();
@@ -309,7 +297,6 @@ namespace OutfitSystem {
                   std::uint32_t stackId,
                   RE::StaticFunctionTag*,
                   RE::BSFixedString name) {
-            LOG(trace, "Enter BodySlotListing.Prep");
             LogExit exitPrint("BodySlotListing.Prep"sv);
             data.bodySlots.clear();
             data.armorNames.clear();
@@ -344,7 +331,6 @@ namespace OutfitSystem {
         std::vector<RE::TESObjectARMO*> GetArmorForms(RE::BSScript::IVirtualMachine* registry,
                                                       std::uint32_t stackId,
                                                       RE::StaticFunctionTag*) {
-            LOG(trace, "Enter BodySlotListing.GetArmorForms");
             LogExit exitPrint("BodySlotListing.GetArmorForms"sv);
             std::vector<RE::TESObjectARMO*> result;
             auto& list = data.armors;
@@ -360,7 +346,6 @@ namespace OutfitSystem {
         std::vector<RE::BSFixedString> GetArmorNames(RE::BSScript::IVirtualMachine* registry,
                                                      std::uint32_t stackId,
                                                      RE::StaticFunctionTag*) {
-            LOG(trace, "Enter BodySlotListing.GetArmorNames");
             LogExit exitPrint("BodySlotListing.GetArmorNames"sv);
             std::vector<RE::BSFixedString> result;
             auto& list = data.armorNames;
@@ -371,7 +356,6 @@ namespace OutfitSystem {
         std::vector<std::int32_t> GetSlotIndices(RE::BSScript::IVirtualMachine* registry,
                                                  std::uint32_t stackId,
                                                  RE::StaticFunctionTag*) {
-            LOG(trace, "Enter BodySlotListing.GetSlotIndices");
             LogExit exitPrint("BodySlotListing.GetSlotIndices"sv);
             std::vector<std::int32_t> result;
             auto& list = data.bodySlots;
@@ -386,7 +370,6 @@ namespace OutfitSystem {
                                                          RE::StaticFunctionTag*,
                                                          std::vector<RE::BSFixedString> arr,
                                                          bool descending) {
-            LOG(trace, "Enter StringSorts.NaturalSort_ASCII");
             LogExit exitPrint("StringSorts.NaturalSort_ASCII"sv);
             std::vector<RE::BSFixedString> result = arr;
             std::sort(
@@ -410,7 +393,6 @@ namespace OutfitSystem {
             std::vector<RE::BSFixedString> arr,// Array of string
             std::vector<T*> second,            // Array of forms (T)
             bool descending) {
-            LOG(trace, "Enter StringSorts.NaturalSortPair_ASCII");
             LogExit exitPrint("StringSorts.NaturalSortPair_ASCII"sv);
             std::size_t size = arr.size();
             if (size != second.size()) {
@@ -450,7 +432,6 @@ namespace OutfitSystem {
                                  std::uint32_t stackId,
                                  RE::StaticFunctionTag*,
                                  RE::BSFixedString str) {
-            LOG(trace, "Enter Utility.HexToInt32");
             LogExit exitPrint("Utility.HexToInt32"sv);
             const char* s = str.data();
             char* discard;
@@ -460,7 +441,6 @@ namespace OutfitSystem {
 
                                 std::uint32_t value,
                                 std::int32_t length) {
-            LOG(trace, "Enter Utility.ToHex");
             LogExit exitPrint("Utility.ToHex"sv);
             if (length < 1) {
                 registry->TraceStack(
@@ -491,7 +471,6 @@ namespace OutfitSystem {
 
                           RE::BSFixedString name,
                           RE::TESObjectARMO* armor_skse) {
-        LOG(trace, "Enter AddArmorToOutfit");
         LogExit exitPrint("AddArmorToOutfit"sv);
         auto armor = (RE::TESObjectARMO*) (armor_skse);
         ERROR_AND_RETURN_IF(armor == nullptr, "Cannot add a None armor to an outfit.", registry, stackId);
@@ -509,7 +488,6 @@ namespace OutfitSystem {
 
                                   RE::TESObjectARMO* armor_skse,
                                   RE::BSFixedString name) {
-        LOG(trace, "Enter ArmorConflictsWithOutfit");
         LogExit exitPrint("ArmorConflictsWithOutfit"sv);
         auto armor = (RE::TESObjectARMO*) (armor_skse);
         if (armor == nullptr) {
@@ -529,7 +507,6 @@ namespace OutfitSystem {
                       std::uint32_t stackId,
                       RE::StaticFunctionTag*,
                       RE::BSFixedString name) {
-        LOG(trace, "Enter CreateOutfit");
         LogExit exitPrint("CreateOutfit"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         try {
@@ -543,7 +520,6 @@ namespace OutfitSystem {
                       std::uint32_t stackId,
                       RE::StaticFunctionTag*,
                       RE::BSFixedString name) {
-        LOG(trace, "Enter DeleteOutfit");
         LogExit exitPrint("DeleteOutfit"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         service.deleteOutfit(name.data());
@@ -553,7 +529,6 @@ namespace OutfitSystem {
                                                       RE::StaticFunctionTag*,
 
                                                       RE::BSFixedString name) {
-        LOG(trace, "Enter GetOutfitContents");
         LogExit exitPrint("GetOutfitContents"sv);
         std::vector<RE::TESObjectARMO*> result;
         auto& service = ArmorAddonOverrideService::GetInstance();
@@ -577,7 +552,6 @@ namespace OutfitSystem {
                                  RE::StaticFunctionTag*,
 
                                  RE::BSFixedString name) {
-        LOG(trace, "Enter GetOutfitFavoriteStatus");
         LogExit exitPrint("GetOutfitFavoriteStatus"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         bool result = false;
@@ -594,7 +568,6 @@ namespace OutfitSystem {
                                     RE::StaticFunctionTag*,
 
                                     RE::BSFixedString name) {
-        LOG(trace, "Enter GetOutfitPassthroughStatus");
         LogExit exitPrint("GetOutfitPassthroughStatus"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         bool result = false;
@@ -611,7 +584,6 @@ namespace OutfitSystem {
                                       RE::StaticFunctionTag*,
 
                                       RE::BSFixedString name) {
-        LOG(trace, "Enter GetOutfitEquipRequiredStatus");
         LogExit exitPrint("GetOutfitEquipRequiredStatus"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         bool result = false;
@@ -627,7 +599,6 @@ namespace OutfitSystem {
                                         std::uint32_t stackId,
                                         RE::StaticFunctionTag*,
                                         RE::Actor* actor) {
-        LOG(trace, "Enter GetSelectedOutfit");
         LogExit exitPrint("GetSelectedOutfit"sv);
         if (!actor)
             return RE::BSFixedString("");
@@ -635,7 +606,6 @@ namespace OutfitSystem {
         return service.currentOutfit(actor->GetHandle().native_handle()).name.c_str();
     }
     bool IsEnabled(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*) {
-        LOG(trace, "Enter IsEnabled");
         LogExit exitPrint("IsEnabled"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         return service.enabled;
@@ -645,7 +615,6 @@ namespace OutfitSystem {
                                                RE::StaticFunctionTag*,
 
                                                bool favoritesOnly) {
-        LOG(trace, "Enter ListOutfits");
         LogExit exitPrint("ListOutfits"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         std::vector<RE::BSFixedString> result;
@@ -660,7 +629,6 @@ namespace OutfitSystem {
 
                                RE::BSFixedString name,
                                RE::TESObjectARMO* armor_skse) {
-        LOG(trace, "Enter RemoveArmorFromOutfit");
         LogExit exitPrint("RemoveArmorFromOutfit"sv);
         auto armor = (RE::TESObjectARMO*) (armor_skse);
         ERROR_AND_RETURN_IF(armor == nullptr, "Cannot remove a None armor from an outfit.", registry, stackId);
@@ -678,7 +646,6 @@ namespace OutfitSystem {
 
                                      RE::TESObjectARMO* armor_skse,
                                      RE::BSFixedString name) {
-        LOG(trace, "Enter RemoveConflictingArmorsFrom");
         LogExit exitPrint("RemoveConflictingArmorsFrom"sv);
         auto armor = (RE::TESObjectARMO*) (armor_skse);
         ERROR_AND_RETURN_IF(armor == nullptr,
@@ -711,7 +678,6 @@ namespace OutfitSystem {
 
                       RE::BSFixedString name,
                       RE::BSFixedString changeTo) {
-        LOG(trace, "Enter RenameOutfit");
         LogExit exitPrint("RenameOutfit"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         try {
@@ -734,7 +700,6 @@ namespace OutfitSystem {
 
                                  RE::BSFixedString name,
                                  bool favorite) {
-        LOG(trace, "Enter SetOutfitFavoriteStatus");
         LogExit exitPrint("SetOutfitFavoriteStatus"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         service.setFavorite(name.data(), favorite);
@@ -745,7 +710,6 @@ namespace OutfitSystem {
 
                                     RE::BSFixedString name,
                                     bool allowsPassthrough) {
-        LOG(trace, "Enter SetOutfitPassthroughStatus");
         LogExit exitPrint("SetOutfitPassthroughStatus"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         service.setOutfitPassthrough(name.data(), allowsPassthrough);
@@ -756,7 +720,6 @@ namespace OutfitSystem {
 
                                       RE::BSFixedString name,
                                       bool equipRequired) {
-        LOG(trace, "Enter SetOutfitEquipRequiredStatus");
         LogExit exitPrint("SetOutfitEquipRequiredStatus"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         service.setOutfitEquipRequired(name.data(), equipRequired);
@@ -764,7 +727,6 @@ namespace OutfitSystem {
     bool OutfitExists(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
 
                       RE::BSFixedString name) {
-        LOG(trace, "Enter OutfitExists");
         LogExit exitPrint("OutfitExists"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         return service.hasOutfit(name.data());
@@ -774,7 +736,6 @@ namespace OutfitSystem {
                          RE::StaticFunctionTag*,
                          RE::BSFixedString name,
                          std::vector<RE::TESObjectARMO*> armors) {
-        LOG(trace, "Enter OverwriteOutfit");
         LogExit exitPrint("OverwriteOutfit"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         try {
@@ -796,7 +757,6 @@ namespace OutfitSystem {
                     std::uint32_t stackId,
                     RE::StaticFunctionTag*,
                     bool state) {
-        LOG(trace, "Enter SetEnabled");
         LogExit exitPrint("SetEnabled"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         service.setEnabled(state);
@@ -806,7 +766,6 @@ namespace OutfitSystem {
                            RE::StaticFunctionTag*,
                            RE::Actor* actor,
                            RE::BSFixedString name) {
-        LOG(trace, "Enter SetSelectedOutfit");
         LogExit exitPrint("SetSelectedOutfit"sv);
         if (!actor)
             return;
@@ -817,7 +776,6 @@ namespace OutfitSystem {
                   std::uint32_t stackId,
                   RE::StaticFunctionTag*,
                   RE::Actor* target) {
-        LOG(trace, "Enter AddActor");
         LogExit exitPrint("AddActor"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         service.addActor(target->GetHandle().native_handle());
@@ -826,7 +784,6 @@ namespace OutfitSystem {
                      std::uint32_t stackId,
                      RE::StaticFunctionTag*,
                      RE::Actor* target) {
-        LOG(trace, "Enter RemoveActor");
         LogExit exitPrint("RemoveActor"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         service.removeActor(target->GetHandle().native_handle());
@@ -834,7 +791,6 @@ namespace OutfitSystem {
     std::vector<RE::Actor*> ListActors(RE::BSScript::IVirtualMachine* registry,
                                        std::uint32_t stackId,
                                        RE::StaticFunctionTag*) {
-        LOG(trace, "Enter ListActors");
         LogExit exitPrint("ListActors"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         auto actors = service.listActors();
@@ -868,21 +824,18 @@ namespace OutfitSystem {
                                            RE::StaticFunctionTag*,
 
                                            bool value) {
-        LOG(trace, "Enter SetLocationBasedAutoSwitchEnabled");
         LogExit exitPrint("SetLocationBasedAutoSwitchEnabled"sv);
         ArmorAddonOverrideService::GetInstance().setLocationBasedAutoSwitchEnabled(value);
     }
     bool GetLocationBasedAutoSwitchEnabled(RE::BSScript::IVirtualMachine* registry,
                                            std::uint32_t stackId,
                                            RE::StaticFunctionTag*) {
-        LOG(trace, "Enter GetLocationBasedAutoSwitchEnabled");
         LogExit exitPrint("GetLocationBasedAutoSwitchEnabled"sv);
         return ArmorAddonOverrideService::GetInstance().locationBasedAutoSwitchEnabled;
     }
     std::vector<std::uint32_t> GetAutoSwitchLocationArray(RE::BSScript::IVirtualMachine* registry,
                                                           std::uint32_t stackId,
                                                           RE::StaticFunctionTag*) {
-        LOG(trace, "Enter GetAutoSwitchLocationArray");
         LogExit exitPrint("GetAutoSwitchLocationArray"sv);
         std::vector<std::uint32_t> result;
         for (LocationType i : {
@@ -903,7 +856,6 @@ namespace OutfitSystem {
         return result;
     }
     std::optional<LocationType> identifyLocation(RE::BGSLocation* location, RE::TESWeather* weather) {
-        LOG(trace, "Enter identifyLocation");
         LogExit exitPrint("identifyLocation"sv);
         // Just a helper function to classify a location.
         // TODO: Think of a better place than this since we're not exposing it to Papyrus.
@@ -941,7 +893,6 @@ namespace OutfitSystem {
 
                                        RE::BGSLocation* location_skse,
                                        RE::TESWeather* weather_skse) {
-        LOG(trace, "Enter IdentifyLocationType");
         LogExit exitPrint("IdentifyLocationType"sv);
         // NOTE: Identify the location for Papyrus. In the event no location is identified, we lie to Papyrus and say "World".
         //       Therefore, Papyrus cannot assume that locations returned have an outfit assigned, at least not for "World".
@@ -953,7 +904,6 @@ namespace OutfitSystem {
                                 RE::Actor* actor,
                                 RE::BGSLocation* location_skse,
                                 RE::TESWeather* weather_skse) {
-        LOG(trace, "Enter SetOutfitUsingLocation");
         LogExit exitPrint("SetOutfitUsingLocation"sv);
         // NOTE: Location can be NULL.
         auto& service = ArmorAddonOverrideService::GetInstance();
@@ -977,7 +927,6 @@ namespace OutfitSystem {
                            RE::Actor* actor,
                            std::uint32_t location,
                            RE::BSFixedString name) {
-        LOG(trace, "Enter SetLocationOutfit");
         LogExit exitPrint("SetLocationOutfit"sv);
         if (!actor)
             return;
@@ -991,7 +940,6 @@ namespace OutfitSystem {
     void UnsetLocationOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                              RE::Actor* actor,
                              std::uint32_t location) {
-        LOG(trace, "Enter UnsetLocationOutfit");
         LogExit exitPrint("UnsetLocationOutfit"sv);
         if (!actor)
             return;
@@ -1003,7 +951,6 @@ namespace OutfitSystem {
                                         RE::StaticFunctionTag*,
                                         RE::Actor* actor,
                                         std::uint32_t location) {
-        LOG(trace, "Enter GetLocationOutfit");
         LogExit exitPrint("GetLocationOutfit"sv);
         if (!actor)
             return RE::BSFixedString("");
@@ -1017,7 +964,6 @@ namespace OutfitSystem {
         }
     }
     bool ExportSettings(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*) {
-        LOG(trace, "Enter ExportSettings");
         LogExit exitPrint("ExportSettings"sv);
         std::string outputFile = GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\OutfitSystemData.json";
         auto& service = ArmorAddonOverrideService::GetInstance();
@@ -1043,7 +989,6 @@ namespace OutfitSystem {
         }
     }
     bool ImportSettings(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*) {
-        LOG(trace, "Enter ImportSettings");
         LogExit exitPrint("ImportSettings"sv);
         std::string inputFile = GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\OutfitSystemData.json";
         std::ifstream file(inputFile);

@@ -14,7 +14,6 @@ namespace Hooking {
     SKSE::Trampoline* g_branchTrampoline = nullptr;
 
     bool ShouldOverrideSkinning(RE::TESObjectREFR* target) {
-        LOG(trace, "Enter ShouldOverrideSkinning");
         LogExit exitPrint("ShouldOverrideSkinning"sv);
         if (!target) {
             LOG(warn, "Target was null");
@@ -68,7 +67,6 @@ namespace Hooking {
 
     namespace DontVanillaSkinPlayer {
         bool ShouldOverride(RE::TESObjectARMO* armor, RE::TESObjectREFR* target) {
-            LOG(trace, "Enter DontVanillaSkinPlayer.ShouldOverride");
             LogExit exitPrint("DontVanillaSkinPlayer.ShouldOverride"sv);
             if (!ShouldOverrideSkinning(target)) { return false; }
             auto& svc = ArmorAddonOverrideService::GetInstance();
@@ -94,7 +92,6 @@ namespace Hooking {
 
     namespace ShimWornFlags {
         std::uint32_t OverrideWornFlags(RE::InventoryChanges* inventory, RE::TESObjectREFR* target) {
-            LOG(trace, "Enter ShimWornFlags.OverrideWornFlags");
             LogExit exitPrint("ShimWornFlags.OverrideWornFlags"sv);
             std::uint32_t mask = 0;
             auto actor = skyrim_cast<RE::Actor*>(target);
@@ -113,7 +110,6 @@ namespace Hooking {
 
     namespace CustomSkinPlayer {
         void Custom(RE::Actor* target, RE::ActorWeightModel* actorWeightModel) {
-            LOG(trace, "Enter CustomSkinPlayer.Custom");
             LogExit exitPrint("CustomSkinPlayer.Custom"sv);
             auto actor = skyrim_cast<RE::Actor*>(target);
             if (!actor) {
@@ -214,7 +210,6 @@ namespace Hooking {
             std::uint32_t conflictIndex = 0;
         };
         void Inner(std::uint32_t bodyPartForNewItem, RE::Actor* target) {
-            LOG(trace, "Enter FixEquipConflictCheck.Inner");
             LogExit exitPrint("FixEquipConflictCheck.Inner"sv);
             auto inventory = target->GetInventoryChanges();
             if (inventory) {
@@ -227,7 +222,6 @@ namespace Hooking {
             }
         }
         bool ShouldOverride(RE::TESForm* item) {
-            LOG(trace, "Enter FixEquipConflictCheck.ShouldOverride");
             LogExit exitPrint("FixEquipConflictCheck.ShouldOverride"sv);
             //
             // We only hijack equipping for armors, so I'd like for this patch to only
@@ -250,7 +244,6 @@ namespace Hooking {
         static_assert(sizeof(Visitor) == 0x18);
 
         bool Inner(RE::BipedAnim* biped, Visitor* bipedVisitor) {
-            LOG(trace, "Enter FixSkillLeveling.Inner");
             LogExit exitPrint("FixSkillLeveling.Inner"sv);
             auto target = biped->actorRef.get();// Retain via smart pointer.
             if (!target) return false;
@@ -283,7 +276,6 @@ namespace Hooking {
 
     namespace RTTIPrinter {
         void Print_RTTI(RE::InventoryChanges::IItemChangeVisitor* target) {
-            LOG(trace, "Enter RTTIPrinter.Print_RTTI");
             LogExit exitPrint("RTTIPrinter.Print_RTTI"sv);
             void* object = (void*) target;
             void* vtable = *(void**) object;
