@@ -318,6 +318,9 @@ EndFunction
       EndEvent
       Event OnDefaultST()
       EndEvent
+      Event OnHighlightST()
+         SetInfoText("$SkyOutSys_Desc_AddActor")
+      EndEvent
    EndState
    State OPT_RemoveActorSelection
       Event OnMenuOpenST()
@@ -345,6 +348,9 @@ EndFunction
       EndEvent
       Event OnDefaultST()
       EndEvent
+      Event OnHighlightST()
+         SetInfoText("$SkyOutSys_Desc_RemoveActor")
+      EndEvent
    EndState
    State OPT_SelectActorSelection
       Event OnMenuOpenST()
@@ -369,6 +375,9 @@ EndFunction
          ForcePageReset()
       EndEvent
       Event OnDefaultST()
+      EndEvent
+      Event OnHighlightST()
+         SetInfoText("$SkyOutSys_Desc_ActorSelect")
       EndEvent
    EndState
    State OPT_QuickslotsEnabled
