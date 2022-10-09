@@ -95,6 +95,9 @@ DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse) {
     auto gameVersion = REL::Relocate("SE", "AE");
     LOG(info, "Game type: {}", gameVersion);
 
+    auto version = REL::Module::get().version();
+    LOG(info, "Game version: {}", version.string());
+
 #ifdef _DEBUG
     // Intercept Visual C++ exceptions, but only if we're developing.
     _CrtSetReportHook(ReportHook);
