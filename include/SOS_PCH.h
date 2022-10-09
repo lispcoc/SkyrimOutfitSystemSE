@@ -78,4 +78,8 @@ namespace Plugin {
     inline constexpr auto NAME = "SkyrimOutfitSystemSE"sv;
 }
 
+namespace RE {
+    using RawActorHandle = RE::ActorHandle::native_handle_type;
+}
+
 #endif //SKYRIMOUTFITSYSTEMSE_SOS_PCH_H

@@ -103,7 +103,7 @@ class ArmorAddonOverrideService {
       bool enabled = true;
       std::map<cobb::istring, Outfit> outfits;
       // TODO: You probably shouldn't use an Actor pointer to refer to actors. It works for the PlayerCharacter, but likely not for NPCs.
-      std::map<RE::Actor*, ActorOutfitAssignments> actorOutfitAssignments;
+      std::map<RE::RawActorHandle, ActorOutfitAssignments> actorOutfitAssignments;
       // Location-based switching
       bool locationBasedAutoSwitchEnabled = false;
       //
@@ -117,7 +117,7 @@ class ArmorAddonOverrideService {
       //
       void addOutfit(const char* name); // can throw bad_name
       void addOutfit(const char* name, std::vector<RE::TESObjectARMO*> armors); // can throw bad_name
-      Outfit& currentOutfit(RE::Actor* target);
+      Outfit& currentOutfit(RE::RawActorHandle target);
       bool hasOutfit(const char* name) const;
       void deleteOutfit(const char* name);
       void setFavorite(const char* name, bool favorite);
@@ -125,19 +125,19 @@ class ArmorAddonOverrideService {
       void setOutfitEquipRequired(const char* name, bool requiresEquipped);
       void modifyOutfit(const char* name, std::vector<RE::TESObjectARMO*>& add, std::vector<RE::TESObjectARMO*>& remove, bool createIfMissing = false); // can throw bad_name if (createIfMissing)
       void renameOutfit(const char* oldName, const char* newName); // throws name_conflict if the new name is already taken; can throw bad_name; throws std::out_of_range if the oldName doesn't exist
-      void setOutfit(const char* name, RE::Actor* target);
-      void addActor(RE::Actor* target);
-      void removeActor(RE::Actor* target);
-      std::unordered_set<RE::Actor*> listActors();
+      void setOutfit(const char* name, RE::RawActorHandle target);
+      void addActor(RE::RawActorHandle target);
+      void removeActor(RE::RawActorHandle target);
+      std::unordered_set<RE::RawActorHandle> listActors();
       //
       void setLocationBasedAutoSwitchEnabled(bool) noexcept;
-      void setOutfitUsingLocation(LocationType location, RE::Actor* target);
-      void setLocationOutfit(LocationType location, const char* name, RE::Actor* target);
-      void unsetLocationOutfit(LocationType location, RE::Actor* target);
-      std::optional<cobb::istring> getLocationOutfit(LocationType location, RE::Actor* target);
-      std::optional<LocationType> checkLocationType(const std::unordered_set<std::string>& keywords, const WeatherFlags& weather_flags, RE::Actor* target);
+      void setOutfitUsingLocation(LocationType location, RE::RawActorHandle target);
+      void setLocationOutfit(LocationType location, const char* name, RE::RawActorHandle target);
+      void unsetLocationOutfit(LocationType location, RE::RawActorHandle target);
+      std::optional<cobb::istring> getLocationOutfit(LocationType location, RE::RawActorHandle target);
+      std::optional<LocationType> checkLocationType(const std::unordered_set<std::string>& keywords, const WeatherFlags& weather_flags, RE::RawActorHandle target);
       //
-      bool shouldOverride(RE::Actor* target) const noexcept;
+      bool shouldOverride(RE::RawActorHandle target) const noexcept;
       void getOutfitNames(std::vector<std::string>& out, bool favoritesOnly = false) const;
       void setEnabled(bool) noexcept;
       //

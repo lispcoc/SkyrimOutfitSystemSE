@@ -20,7 +20,7 @@ namespace Hooking {
             LOG(warn, "Target failed to cast to RE::Actor");
             return false;
         }
-        if (!ArmorAddonOverrideService::GetInstance().shouldOverride(actor)) return false;
+        if (!ArmorAddonOverrideService::GetInstance().shouldOverride(actor->GetHandle().native_handle())) return false;
         return true;
     }
 
@@ -64,13 +64,13 @@ namespace Hooking {
         bool ShouldOverride(RE::TESObjectARMO* armor, RE::TESObjectREFR* target) {
             if (!ShouldOverrideSkinning(target)) { return false; }
             auto& svc = ArmorAddonOverrideService::GetInstance();
-            auto& outfit = svc.currentOutfit((RE::Actor*) target);
             auto actor = skyrim_cast<RE::Actor*>(target);
             if (!actor) {
                 // Actor failed to cast...
                 LOG(warn, "ShouldOverride: Failed to cast target to Actor.");
                 return true;
             }
+            auto& outfit = svc.currentOutfit(actor->GetHandle().native_handle());
             auto inventory = target->GetInventoryChanges();
             EquippedArmorVisitor visitor;
             if (inventory) {
@@ -90,7 +90,7 @@ namespace Hooking {
             auto actor = skyrim_cast<RE::Actor*>(target);
             if (!actor) return mask;
             auto& svc = ArmorAddonOverrideService::GetInstance();
-            auto& outfit = svc.currentOutfit(actor);
+            auto& outfit = svc.currentOutfit(actor->GetHandle().native_handle());
             EquippedArmorVisitor visitor;
             inventory->ExecuteVisitorOnWorn(&visitor);
             auto displaySet = outfit.computeDisplaySet(visitor.equipped);
@@ -103,7 +103,8 @@ namespace Hooking {
 
     namespace CustomSkinPlayer {
         void Custom(RE::Actor* target, RE::ActorWeightModel* actorWeightModel) {
-            if (!skyrim_cast<RE::Actor*>(target)) {
+            auto actor = skyrim_cast<RE::Actor*>(target);
+            if (!actor) {
                 // Actor failed to cast...
                 LOG(info, "Custom: Failed to cast target to Actor.");
                 return;
@@ -118,7 +119,7 @@ namespace Hooking {
             bool isFemale = base->IsFemale();
             //
             auto& svc = ArmorAddonOverrideService::GetInstance();
-            auto& outfit = svc.currentOutfit((RE::Actor*) target);
+            auto& outfit = svc.currentOutfit(actor->GetHandle().native_handle());
 
             // Get actor inventory and equipped items
             auto inventory = target->GetInventoryChanges();
