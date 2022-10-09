@@ -1,9 +1,8 @@
 #include "OutfitSystem.h"
 
-#include <ShlObj.h>
-
-#include <ArmorAddonOverrideService.h>
-#include <hooking/Hooks.hpp>
+#include "ArmorAddonOverrideService.h"
+#include "hooking/Hooks.hpp"
+#include "Utility.h"
 
 void WaitForDebugger(void) {
     while (!IsDebuggerPresent()) {
@@ -28,11 +27,12 @@ namespace {
         *path /= fmt::format("{}.log"sv, Plugin::NAME);
         auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
 
-#ifndef NDEBUG
-        const auto level = spdlog::level::trace;
-#else
-        const auto level = spdlog::level::info;
-#endif
+        auto level = spdlog::level::info;
+        bool deepLogEnabled = Settings::Instance()->reader.GetBoolean("Debug", "ExtraLogging", false);
+        if (deepLogEnabled) {
+            LOG(info, "Extra logging enabled.");
+            level = spdlog::level::trace;
+        }
 
         auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
         log->set_level(level);

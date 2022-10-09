@@ -50,3 +50,22 @@ const std::string& GetRuntimeDirectory() {
 
     return s_runtimeDirectory;
 }
+
+Settings::Settings() : reader(GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\SkyrimOutfitSystemSE.ini") {
+    if (reader.ParseError() != 0) {
+        // Failed to load INI. We proceed without it.
+        LOG(info, "Could not load INI file from {}. Continuing without it.", GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\SkyrimOutfitSystemSE.ini");
+        return;
+    } else {
+        LOG(info, "INI file was successfully loaded.");
+    }
+}
+
+Settings::~Settings() {}
+
+static Settings* settings;
+
+Settings* Settings::Instance() {
+    if (!settings) settings = new Settings();
+    return settings;
+}

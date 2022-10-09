@@ -29,6 +29,7 @@ namespace OutfitSystem {
     std::int32_t GetOutfitNameMaxLength(RE::BSScript::IVirtualMachine* registry,
                                         std::uint32_t stackId,
                                         RE::StaticFunctionTag*) {
+        LOG(trace, "GetOutfitNameMaxLength");
         return ArmorAddonOverrideService::ce_outfitNameMaxLength;
     }
     std::vector<RE::TESObjectARMO*> GetCarriedArmor(RE::BSScript::IVirtualMachine* registry,
