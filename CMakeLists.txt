@@ -49,16 +49,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 ################################################################################
 set(SKSE_SUPPORT_XBYAK 1)
 
-message(STATUS "SKYRIM_VERSION is ${SKYRIM_VERSION}")
-if("${SKYRIM_VERSION}" STREQUAL "AE1")
-    add_subdirectory(dependencies/CommonLibSSE_AE)
-elseif("${SKYRIM_VERSION}" STREQUAL "AE2")
-    add_subdirectory(dependencies/CommonLibSSE_AE)
-elseif("${SKYRIM_VERSION}" STREQUAL "PRE_AE")
-    add_subdirectory(dependencies/CommonLibSSE_PRE_AE)
-else()
-    message(FATAL_ERROR "Must set SKYRIM_VERSION to one of: PRE_AE, AE1, AE2")
-endif()
+find_package(CommonLibSSE REQUIRED)
 
 ################################################################################
 # Build Protocol Buffers
@@ -81,8 +72,7 @@ string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
         $<$<CONFIG:Debug>:MultiThreadedDebug>
         $<$<CONFIG:Release>:MultiThreaded>)
 
-# Also force it on CommonLibSSE and Protobuf
-set_target_properties(CommonLibSSE PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
+# Also force it on Protobuf
 set_target_properties(ProtocolBuffers PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
 
 ################################################################################
@@ -107,7 +97,7 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/hooking/Hooks_PRE_AE.cpp
     src/hooking/Patches.cpp
     src/Utility.cpp
-)
+        include/RE/REAugments.h src/RE/REAugments.cpp)
 
 set(ROOT_NAMESPACE SkyrimOutfitSystemSE)
 
@@ -129,7 +119,9 @@ target_precompile_headers(SkyrimOutfitSystemSE PRIVATE
 
 target_compile_definitions(SkyrimOutfitSystemSE PRIVATE
     XBYAK_NO_OP_NAMES
-    "SKYRIM_VERSION_IS_${SKYRIM_VERSION}=1"
+    ENABLE_SKYRIM_SE
+    ENABLE_SKYRIM_AE
+    ENABLE_COMMONLIBSSE_TESTING
 )
 
 target_compile_features(SkyrimOutfitSystemSE PRIVATE
@@ -169,7 +161,7 @@ endif()
 # Install steps
 ################################################################################
 add_custom_command(TARGET SkyrimOutfitSystemSE POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:SkyrimOutfitSystemSE> "${CMAKE_CURRENT_SOURCE_DIR}/mod_files/PluginVersions/SkyrimOutfitSystemSE_${SKYRIM_VERSION}.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:SkyrimOutfitSystemSE> "${CMAKE_CURRENT_SOURCE_DIR}/mod_files/PluginVersions/SkyrimOutfitSystemSE_ALL.dll"
 )
 
 ################################################################################
@@ -181,7 +173,7 @@ find_package(spdlog REQUIRED CONFIG)
 find_package(xbyak REQUIRED CONFIG)
 
 target_link_libraries(SkyrimOutfitSystemSE PUBLIC
-    CommonLibSSE
+    CommonLibSSE::CommonLibSSE
     nonstd::span-lite
     spdlog::spdlog
     ProtocolBuffers

@@ -50,7 +50,6 @@ void Callback_Serialization_Save(SKSE::SerializationInterface* intfc);
 void Callback_Serialization_Load(SKSE::SerializationInterface* intfc);
 
 extern "C" {
-#if SKYRIM_VERSION_IS_SOME_AE
 // Plugin Query for AE
 DllExport constinit auto SKSEPlugin_Version = []() {
     SKSE::PluginVersionData v;
@@ -59,15 +58,14 @@ DllExport constinit auto SKSEPlugin_Version = []() {
     v.PluginName(Plugin::NAME);
 
     v.UsesAddressLibrary(true);
-    v.CompatibleVersions({SKSE::RUNTIME_LATEST});
+    v.CompatibleVersions({SKSE::RUNTIME_SSE_LATEST_AE});
+    v.UsesNoStructs(true);
 
     return v;
 }();
-#elif SKYRIM_VERSION_IS_PRE_AE
+
 // Plugin Query for SE
 DllExport bool SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info) {
-    LOG(info, "Query: {} v{}", Plugin::NAME, Plugin::VERSION.string());
-
     a_info->infoVersion = SKSE::PluginInfo::kVersion;
     a_info->name = "SkyrimOutfitSystemSE";
     a_info->version = 1;
@@ -79,12 +77,15 @@ DllExport bool SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::Plugin
 
     return true;
 }
-#endif
 
 // Entry point
 DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse) {
+    REL::Module::reset();
     InitializeLog();
     LOG(info, "Load: {} v{}", Plugin::NAME, Plugin::VERSION.string());
+
+    auto gameVersion = REL::Relocate("SE", "AE");
+    LOG(info, "Game type: {}", gameVersion);
 
 #ifdef _DEBUG
     // Intercept Visual C++ exceptions, but only if we're developing.
@@ -113,7 +114,7 @@ DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse) {
 
     // Actual plugin load
     LOG(info, "Patching player skinning");
-    Hooking::ApplyPlayerSkinningHooks();
+    REL::Relocate(HookingPREAE::ApplyPlayerSkinningHooks, HookingAE::ApplyPlayerSkinningHooks)();
 
     // Messaging Callback
     LOG(info, "Registering messaging callback");

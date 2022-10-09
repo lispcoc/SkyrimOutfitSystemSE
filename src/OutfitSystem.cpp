@@ -7,6 +7,7 @@
 #include "cobb/strings.h"
 #include "cobb/utf8naturalsort.h"
 #include "cobb/utf8string.h"
+#include "RE/REAugments.h"
 
 #include <algorithm>
 
@@ -44,20 +45,20 @@ namespace OutfitSystem {
             return empty;
         }
         //
-        class _Visitor: public RE::InventoryChanges::IItemChangeVisitor {
+        class _Visitor: public RE::IItemChangeVisitorAugment {
             //
             // If the player has a shield equipped, and if we're not overriding that
             // shield, then we need to grab the equipped shield's worn-flags.
             //
         public:
-            virtual ReturnType Visit(RE::InventoryEntryData* data) override {
+            virtual VisitorReturn Visit(RE::InventoryEntryData* data) override {
                 // Return true to continue, or else false to break.
                 const auto form = data->object;
                 if (form && form->formType == RE::FormType::Armor) {
                     auto armor = skyrim_cast<RE::TESObjectARMO*>(form);
                     if (armor) this->list.push_back(armor);
                 }
-                return ReturnType::kContinue;
+                return VisitorReturn::kContinue;
             };
 
             std::vector<RE::TESObjectARMO*>& list;
@@ -67,7 +68,7 @@ namespace OutfitSystem {
         auto inventory = target->GetInventoryChanges();
         if (inventory) {
             _Visitor visitor(result);
-            inventory->ExecuteVisitor(&visitor);
+            RE::InventoryChangesAugments::ExecuteAugmentVisitorOnWorn(inventory, &visitor);
         }
         std::vector<RE::TESObjectARMO*> converted_result;
         converted_result.reserve(result.size());
@@ -89,19 +90,19 @@ namespace OutfitSystem {
             return empty;
         }
         //
-        class _Visitor: public RE::InventoryChanges::IItemChangeVisitor {
+        class _Visitor: public RE::IItemChangeVisitorAugment {
             //
             // If the player has a shield equipped, and if we're not overriding that
             // shield, then we need to grab the equipped shield's worn-flags.
             //
         public:
-            virtual ReturnType Visit(RE::InventoryEntryData* data) override {
+            virtual VisitorReturn Visit(RE::InventoryEntryData* data) override {
                 auto form = data->object;
                 if (form && form->formType == RE::FormType::Armor) {
                     auto armor = skyrim_cast<RE::TESObjectARMO*>(form);
                     if (armor) this->list.push_back(armor);
                 }
-                return ReturnType::kContinue;
+                return VisitorReturn::kContinue;
             };
 
             std::vector<RE::TESObjectARMO*>& list;
@@ -111,7 +112,7 @@ namespace OutfitSystem {
         auto inventory = target->GetInventoryChanges();
         if (inventory) {
             _Visitor visitor(result);
-            inventory->ExecuteVisitorOnWorn(&visitor);
+            RE::InventoryChangesAugments::ExecuteAugmentVisitorOnWorn(inventory, &visitor);
         }
         std::vector<RE::TESObjectARMO*> converted_result;
         converted_result.reserve(result.size());
@@ -125,7 +126,7 @@ namespace OutfitSystem {
                          RE::StaticFunctionTag*,
                          RE::Actor* target) {
         ERROR_AND_RETURN_IF(target == nullptr, "Cannot refresh armor on a None RE::Actor.", registry, stackId);
-        auto pm = target->currentProcess;
+        auto pm = target->GetActorRuntimeData().currentProcess;
         if (pm) {
             //
             // "SetEquipFlag" tells the process manager that the RE::Actor's
@@ -135,8 +136,8 @@ namespace OutfitSystem {
             // tion to equip an item.
             //
             // NOTE: AIProcess is also called as RE::ActorProcessManager
-            pm->SetEquipFlag(RE::AIProcess::Flag::kUnk01);
-            pm->UpdateEquipment(target);
+            RE::AIProcessAugments::SetEquipFlag(pm, RE::AIProcessAugments::Flag::kUnk01);
+            RE::AIProcessAugments::UpdateEquipment(pm, target);
         }
     }
     void RefreshArmorForAllConfiguredActors(RE::BSScript::IVirtualMachine* registry,
@@ -148,7 +149,7 @@ namespace OutfitSystem {
             auto actor = RE::Actor::LookupByHandle(actorRef);
             if (!actor)
                 continue;
-            auto pm = actor->currentProcess;
+            auto pm = actor->GetActorRuntimeData().currentProcess;
             if (pm) {
                 //
                 // "SetEquipFlag" tells the process manager that the RE::Actor's
@@ -158,8 +159,8 @@ namespace OutfitSystem {
                 // tion to equip an item.
                 //
                 // NOTE: AIProcess is also called as RE::ActorProcessManager
-                pm->SetEquipFlag(RE::AIProcess::Flag::kUnk01);
-                pm->UpdateEquipment(actor.get());
+                RE::AIProcessAugments::SetEquipFlag(pm, RE::AIProcessAugments::Flag::kUnk01);
+                RE::AIProcessAugments::UpdateEquipment(pm, actor.get());
             }
         }
     }
@@ -172,8 +173,8 @@ namespace OutfitSystem {
         ERROR_AND_RETURN_EXPR_IF(pc == nullptr, "Could not get PC Singleton.", result, registry, stackId);
         auto pcCell = pc->GetParentCell();
         ERROR_AND_RETURN_EXPR_IF(pcCell == nullptr, "Could not get cell of PC.", result, registry, stackId);
-        result.reserve(pcCell->references.size());
-        for (const auto& ref : pcCell->references) {
+        result.reserve(pcCell->GetRuntimeData().references.size());
+        for (const auto& ref : pcCell->GetRuntimeData().references) {
             RE::TESObjectREFR* objectRefPtr = ref.get();
             auto actorCastedPtr = skyrim_cast<RE::Actor*>(objectRefPtr);
             if (actorCastedPtr)

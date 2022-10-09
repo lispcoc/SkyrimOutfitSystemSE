@@ -5,6 +5,8 @@
 #ifndef SKYRIMOUTFITSYSTEMSE_INCLUDE_HOOKING_PATCHES_HPP
 #define SKYRIMOUTFITSYSTEMSE_INCLUDE_HOOKING_PATCHES_HPP
 
+#include "RE/REAugments.h"
+
 namespace Hooking {
     bool ShouldOverrideSkinning(RE::TESObjectREFR* target);
 

@@ -1,7 +1,6 @@
 //
 // Created by m on 9/11/2022.
 //
-#ifdef SKYRIM_VERSION_IS_PRE_AE
 
 #include "hooking/Hooks.hpp"
 
@@ -9,11 +8,12 @@
 
 #include "hooking/Patches.hpp"
 
-namespace Hooking {
-    SKSE::Trampoline* g_localTrampoline = nullptr;
-    SKSE::Trampoline* g_branchTrampoline = nullptr;
+namespace HookingPREAE {
+    using namespace Hooking;
 
     namespace DontVanillaSkinPlayer {
+        using namespace Hooking::DontVanillaSkinPlayer;
+
         REL::ID DontVanillaSkinPlayer_Hook_ID(24232);
         std::uintptr_t DontVanillaSkinPlayer_Hook(DontVanillaSkinPlayer_Hook_ID.address() + 0x302);// 0x00364652 in 1.5.73
 
@@ -68,6 +68,8 @@ namespace Hooking {
     }// namespace DontVanillaSkinPlayer
 
     namespace ShimWornFlags {
+        using namespace Hooking::ShimWornFlags;
+
         REL::ID ShimWornFlags_Hook_ID(24220);
         std::uintptr_t ShimWornFlags_Hook(ShimWornFlags_Hook_ID.address() + 0x7C);// 0x00362F0C in 1.5.73
 
@@ -135,6 +137,8 @@ namespace Hooking {
     }// namespace ShimWornFlags
 
     namespace CustomSkinPlayer {
+        using namespace Hooking::CustomSkinPlayer;
+
         REL::ID CustomSkinPlayer_Hook_ID(24231);
         std::uintptr_t CustomSkinPlayer_Hook(CustomSkinPlayer_Hook_ID.address() + 0x81);// 0x00364301 in 1.5.73
 
@@ -202,6 +206,8 @@ namespace Hooking {
     }// namespace CustomSkinPlayer
 
     namespace FixEquipConflictCheck {
+        using namespace Hooking::FixEquipConflictCheck;
+
         REL::ID FixEquipConflictCheck_Hook_ID(36979);
         std::uintptr_t FixEquipConflictCheck_Hook(FixEquipConflictCheck_Hook_ID.address() + 0x97);// 0x0060CAC7 in 1.5.73
 
@@ -279,6 +285,8 @@ namespace Hooking {
     }// namespace FixEquipConflictCheck
 
     namespace FixSkillLeveling {
+        using namespace Hooking::FixSkillLeveling;
+
         REL::ID GetSkillToLevel_Hook_ID(37589);
         std::uintptr_t GetSkillToLevel_Hook(GetSkillToLevel_Hook_ID.address() + 0x52);
 
@@ -338,5 +346,3 @@ namespace Hooking {
         FixSkillLeveling::Apply();
     }
 }// namespace Hooking
-
-#endif

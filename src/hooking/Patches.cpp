@@ -9,6 +9,9 @@
 #include "ArmorAddonOverrideService.h"
 
 namespace Hooking {
+    SKSE::Trampoline* g_localTrampoline = nullptr;
+    SKSE::Trampoline* g_branchTrampoline = nullptr;
+
     bool ShouldOverrideSkinning(RE::TESObjectREFR* target) {
         if (!target) {
             LOG(warn, "Target was null");
@@ -24,37 +27,37 @@ namespace Hooking {
         return true;
     }
 
-    class EquippedArmorVisitor: public RE::InventoryChanges::IItemChangeVisitor {
+    class EquippedArmorVisitor: public RE::IItemChangeVisitorAugment {
         //
         // If the player has a shield equipped, and if we're not overriding that
         // shield, then we need to grab the equipped shield's worn-flags.
         //
     public:
-        virtual ReturnType Visit(RE::InventoryEntryData* data) override {
+        virtual VisitorReturn Visit(RE::InventoryEntryData* data) override {
             auto form = data->object;
             if (form && form->formType == RE::FormType::Armor) {
                 equipped.emplace(skyrim_cast<RE::TESObjectARMO*>(form));
             }
-            return ReturnType::kContinue;// Return true to "continue visiting".
+            return VisitorReturn::kContinue;// Return true to "continue visiting".
         };
 
         std::unordered_set<RE::TESObjectARMO*> equipped;
     };
 
     template <typename F>
-    class EquippedVisitorFn: public RE::InventoryChanges::IItemChangeVisitor {
+    class EquippedVisitorFn: public RE::IItemChangeVisitorAugment {
         //
         // If the player has a shield equipped, and if we're not overriding that
         // shield, then we need to grab the equipped shield's worn-flags.
         //
     public:
         explicit EquippedVisitorFn(F callable) : callable(callable) {};
-        virtual ReturnType Visit(RE::InventoryEntryData* data) override {
+        virtual VisitorReturn Visit(RE::InventoryEntryData* data) override {
             auto form = data->object;
             if (form) {
                 callable(data->object);
             }
-            return ReturnType::kContinue;// Return true to "continue visiting".
+            return VisitorReturn::kContinue;// Return true to "continue visiting".
         };
 
         F callable;
@@ -74,7 +77,7 @@ namespace Hooking {
             auto inventory = target->GetInventoryChanges();
             EquippedArmorVisitor visitor;
             if (inventory) {
-                inventory->ExecuteVisitorOnWorn(&visitor);
+                RE::InventoryChangesAugments::ExecuteAugmentVisitorOnWorn(inventory, &visitor);
             } else {
                 LOG(warn, "ShouldOverride: Unable to get target inventory.");
                 return true;
@@ -92,7 +95,7 @@ namespace Hooking {
             auto& svc = ArmorAddonOverrideService::GetInstance();
             auto& outfit = svc.currentOutfit(actor->GetHandle().native_handle());
             EquippedArmorVisitor visitor;
-            inventory->ExecuteVisitorOnWorn(&visitor);
+            RE::InventoryChangesAugments::ExecuteAugmentVisitorOnWorn(inventory, &visitor);
             auto displaySet = outfit.computeDisplaySet(visitor.equipped);
             for (auto& armor : displaySet) {
                 mask |= static_cast<std::uint32_t>(armor->GetSlotMask());
@@ -125,7 +128,7 @@ namespace Hooking {
             auto inventory = target->GetInventoryChanges();
             EquippedArmorVisitor visitor;
             if (inventory) {
-                inventory->ExecuteVisitorOnWorn(&visitor);
+                RE::InventoryChangesAugments::ExecuteAugmentVisitorOnWorn(inventory, &visitor);
             } else {
                 LOG(info, "Custom: Unable to get target inventory.");
                 return;
@@ -148,7 +151,7 @@ namespace Hooking {
                 // TODO: [SlotPassthru] Also do the same iteration over the passthrough equipped items?
                 RE::TESObjectARMO* armor = *it;
                 if (armor) {
-                    armor->ApplyArmorAddon(race, actorWeightModel, isFemale);
+                    RE::TESObjectARMOAugments::ApplyArmorAddon(armor, race, actorWeightModel, isFemale);
                 }
             }
         }
@@ -165,19 +168,19 @@ namespace Hooking {
         // The loop in question is performed in Actor::Unk_120, which is also generally responsible
         // for equipping items at all.
         //
-        class _Visitor: public RE::InventoryChanges::IItemChangeVisitor {
+        class _Visitor: public RE::IItemChangeVisitorAugment {
             //
             // Bethesda used a visitor to add armor-addons to the ActorWeightModel in the first
             // place (see call stack for DontVanillaSkinPlayer patch), so why not use a similar
             // visitor to check for conflicts?
             //
         public:
-            virtual ReturnType Visit(RE::InventoryEntryData* data) override {
+            virtual VisitorReturn Visit(RE::InventoryEntryData* data) override {
                 // TODO: [SlotPassthru] We might be able to leave this as-is.
                 auto form = data->object;
                 if (form && form->formType == RE::FormType::Armor) {
                     auto armor = skyrim_cast<RE::TESObjectARMO*>(form);
-                    if (armor && armor->TestBodyPartByIndex(this->conflictIndex)) {
+                    if (armor && RE::TESObjectARMOAugments::TestBodyPartByIndex(armor, this->conflictIndex)) {
                         auto em = RE::ActorEquipManager::GetSingleton();
                         //
                         // TODO: The third argument to this call is meant to be a
@@ -195,7 +198,7 @@ namespace Hooking {
                         em->UnequipObject(this->target, form, nullptr, 1, nullptr, false, false, true, false, nullptr);
                     }
                 }
-                return ReturnType::kContinue;// True to continue visiting
+                return VisitorReturn::kContinue;// True to continue visiting
             };
 
             RE::Actor* target;
@@ -207,7 +210,7 @@ namespace Hooking {
                 _Visitor visitor;
                 visitor.conflictIndex = bodyPartForNewItem;
                 visitor.target = target;
-                inventory->ExecuteVisitorOnWorn(&visitor);
+                RE::InventoryChangesAugments::ExecuteAugmentVisitorOnWorn(inventory, &visitor);
             } else {
                 LOG(info, "OverridePlayerSkinning: Conflict check failed: no inventory!");
             }
@@ -242,14 +245,13 @@ namespace Hooking {
             auto inventory = target->GetInventoryChanges();
             if (!inventory) return false;
             EquippedVisitorFn inventoryVisitor([&](RE::TESBoundObject* form) {
-                using ReturnType = RE::InventoryChanges::IItemChangeVisitor::ReturnType;
                 if (form->formType == RE::FormType::Armor) {
                     auto armor = skyrim_cast<RE::TESObjectARMO*>(form);
-                    if (!armor) return ReturnType::kContinue;
+                    if (!armor) return;
                     RE::BIPED_MODEL::ArmorType armorType = armor->GetArmorType();
                     auto mask = static_cast<std::uint32_t>(armor->GetSlotMask());
                     // Exclude shields.
-                    if (armor->IsShield()) return ReturnType::kContinue;
+                    if (armor->IsShield()) return;
                     // Count the number of slots taken by the armor. Body slot counts double.
                     int count = 0;
                     if (mask & static_cast<std::uint32_t>(RE::BIPED_MODEL::BipedObjectSlot::kBody)) count++;
@@ -257,9 +259,9 @@ namespace Hooking {
                     if (armorType == RE::BIPED_MODEL::ArmorType::kLightArmor) bipedVisitor->light += count;
                     if (armorType == RE::BIPED_MODEL::ArmorType::kHeavyArmor) bipedVisitor->heavy += count;
                 }
-                return ReturnType::kContinue;
+                return;
             });
-            inventory->ExecuteVisitorOnWorn(&inventoryVisitor);
+            RE::InventoryChangesAugments::ExecuteAugmentVisitorOnWorn(inventory, &inventoryVisitor);
             return true;
         }
     }// namespace FixSkillLeveling

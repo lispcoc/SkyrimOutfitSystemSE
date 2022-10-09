@@ -9,7 +9,8 @@
       "protobuf",
       "boost-stl-interfaces",
       "rsm-binary-io",
-      "xbyak"
+      "xbyak",
+      "commonlibsse-ng-flatrim"
     ],
     "builtin-baseline": "687f4aab11df9b1a854d0d7207c558da545b4cc9"
   }
