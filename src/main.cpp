@@ -113,7 +113,8 @@ DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse) {
 
     // Actual plugin load
     LOG(info, "Patching player skinning");
-    Hooking::ApplyPlayerSkinningHooks();
+    HookingPREAE::ApplyPlayerSkinningHooks();
+    HookingAE::ApplyPlayerSkinningHooks();
 
     // Messaging Callback
     LOG(info, "Registering messaging callback");

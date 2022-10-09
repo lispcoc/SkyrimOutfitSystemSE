@@ -1,19 +1,18 @@
 //
 // Created by m on 9/11/2022.
 //
-#ifdef SKYRIM_VERSION_IS_SOME_AE
-
 #include "hooking/Hooks.hpp"
 
 #include <xbyak/xbyak.h>
 
 #include "hooking/Patches.hpp"
 
-namespace Hooking {
-    SKSE::Trampoline* g_localTrampoline = nullptr;
-    SKSE::Trampoline* g_branchTrampoline = nullptr;
+namespace HookingAE {
+    using namespace Hooking;
 
     namespace DontVanillaSkinPlayer {
+        using namespace Hooking::DontVanillaSkinPlayer;
+
         REL::ID DontVanillaSkinPlayer_Hook_ID(24736);
         std::uintptr_t DontVanillaSkinPlayer_Hook(DontVanillaSkinPlayer_Hook_ID.address() + 0x302);// 0x00364652 in 1.5.73
 
@@ -68,6 +67,8 @@ namespace Hooking {
     }// namespace DontVanillaSkinPlayer
 
     namespace ShimWornFlags {
+        using namespace Hooking::ShimWornFlags;
+
         REL::ID ShimWornFlags_Hook_ID(24724);
         std::uintptr_t ShimWornFlags_Hook(ShimWornFlags_Hook_ID.address() + 0x80);// 0x00362F0C in 1.5.73
 
@@ -135,6 +136,8 @@ namespace Hooking {
     }// namespace ShimWornFlags
 
     namespace CustomSkinPlayer {
+        using namespace Hooking::CustomSkinPlayer;
+
         // This hook is completely different from pre-AE.
         // The function we wanted to patch (AE 24735 + 0x81) was inlined into AE 24725.
         // We might consider hooking both?
@@ -205,6 +208,8 @@ namespace Hooking {
     }// namespace CustomSkinPlayer
 
     namespace FixEquipConflictCheck {
+        using namespace Hooking::FixEquipConflictCheck;
+
         REL::ID FixEquipConflictCheck_Hook_ID(38004);
         std::uintptr_t FixEquipConflictCheck_Hook(FixEquipConflictCheck_Hook_ID.address() + 0x97);// 0x0060CAC7 in 1.5.73
 
@@ -283,6 +288,8 @@ namespace Hooking {
 
 
     namespace FixSkillLeveling {
+        using namespace Hooking::FixSkillLeveling;
+
         // Technically, we wanted 38539, but that guy got inlined into here.
         REL::ID SkillMutationFunction_Hook_ID(38627);
         std::uintptr_t SkillMutationFunction_Hook(SkillMutationFunction_Hook_ID.address() + 0x373);
@@ -361,6 +368,8 @@ namespace Hooking {
     }// namespace FixSkillLeveling
 
     namespace RTTIPrinter {
+        using namespace Hooking::RTTIPrinter;
+
         REL::ID InventoryChanges_ExecuteVisitorOnWorn(16096);// 0x001E51D0 in 1.5.73
         std::uintptr_t InventoryChanges_ExecuteVisitorOnWorn_Hook(
             InventoryChanges_ExecuteVisitorOnWorn.address() + 0x2A);// 0x00364301 in 1.5.73
@@ -416,5 +425,3 @@ namespace Hooking {
 #endif
     }
 }// namespace Hooking
-
-#endif

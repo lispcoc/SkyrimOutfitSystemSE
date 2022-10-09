@@ -97,7 +97,7 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/hooking/Hooks_PRE_AE.cpp
     src/hooking/Patches.cpp
     src/Utility.cpp
-)
+        include/RE/REAugments.h src/RE/REAugments.cpp)
 
 set(ROOT_NAMESPACE SkyrimOutfitSystemSE)
 
