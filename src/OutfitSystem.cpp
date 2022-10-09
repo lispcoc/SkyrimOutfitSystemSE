@@ -144,7 +144,8 @@ namespace OutfitSystem {
                                             RE::StaticFunctionTag*) {
         auto& service = ArmorAddonOverrideService::GetInstance();
         auto actors = service.listActors();
-        for (auto& actor : actors) {
+        for (auto& actorRef : actors) {
+            auto actor = RE::Actor::LookupByHandle(actorRef);
             if (!actor)
                 continue;
             auto pm = actor->currentProcess;
@@ -158,7 +159,7 @@ namespace OutfitSystem {
                 //
                 // NOTE: AIProcess is also called as RE::ActorProcessManager
                 pm->SetEquipFlag(RE::AIProcess::Flag::kUnk01);
-                pm->UpdateEquipment(actor);
+                pm->UpdateEquipment(actor.get());
             }
         }
     }
@@ -197,7 +198,8 @@ namespace OutfitSystem {
                 for (std::uint32_t i = 0; i < size; i++) {
                     const auto form = list[i];
                     if (form && form->formType == RE::FormType::Armor) {
-                        auto armor = static_cast<RE::TESObjectARMO*>(form);
+                        auto armor = skyrim_cast<RE::TESObjectARMO*>(form);
+                        if (!armor) continue;
                         if (armor->templateArmor)// filter out predefined enchanted variants, to declutter the list
                             continue;
                         if (mustBePlayable && !!(armor->formFlags & RE::TESObjectARMO::RecordFlags::kNonPlayable))
@@ -574,7 +576,7 @@ namespace OutfitSystem {
         if (!actor)
             return RE::BSFixedString("");
         auto& service = ArmorAddonOverrideService::GetInstance();
-        return service.currentOutfit(actor).name.c_str();
+        return service.currentOutfit(actor->GetHandle().native_handle()).name.c_str();
     }
     bool IsEnabled(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*) {
         auto& service = ArmorAddonOverrideService::GetInstance();
@@ -729,21 +731,21 @@ namespace OutfitSystem {
         if (!actor)
             return;
         auto& service = ArmorAddonOverrideService::GetInstance();
-        service.setOutfit(name.data(), actor);
+        service.setOutfit(name.data(), actor->GetHandle().native_handle());
     }
     void AddActor(RE::BSScript::IVirtualMachine* registry,
                   std::uint32_t stackId,
                   RE::StaticFunctionTag*,
                   RE::Actor* target) {
         auto& service = ArmorAddonOverrideService::GetInstance();
-        service.addActor((RE::Actor*) target);
+        service.addActor(target->GetHandle().native_handle());
     }
     void RemoveActor(RE::BSScript::IVirtualMachine* registry,
                      std::uint32_t stackId,
                      RE::StaticFunctionTag*,
                      RE::Actor* target) {
         auto& service = ArmorAddonOverrideService::GetInstance();
-        service.removeActor((RE::Actor*) target);
+        service.removeActor(target->GetHandle().native_handle());
     }
     std::vector<RE::Actor*> ListActors(RE::BSScript::IVirtualMachine* registry,
                                        std::uint32_t stackId,
@@ -751,8 +753,16 @@ namespace OutfitSystem {
         auto& service = ArmorAddonOverrideService::GetInstance();
         auto actors = service.listActors();
         std::vector<RE::Actor*> actorVec;
-        for (auto& actor : actors) {
-            actorVec.push_back(actor);
+        for (auto& actorRef : actors) {
+            auto actor = RE::Actor::LookupByHandle(actorRef);
+            if (!actor) continue;
+#if _DEBUG
+            LOG(debug, "INNER: Actor {} has refcount {}", actor->GetDisplayFullName(), actor->QRefCount());
+#endif
+            if (actor->QRefCount() == 1) {
+                LOG(warn, "ListActors will return an actor {} with refcount of 1. This may crash.", actor->GetDisplayFullName());
+            }
+            actorVec.push_back(actor.get());
         }
         std::sort(
             actorVec.begin(),
@@ -760,6 +770,11 @@ namespace OutfitSystem {
             [](const RE::Actor* x, const RE::Actor* y) {
                 return x < y;
             });
+#if _DEBUG
+        for (const auto& actor : actorVec) {
+            LOG(debug, "Actor {} has refcount {}", actor->GetDisplayFullName(), actor->QRefCount());
+        }
+#endif
         return actorVec;
     }
     void SetLocationBasedAutoSwitchEnabled(RE::BSScript::IVirtualMachine* registry,
@@ -824,7 +839,7 @@ namespace OutfitSystem {
             }
             location = location->parentLoc;
         }
-        return service.checkLocationType(keywords, weather_flags, RE::PlayerCharacter::GetSingleton());
+        return service.checkLocationType(keywords, weather_flags, RE::PlayerCharacter::GetSingleton()->CreateRefHandle().native_handle());
     }
     std::uint32_t IdentifyLocationType(RE::BSScript::IVirtualMachine* registry,
                                        std::uint32_t stackId,
@@ -856,7 +871,7 @@ namespace OutfitSystem {
             RE::DebugNotification(message, nullptr, false);
             */
             if (location.has_value()) {
-                service.setOutfitUsingLocation(location.value(), actor);
+                service.setOutfitUsingLocation(location.value(), actor->GetHandle().native_handle());
             }
         }
     }
@@ -871,7 +886,7 @@ namespace OutfitSystem {
             return;
         }
         return ArmorAddonOverrideService::GetInstance()
-            .setLocationOutfit(LocationType(location), name.data(), actor);
+            .setLocationOutfit(LocationType(location), name.data(), actor->GetHandle().native_handle());
     }
     void UnsetLocationOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                              RE::Actor* actor,
@@ -879,7 +894,7 @@ namespace OutfitSystem {
         if (!actor)
             return;
         return ArmorAddonOverrideService::GetInstance()
-            .unsetLocationOutfit(LocationType(location), actor);
+            .unsetLocationOutfit(LocationType(location), actor->GetHandle().native_handle());
     }
     RE::BSFixedString GetLocationOutfit(RE::BSScript::IVirtualMachine* registry,
                                         std::uint32_t stackId,
@@ -889,7 +904,7 @@ namespace OutfitSystem {
         if (!actor)
             return RE::BSFixedString("");
         auto outfit = ArmorAddonOverrideService::GetInstance()
-                          .getLocationOutfit(LocationType(location), actor);
+                          .getLocationOutfit(LocationType(location), actor->GetHandle().native_handle());
         if (outfit.has_value()) {
             return RE::BSFixedString(outfit.value().c_str());
         } else {
