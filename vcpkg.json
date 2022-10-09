@@ -6,6 +6,7 @@
     "dependencies": [
       "span-lite",
       "spdlog",
+      "inih",
       "protobuf",
       "boost-stl-interfaces",
       "rsm-binary-io",

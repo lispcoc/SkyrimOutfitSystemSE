@@ -7,12 +7,14 @@
 #include <bit>
 
 #include "ArmorAddonOverrideService.h"
+#include "Utility.h"
 
 namespace Hooking {
     SKSE::Trampoline* g_localTrampoline = nullptr;
     SKSE::Trampoline* g_branchTrampoline = nullptr;
 
     bool ShouldOverrideSkinning(RE::TESObjectREFR* target) {
+        LogExit exitPrint("ShouldOverrideSkinning"sv);
         if (!target) {
             LOG(warn, "Target was null");
             return false;
@@ -65,6 +67,7 @@ namespace Hooking {
 
     namespace DontVanillaSkinPlayer {
         bool ShouldOverride(RE::TESObjectARMO* armor, RE::TESObjectREFR* target) {
+            LogExit exitPrint("DontVanillaSkinPlayer.ShouldOverride"sv);
             if (!ShouldOverrideSkinning(target)) { return false; }
             auto& svc = ArmorAddonOverrideService::GetInstance();
             auto actor = skyrim_cast<RE::Actor*>(target);
@@ -89,6 +92,7 @@ namespace Hooking {
 
     namespace ShimWornFlags {
         std::uint32_t OverrideWornFlags(RE::InventoryChanges* inventory, RE::TESObjectREFR* target) {
+            LogExit exitPrint("ShimWornFlags.OverrideWornFlags"sv);
             std::uint32_t mask = 0;
             auto actor = skyrim_cast<RE::Actor*>(target);
             if (!actor) return mask;
@@ -106,6 +110,7 @@ namespace Hooking {
 
     namespace CustomSkinPlayer {
         void Custom(RE::Actor* target, RE::ActorWeightModel* actorWeightModel) {
+            LogExit exitPrint("CustomSkinPlayer.Custom"sv);
             auto actor = skyrim_cast<RE::Actor*>(target);
             if (!actor) {
                 // Actor failed to cast...
@@ -205,6 +210,7 @@ namespace Hooking {
             std::uint32_t conflictIndex = 0;
         };
         void Inner(std::uint32_t bodyPartForNewItem, RE::Actor* target) {
+            LogExit exitPrint("FixEquipConflictCheck.Inner"sv);
             auto inventory = target->GetInventoryChanges();
             if (inventory) {
                 _Visitor visitor;
@@ -216,6 +222,7 @@ namespace Hooking {
             }
         }
         bool ShouldOverride(RE::TESForm* item) {
+            LogExit exitPrint("FixEquipConflictCheck.ShouldOverride"sv);
             //
             // We only hijack equipping for armors, so I'd like for this patch to only
             // apply to armors as well. It shouldn't really matter -- before I added
@@ -237,6 +244,7 @@ namespace Hooking {
         static_assert(sizeof(Visitor) == 0x18);
 
         bool Inner(RE::BipedAnim* biped, Visitor* bipedVisitor) {
+            LogExit exitPrint("FixSkillLeveling.Inner"sv);
             auto target = biped->actorRef.get();// Retain via smart pointer.
             if (!target) return false;
             auto actor = skyrim_cast<RE::Actor*>(target.get());
@@ -268,6 +276,7 @@ namespace Hooking {
 
     namespace RTTIPrinter {
         void Print_RTTI(RE::InventoryChanges::IItemChangeVisitor* target) {
+            LogExit exitPrint("RTTIPrinter.Print_RTTI"sv);
             void* object = (void*) target;
             void* vtable = *(void**) object;
             void* info_block = ((void**) vtable)[-1];
