@@ -46,8 +46,8 @@ namespace {
         }
 
         // Set the actual log setting from hereon.
-        log->set_level(level);
-        log->flush_on(level);
+        spdlog::default_logger()->set_level(level);
+        spdlog::default_logger()->flush_on(level);
     }
 }// namespace
 
