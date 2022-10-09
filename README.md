@@ -4,15 +4,13 @@
 
 This mod is a resurrection of [aers's port](https://github.com/aers/SkyrimOutfitSystemSE) of David J Cobb's [Skyrim Outfit System](https://github.com/DavidJCobb/skyrim-outfit-system) for Skyrim SE, now able to run on newer Skyrim SE versions including Anniversary Edition.
 
-This version also features a better Quickselect system using UIExtensions menus and is also version independent from the SKSE/Skyrim runtime version (except for pre-AE vs AE) by use of the [Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/32444).
+This version also features a better Quickselect system using UIExtensions menus and is also version independent from the SKSE/Skyrim runtime version by use of the [Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/32444) and [CommonLibSSE-NG](https://github.com/CharmedBaryon/CommonLibSSE-NG).
 
 # Compatibility
 
-This mod supports AE and pre-AE with different DLLs.
+Thanks to CommonLibSSE-NG, this mod supports SE and AE with a single DLL. Runtimes 1.5.73 to 1.6.353 are officially supported.
 
-The pre-AE DLL supports runtimes 1.5.73 to 1.5.97.
-
-The AE DLL supports runtimes 1.6.317 to 1.6.353 (so far, it is only tested on 1.6.353).
+Runtimes 1.6.629 and later have modified struct layouts and, while CommonLibSSE-NG should technically allow this mod to support them, they are *completely* untested and unsupported for now. Likewise for compatibility with any store besides Steam.
 
 # License
 
@@ -68,15 +66,13 @@ First, create a build folder (anywhere is fine). For this example, we will creat
 
 Now invoke CMake as follows:
 
-    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${PATH TO VCPKG TOOLCHAIN} -DVCPKG_TARGET_TRIPLET=x64-windows-static -DSKYRIM_VERSION=AE ../
+    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${PATH TO VCPKG TOOLCHAIN} -DVCPKG_TARGET_TRIPLET=x64-windows-static ../
 
 Note that `${PATH TO VCPKG TOOLCHAIN}` is to be replaced with the path to the `vkpkg` toolchain, as described by the [vcpkg documentation](https://vcpkg.io/en/getting-started.html).
 
 > **NOTE:** This command may fail the first time, saying that "protoc.exe" could not be found. If this happens, rerun the cmake command above.
 
 > **WARNING:** `Ninja` is the only supported generator. MSBuild may or may not work.
-
-Take special note of the `-DSKYRIM_VERSION=AE` option. **This mod uses different DLLs for AE and pre-AE**. If you want to build the DLL for AE, use `AE` as shown. If you want to build for pre-AE, use `PRE_AE` instead. If you plan to contribute changes to this mod, they need to work with both variants.
 
 Once the project is successfully configured, build it by running
 
