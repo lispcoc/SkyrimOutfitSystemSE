@@ -121,6 +121,7 @@ target_compile_definitions(SkyrimOutfitSystemSE PRIVATE
     XBYAK_NO_OP_NAMES
     ENABLE_SKYRIM_SE
     ENABLE_SKYRIM_AE
+    ENABLE_COMMONLIBSSE_TESTING
 )
 
 target_compile_features(SkyrimOutfitSystemSE PRIVATE

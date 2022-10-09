@@ -66,7 +66,7 @@ DllExport constinit auto SKSEPlugin_Version = []() {
 
 // Plugin Query for SE
 DllExport bool SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info) {
-    Sleep(10000);
+    REL::Module::reset();
     a_info->infoVersion = SKSE::PluginInfo::kVersion;
     a_info->name = "SkyrimOutfitSystemSE";
     a_info->version = 1;
