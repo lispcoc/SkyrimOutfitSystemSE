@@ -35,14 +35,6 @@ Before attempting to build this project, please have the following tools install
 
 ### Preparation
 
-#### Submodules
-
-First, make sure this project is cloned and that the submodules are initialized and updated:
-
-    git submodule update --init
-
-This will initialize various submodules that contain the fork of CommonLibSSE that this mod uses.
-
 #### SKSE (Optional)
 
 If you want to edit and compile Papyrus scripts, you will need to download SKSE. If you only plan to work on the DLL itself, you can skip this step.
