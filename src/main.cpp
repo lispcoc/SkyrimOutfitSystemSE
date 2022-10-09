@@ -27,19 +27,27 @@ namespace {
         *path /= fmt::format("{}.log"sv, Plugin::NAME);
         auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
 
-        auto level = spdlog::level::info;
-        bool deepLogEnabled = Settings::Instance()->reader.GetBoolean("Debug", "ExtraLogging", false);
-        if (deepLogEnabled) {
-            LOG(info, "Extra logging enabled.");
-            level = spdlog::level::trace;
-        }
-
+        // Activate logging of everything until we load the log setting.
         auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
-        log->set_level(level);
-        log->flush_on(level);
+        log->set_level(spdlog::level::trace);
+        log->flush_on(spdlog::level::trace);
 
         spdlog::set_default_logger(std::move(log));
         spdlog::set_pattern("%g(%#): [%^%l%$] %v"s);
+
+        // Load the actual log setting we should use.
+        auto level = spdlog::level::info;
+        bool deepLogEnabled = Settings::Instance()->GetBoolean("Debug", "ExtraLogging", false);
+        if (deepLogEnabled) {
+            LOG(info, "Extra logging enabled.");
+            level = spdlog::level::trace;
+        } else {
+            LOG(info, "Extra logging disabled.");
+        }
+
+        // Set the actual log setting from hereon.
+        log->set_level(level);
+        log->flush_on(level);
     }
 }// namespace
 

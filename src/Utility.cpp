@@ -65,7 +65,7 @@ Settings::~Settings() {}
 
 static Settings* settings;
 
-Settings* Settings::Instance() {
+INIReader* Settings::Instance() {
     if (!settings) settings = new Settings();
-    return settings;
+    return &settings->reader;
 }

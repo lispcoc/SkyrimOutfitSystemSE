@@ -11,5 +11,5 @@ public:
     Settings();
     ~Settings();
     INIReader reader;
-    static Settings* Instance();
+    static INIReader* Instance();
 };
