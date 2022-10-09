@@ -50,7 +50,6 @@ void Callback_Serialization_Save(SKSE::SerializationInterface* intfc);
 void Callback_Serialization_Load(SKSE::SerializationInterface* intfc);
 
 extern "C" {
-#if SKYRIM_VERSION_IS_SOME_AE
 // Plugin Query for AE
 DllExport constinit auto SKSEPlugin_Version = []() {
     SKSE::PluginVersionData v;
@@ -59,11 +58,12 @@ DllExport constinit auto SKSEPlugin_Version = []() {
     v.PluginName(Plugin::NAME);
 
     v.UsesAddressLibrary(true);
-    v.CompatibleVersions({SKSE::RUNTIME_LATEST});
+    v.CompatibleVersions({SKSE::RUNTIME_SSE_LATEST_AE});
+    v.UsesNoStructs(true);
 
     return v;
 }();
-#elif SKYRIM_VERSION_IS_PRE_AE
+
 // Plugin Query for SE
 DllExport bool SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info) {
     LOG(info, "Query: {} v{}", Plugin::NAME, Plugin::VERSION.string());
@@ -79,7 +79,6 @@ DllExport bool SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::Plugin
 
     return true;
 }
-#endif
 
 // Entry point
 DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse) {
@@ -113,8 +112,7 @@ DllExport bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse) {
 
     // Actual plugin load
     LOG(info, "Patching player skinning");
-    HookingPREAE::ApplyPlayerSkinningHooks();
-    HookingAE::ApplyPlayerSkinningHooks();
+    REL::Relocate(HookingPREAE::ApplyPlayerSkinningHooks, HookingAE::ApplyPlayerSkinningHooks)();
 
     // Messaging Callback
     LOG(info, "Registering messaging callback");
