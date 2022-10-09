@@ -6,6 +6,9 @@
 
 #include "SKSE/SKSE.h"
 
+#undef GetModuleFileName
+#undef GetModuleHandle
+
 std::string GetRuntimePath() {
     static char appPath[4096] = {0};
 
