@@ -200,7 +200,7 @@ namespace HookingAE {
                 CustomSkinPlayer_Code gen;
                 void* code = g_localTrampoline->allocate(gen);
 
-                LOG(info, "AVI: Patching custom skin player at addr = {}. base = {}", CustomSkinPlayer_Hook, REL::Module::get().base());
+                LOG(info, "Patching custom skin player at addr = {}. base = {}", CustomSkinPlayer_Hook, REL::Module::get().base());
                 g_branchTrampoline->write_branch<5>(CustomSkinPlayer_Hook, code);
             }
             LOG(info, "Done");
@@ -279,7 +279,7 @@ namespace HookingAE {
                 FixEquipConflictCheck_Code gen;
                 void* code = g_localTrampoline->allocate(gen);
 
-                LOG(info, "AVI: Patching fix equip conflict check at addr = {:x}. base = {:x}", FixEquipConflictCheck_Hook, REL::Module::get().base());
+                LOG(info, "Patching fix equip conflict check at addr = {:x}. base = {:x}", FixEquipConflictCheck_Hook, REL::Module::get().base());
                 g_branchTrampoline->write_branch<5>(FixEquipConflictCheck_Hook, code);
             }
             LOG(info, "Done");
@@ -359,7 +359,7 @@ namespace HookingAE {
                 FixSkillLeveling_Code gen;
                 void* code = g_localTrampoline->allocate(gen);
 
-                LOG(info, "AVI: Patching skill mutation logic at addr = {:x}. base = {:x}", SkillMutationFunction_Hook, REL::Module::get().base());
+                LOG(info, "Patching skill mutation logic at addr = {:x}. base = {:x}", SkillMutationFunction_Hook, REL::Module::get().base());
                 g_branchTrampoline->write_branch<5>(SkillMutationFunction_Hook, code);
             }
             LOG(info, "Done");
@@ -405,7 +405,7 @@ namespace HookingAE {
                 RTTI_Code gen;
                 void* code = g_localTrampoline->allocate(gen);
 
-                LOG(info, "AVI: Patching RTTI print at addr = {:x}. base = {:x}",
+                LOG(info, "Patching RTTI print at addr = {:x}. base = {:x}",
                     InventoryChanges_ExecuteVisitorOnWorn_Hook, REL::Module::get().base());
                 g_branchTrampoline->write_branch<6>(
                     InventoryChanges_ExecuteVisitorOnWorn_Hook, code);
