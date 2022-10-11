@@ -37,15 +37,14 @@ bool Outfit::hasShield() const {
 std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet) {
     std::unordered_set<RE::TESObjectARMO*> result;
 
-    std::array<SlotPolicy::Preference, RE::BIPED_OBJECTS::kEditorTotal> preferences{SlotPolicy::Preference::XXXX};
-    std::array<RE::TESObjectARMO*, RE::BIPED_OBJECTS::kEditorTotal> equipped{nullptr};
-    std::array<RE::TESObjectARMO*, RE::BIPED_OBJECTS::kEditorTotal> outfit{nullptr};
+    std::array<RE::TESObjectARMO*, SlotPolicy::numSlots> equipped{nullptr};
+    std::array<RE::TESObjectARMO*, SlotPolicy::numSlots> outfit{nullptr};
     std::uint32_t occupiedMask = 0;
 
     for (auto armor : equippedSet) {
         if (!armor) continue;
         auto mask = static_cast<uint32_t>(armor->GetSlotMask());
-        for (auto slot = RE::BIPED_OBJECTS::kHead; slot < RE::BIPED_OBJECTS::kEditorTotal; slot = static_cast<RE::BIPED_OBJECTS::BIPED_OBJECT>(static_cast<std::uint32_t>(slot) + 1)) {
+        for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot = static_cast<RE::BIPED_OBJECTS::BIPED_OBJECT>(static_cast<std::uint32_t>(slot) + 1)) {
             if (mask & (1 << slot)) equipped[slot] = armor;
         }
     }
@@ -53,14 +52,14 @@ std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unor
     for (auto armor : armors) {
         if (!armor) continue;
         auto mask = static_cast<uint32_t>(armor->GetSlotMask());
-        for (auto slot = RE::BIPED_OBJECTS::kHead; slot < RE::BIPED_OBJECTS::kEditorTotal; slot = static_cast<RE::BIPED_OBJECTS::BIPED_OBJECT>(static_cast<std::uint32_t>(slot) + 1)) {
+        for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot = static_cast<RE::BIPED_OBJECTS::BIPED_OBJECT>(static_cast<std::uint32_t>(slot) + 1)) {
             if (mask & (1 << slot)) equipped[slot] = armor;
         }
     }
 
-    for (auto slot = RE::BIPED_OBJECTS::kHead; slot < RE::BIPED_OBJECTS::kEditorTotal; slot = static_cast<RE::BIPED_OBJECTS::BIPED_OBJECT>(static_cast<std::uint32_t>(slot) + 1)) {
+    for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot = static_cast<RE::BIPED_OBJECTS::BIPED_OBJECT>(static_cast<std::uint32_t>(slot) + 1)) {
         if (occupiedMask & (1 << slot)) continue; // Someone before us already got this slot.
-        auto selection = SlotPolicy::select(preferences[slot], equipped[slot], outfit[slot]);
+        auto selection = SlotPolicy::select(slotPolicies[slot], equipped[slot], outfit[slot]);
         RE::TESObjectARMO* selectedArmor = nullptr;
         switch (selection) {
         case SlotPolicy::Selection::EMPTY:
@@ -116,8 +115,8 @@ void Outfit::load(const proto::Outfit& proto, const SKSE::SerializationInterface
     while (src < proto.slotpolicy().end() && dst < this->slotPolicies.end()) {
         auto policy = static_cast<SlotPolicy::Preference>(*src);
         if (policy < SlotPolicy::Preference::XXXX || policy >= SlotPolicy::Preference::MAX) {
-            LOG(err, "Invalid slot preference {}", static_cast<char>(policy));
-            policy = SlotPolicy::Preference::XXXX;
+            LOG(err, "Invalid slot preference {}. Using default", static_cast<char>(policy));
+            policy = SlotPolicy::defaultPolicy;
         } else {
             *dst = policy;
         }

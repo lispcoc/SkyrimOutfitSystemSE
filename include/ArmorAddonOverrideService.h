@@ -42,20 +42,25 @@ namespace SlotPolicy {
         EMPTY, EQUIPPED, OUTFIT
     };
 
+    inline constexpr Preference defaultPolicy = SlotPolicy::Preference::XXXX;
+
+    inline constexpr std::uint32_t firstSlot = RE::BIPED_OBJECTS::kHead;
+    inline constexpr std::uint32_t numSlots = RE::BIPED_OBJECTS::kEditorTotal;
+
     Selection select(Preference policy, bool hasEquipped, bool hasOutfit);
 }
 
 struct Outfit {
     Outfit(){};// we shouldn't need this, really, but std::unordered_map is a brat
-    Outfit(const char* n) : name(n), isFavorite(false), slotPolicies{SlotPolicy::Preference::XXXX} {};
+    Outfit(const char* n) : name(n), isFavorite(false), slotPolicies{SlotPolicy::defaultPolicy} {};
     Outfit(const Outfit& other) = default;
-    Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false), slotPolicies{SlotPolicy::Preference::XXXX} {
+    Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false), slotPolicies{SlotPolicy::defaultPolicy} {
         this->armors = other.armors;
     }
     std::string name;// can't be const; prevents assigning to Outfit vars
     std::unordered_set<RE::TESObjectARMO*> armors;
     bool isFavorite;
-    std::array<SlotPolicy::Preference, RE::BIPED_OBJECTS::kEditorTotal> slotPolicies;
+    std::array<SlotPolicy::Preference, SlotPolicy::numSlots> slotPolicies;
 
     bool conflictsWith(RE::TESObjectARMO*) const;
     bool hasShield() const;
