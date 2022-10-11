@@ -42,7 +42,7 @@ namespace SlotPolicy {
         EMPTY, EQUIPPED, OUTFIT
     };
 
-    inline constexpr Preference defaultPolicy = SlotPolicy::Preference::XXXX;
+    inline constexpr Preference defaultPolicy = SlotPolicy::Preference::XEOO;
 
     inline constexpr std::uint32_t firstSlot = RE::BIPED_OBJECTS::kHead;
     inline constexpr std::uint32_t numSlots = RE::BIPED_OBJECTS::kEditorTotal;

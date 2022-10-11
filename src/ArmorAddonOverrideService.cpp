@@ -53,7 +53,7 @@ std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unor
         if (!armor) continue;
         auto mask = static_cast<uint32_t>(armor->GetSlotMask());
         for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot = static_cast<RE::BIPED_OBJECTS::BIPED_OBJECT>(static_cast<std::uint32_t>(slot) + 1)) {
-            if (mask & (1 << slot)) equipped[slot] = armor;
+            if (mask & (1 << slot)) outfit[slot] = armor;
         }
     }
 
@@ -110,9 +110,12 @@ void Outfit::load(const proto::Outfit& proto, const SKSE::SerializationInterface
         }
     }
     this->isFavorite = proto.is_favorite();
+
+    // Load slot policies from proto
+    slotPolicies.fill(SlotPolicy::defaultPolicy);
     auto src = proto.slotpolicy().begin();
-    auto dst = this->slotPolicies.begin();
-    while (src < proto.slotpolicy().end() && dst < this->slotPolicies.end()) {
+    auto dst = slotPolicies.begin();
+    while (src < proto.slotpolicy().end() && dst < slotPolicies.end()) {
         auto policy = static_cast<SlotPolicy::Preference>(*src);
         if (policy < SlotPolicy::Preference::XXXX || policy >= SlotPolicy::Preference::MAX) {
             LOG(err, "Invalid slot preference {}. Using default", static_cast<char>(policy));
