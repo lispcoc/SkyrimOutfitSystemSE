@@ -60,7 +60,7 @@ struct Outfit {
 
     bool conflictsWith(RE::TESObjectARMO*) const;
     bool hasShield() const;
-    std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equipped);
+    std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet);
 
     void load(const proto::Outfit& proto, const SKSE::SerializationInterface*);
     void load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version);// can throw ArmorAddonOverrideService::load_error

@@ -34,105 +34,48 @@ bool Outfit::hasShield() const {
     return false;
 };
 
-std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equipped) {
+std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet) {
     std::unordered_set<RE::TESObjectARMO*> result;
 
-    // Handle whatever combination of flags we have for how passthrough and equip requirements work.
-    if (!allowsPassthrough && !requiresEquipped) {
-        // The usual behavior: Don't allow passthrough of any slot and unconditionally apply the outfit items.
+    std::array<SlotPolicy::Preference, RE::BIPED_OBJECTS::kEditorTotal> preferences{SlotPolicy::Preference::XXXX};
+    std::array<RE::TESObjectARMO*, RE::BIPED_OBJECTS::kEditorTotal> equipped{nullptr};
+    std::array<RE::TESObjectARMO*, RE::BIPED_OBJECTS::kEditorTotal> outfit{nullptr};
+    std::uint32_t occupiedMask = 0;
 
-        // The result is just my own armors...
-        result = armors;
-    } else if (allowsPassthrough && !requiresEquipped) {
-        // The much requested behavior. Allow compatible armors to show through the outfit
-
-        // The result is just my own armors...
-        result = armors;
-
-        // And now append equipped armors that *are compatible*.
-        for (const auto candidate : equipped) {
-            if (!conflictsWith(candidate)) {
-                result.emplace(candidate);
-            }
-        }
-    } else if (!allowsPassthrough && requiresEquipped) {
-        // No passthrough, but do require that items are equipped to show their overrides.
-
-        // Get the effective mask of all equipped armors
-        std::uint32_t equippedMask = 0;
-        for (const auto armor : equipped) {
-            equippedMask |= static_cast<std::uint32_t>(armor->GetSlotMask());
-        }
-
-        // Only add my armors if they are covered by the equip mask
-        for (const auto armor : armors) {
-            auto armorMask = static_cast<std::uint32_t>(armor->GetSlotMask());
-            if ((armorMask & equippedMask) == armorMask) {
-                result.emplace(armor);
-            }
-        }
-    } else if (allowsPassthrough && requiresEquipped) {
-        // Allow passthrough and also require that outfit items are equipped to show.
-
-        // Get the effective mask of all equipped armors
-        std::uint32_t equippedMask = 0;
-        for (const auto armor : equipped) {
-            equippedMask |= static_cast<std::uint32_t>(armor->GetSlotMask());
-        }
-
-        // Only add my armors if they are covered by the equip mask
-        for (const auto armor : armors) {
-            std::uint32_t armorMask = static_cast<std::uint32_t>(armor->GetSlotMask());
-            if ((armorMask & equippedMask) == armorMask) {
-                result.emplace(armor);
-            }
-        }
-
-        // And now append equipped armors that *are compatible*.
-        for (const auto candidate : equipped) {
-            if (!conflictsWith(candidate)) {
-                result.emplace(candidate);
-            }
+    for (auto armor : equippedSet) {
+        if (!armor) continue;
+        auto mask = static_cast<uint32_t>(armor->GetSlotMask());
+        for (auto slot = RE::BIPED_OBJECTS::kHead; slot < RE::BIPED_OBJECTS::kEditorTotal; slot = static_cast<RE::BIPED_OBJECTS::BIPED_OBJECT>(static_cast<std::uint32_t>(slot) + 1)) {
+            if (mask & (1 << slot)) equipped[slot] = armor;
         }
     }
 
-    // IN ALL CASES -- SPECIAL SHIELD HANDLING
-    // Check if the equipped and outfit have shields and save them.
-    std::optional<RE::TESObjectARMO*> equippedShield;
-    std::optional<RE::TESObjectARMO*> outfitShield;
-    for (const auto armor : equipped) {
-        if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
-            equippedShield = armor;
+    for (auto armor : armors) {
+        if (!armor) continue;
+        auto mask = static_cast<uint32_t>(armor->GetSlotMask());
+        for (auto slot = RE::BIPED_OBJECTS::kHead; slot < RE::BIPED_OBJECTS::kEditorTotal; slot = static_cast<RE::BIPED_OBJECTS::BIPED_OBJECT>(static_cast<std::uint32_t>(slot) + 1)) {
+            if (mask & (1 << slot)) equipped[slot] = armor;
+        }
+    }
+
+    for (auto slot = RE::BIPED_OBJECTS::kHead; slot < RE::BIPED_OBJECTS::kEditorTotal; slot = static_cast<RE::BIPED_OBJECTS::BIPED_OBJECT>(static_cast<std::uint32_t>(slot) + 1)) {
+        if (occupiedMask & (1 << slot)) continue; // Someone before us already got this slot.
+        auto selection = SlotPolicy::select(preferences[slot], equipped[slot], outfit[slot]);
+        RE::TESObjectARMO* selectedArmor = nullptr;
+        switch (selection) {
+        case SlotPolicy::Selection::EMPTY:
+            break;
+        case SlotPolicy::Selection::EQUIPPED:
+            selectedArmor = equipped[slot];
+            break;
+        case SlotPolicy::Selection::OUTFIT:
+            selectedArmor = outfit[slot];
             break;
         }
+        if (!selectedArmor) continue;
+        occupiedMask |= static_cast<uint32_t>(selectedArmor->GetSlotMask());
+        result.emplace(selectedArmor);
     }
-    for (const auto armor : armors) {
-        if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
-            outfitShield = armor;
-            break;
-        }
-    }
-
-    // Unconditionally erase shields from the result, so that we can apply the correct one (if any)
-    for (auto it = result.begin(); it != result.end();) {
-        if (((*it)->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
-            it = result.erase(it);
-        } else {
-            ++it;
-        }
-    }
-
-    // Add the correct shield to the outfit.
-    if (!equippedShield.has_value()) {
-        // No equipped shield. No shield will be added.
-    } else if (equippedShield.has_value() && !outfitShield.has_value()) {
-        // Equipped shield, but nothing in the outfit. Use the equipped shield.
-        result.emplace(equippedShield.value());
-    } else if (equippedShield.has_value() && outfitShield.has_value()) {
-        // Equipped shield, and outfit has shield. Use the outfit shield.
-        result.emplace(outfitShield.value());
-    }
-    // END SHIELD HANDLING
 
     return result;
 };
