@@ -314,7 +314,6 @@ namespace OutfitSystem {
                             data.bodySlots.push_back(i);
                             data.armors.push_back(armor);
                             {// name
-                                // TESFullName* pFullName = DYNAMIC_CAST(armor, RE::TESObjectARMO, TESFullName);
                                 auto pFullName = skyrim_cast<RE::TESFullName*>(armor);
                                 if (pFullName)
                                     data.armorNames.emplace_back(pFullName->fullName.data());
@@ -364,6 +363,39 @@ namespace OutfitSystem {
             return result;
         }
     }// namespace BodySlotListing
+    namespace BodySlotPolicy {
+        std::vector<RE::BSFixedString> BodySlotPoliciesForOutfit(RE::BSScript::IVirtualMachine* registry,
+                                                     std::uint32_t stackId,
+                                                     RE::StaticFunctionTag*,
+                                                     RE::BSFixedString name) {
+            std::vector<RE::BSFixedString> result;
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            auto& outfit = service.getOutfit(name.data());
+            for (const auto policy : outfit.slotPolicies) {
+                result.emplace_back(SlotPolicy::g_policiesMetadata.at(static_cast<char>(policy)).translationKey());
+            }
+            return result;
+        }
+        void SetBodySlotPoliciesForOutfit(RE::BSScript::IVirtualMachine* registry,
+                                       std::uint32_t stackId,
+                                       RE::StaticFunctionTag*,
+                                       RE::BSFixedString name,
+                                       std::uint32_t slot,
+                                       std::uint32_t policy) {
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            auto& outfit = service.getOutfit(name.data());
+            outfit.setSlotPolicy(static_cast<RE::BIPED_OBJECT>(slot), static_cast<SlotPolicy::Preference>(policy));
+        }
+        void SetBodySlotPolicyToDefaultForOutfit(RE::BSScript::IVirtualMachine* registry,
+                                          std::uint32_t stackId,
+                                          RE::StaticFunctionTag*,
+                                          RE::BSFixedString name) {
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            auto& outfit = service.getOutfit(name.data());
+            outfit.setDefaultSlotPolicy();
+        }
+
+    }
     namespace StringSorts {
         std::vector<RE::BSFixedString> NaturalSort_ASCII(RE::BSScript::IVirtualMachine* registry,
                                                          std::uint32_t stackId,
@@ -1087,6 +1119,20 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
             "ClearOutfitBodySlotListing",
             "SkyrimOutfitSystemNativeFuncs",
             BodySlotListing::Clear);
+    }
+    {//body slot policy
+        registry->RegisterFunction(
+            "BodySlotPoliciesForOutfit",
+            "SkyrimOutfitSystemNativeFuncs",
+            BodySlotPolicy::BodySlotPoliciesForOutfit);
+        registry->RegisterFunction(
+            "SetBodySlotPoliciesForOutfit",
+            "SkyrimOutfitSystemNativeFuncs",
+            BodySlotPolicy::SetBodySlotPoliciesForOutfit);
+        registry->RegisterFunction(
+            "SetBodySlotPolicyToDefaultForOutfit",
+            "SkyrimOutfitSystemNativeFuncs",
+            BodySlotPolicy::SetBodySlotPolicyToDefaultForOutfit);
     }
     {// string sorts
         registry->RegisterFunction(
