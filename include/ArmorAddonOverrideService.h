@@ -42,7 +42,7 @@ namespace SlotPolicy {
         EMPTY, EQUIPPED, OUTFIT
     };
 
-    inline constexpr Preference defaultPolicy = SlotPolicy::Preference::XEOO;
+    inline constexpr Preference defaultPolicy = SlotPolicy::Preference::XXOO;
 
     inline constexpr std::uint32_t firstSlot = RE::BIPED_OBJECTS::kHead;
     inline constexpr std::uint32_t numSlots = RE::BIPED_OBJECTS::kEditorTotal;
@@ -65,6 +65,9 @@ struct Outfit {
     bool conflictsWith(RE::TESObjectARMO*) const;
     bool hasShield() const;
     std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet);
+
+    void setDefaultSlotPolicy();
+    void setAllSlotPolicy(SlotPolicy::Preference preference);
 
     void load(const proto::Outfit& proto, const SKSE::SerializationInterface*);
     void load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version);// can throw ArmorAddonOverrideService::load_error

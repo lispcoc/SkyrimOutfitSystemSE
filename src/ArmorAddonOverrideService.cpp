@@ -34,6 +34,14 @@ bool Outfit::hasShield() const {
     return false;
 };
 
+void Outfit::setDefaultSlotPolicy() {
+    slotPolicies.fill(SlotPolicy::defaultPolicy);
+    slotPolicies[RE::BIPED_OBJECTS::kShield] = SlotPolicy::Preference::XEXO;
+}
+void Outfit::setAllSlotPolicy(SlotPolicy::Preference preference) {
+    slotPolicies.fill(preference);
+}
+
 std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet) {
     std::unordered_set<RE::TESObjectARMO*> result;
 
@@ -112,7 +120,7 @@ void Outfit::load(const proto::Outfit& proto, const SKSE::SerializationInterface
     this->isFavorite = proto.is_favorite();
 
     // Load slot policies from proto
-    slotPolicies.fill(SlotPolicy::defaultPolicy);
+    setDefaultSlotPolicy();
     auto src = proto.slotpolicy().begin();
     auto dst = slotPolicies.begin();
     while (src < proto.slotpolicy().end() && dst < slotPolicies.end()) {
