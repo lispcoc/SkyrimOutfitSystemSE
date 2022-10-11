@@ -111,8 +111,19 @@ void Outfit::load(const proto::Outfit& proto, const SKSE::SerializationInterface
         }
     }
     this->isFavorite = proto.is_favorite();
-    this->allowsPassthrough = proto.allows_passthrough();
-    this->requiresEquipped = proto.requires_equipped();
+    auto src = proto.slotpolicy().begin();
+    auto dst = this->slotPolicies.begin();
+    while (src < proto.slotpolicy().end(), dst < this->slotPolicies.end()) {
+        auto policy = static_cast<SlotPolicy::Preference>(*src);
+        if (policy < SlotPolicy::Preference::XXXX || policy >= SlotPolicy::Preference::MAX) {
+            LOG(err, "Invalid slot preference {}", static_cast<char>(policy));
+            policy = SlotPolicy::Preference::XXXX;
+        } else {
+            *dst = policy;
+        }
+        dst++;
+        src++;
+    }
 }
 
 proto::Outfit Outfit::save() const {
@@ -123,8 +134,9 @@ proto::Outfit Outfit::save() const {
             out.add_armors(armor->formID);
     }
     out.set_is_favorite(this->isFavorite);
-    out.set_allows_passthrough(this->allowsPassthrough);
-    out.set_requires_equipped(this->requiresEquipped);
+    for (auto policy : slotPolicies) {
+        out.add_slotpolicy(static_cast<std::uint32_t>(policy));
+    }
     return out;
 }
 
@@ -196,16 +208,12 @@ void ArmorAddonOverrideService::setFavorite(const char* name, bool favorite) {
         outfit->second.isFavorite = favorite;
 }
 
+// TODO: REMOVE THESE FUNCTIONS
 void ArmorAddonOverrideService::setOutfitPassthrough(const char* name, bool allowPassthrough) {
-    auto outfit = this->outfits.find(name);
-    if (outfit != this->outfits.end())
-        outfit->second.allowsPassthrough = allowPassthrough;
 }
 
+// TODO: REMOVE THESE FUNCTIONS
 void ArmorAddonOverrideService::setOutfitEquipRequired(const char* name, bool requiresEquipped) {
-    auto outfit = this->outfits.find(name);
-    if (outfit != this->outfits.end())
-        outfit->second.requiresEquipped = requiresEquipped;
 }
 
 void ArmorAddonOverrideService::modifyOutfit(const char* name,

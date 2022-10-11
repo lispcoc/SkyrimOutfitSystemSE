@@ -47,16 +47,15 @@ namespace SlotPolicy {
 
 struct Outfit {
     Outfit(){};// we shouldn't need this, really, but std::unordered_map is a brat
-    Outfit(const char* n) : name(n), isFavorite(false), allowsPassthrough(false), requiresEquipped(false){};
+    Outfit(const char* n) : name(n), isFavorite(false), slotPolicies{SlotPolicy::Preference::XXXX} {};
     Outfit(const Outfit& other) = default;
-    Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false), allowsPassthrough(false), requiresEquipped(false) {
+    Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false), slotPolicies{SlotPolicy::Preference::XXXX} {
         this->armors = other.armors;
     }
     std::string name;// can't be const; prevents assigning to Outfit vars
     std::unordered_set<RE::TESObjectARMO*> armors;
     bool isFavorite;
-    bool allowsPassthrough;
-    bool requiresEquipped;
+    std::array<SlotPolicy::Preference, RE::BIPED_OBJECTS::kEditorTotal> slotPolicies;
 
     bool conflictsWith(RE::TESObjectARMO*) const;
     bool hasShield() const;

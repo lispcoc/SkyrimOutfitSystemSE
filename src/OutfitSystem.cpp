@@ -563,6 +563,7 @@ namespace OutfitSystem {
         }
         return result;
     }
+    // TODO: REMOVE THESE FUNCTIONS
     bool GetOutfitPassthroughStatus(RE::BSScript::IVirtualMachine* registry,
                                     std::uint32_t stackId,
                                     RE::StaticFunctionTag*,
@@ -573,12 +574,13 @@ namespace OutfitSystem {
         bool result = false;
         try {
             auto& outfit = service.getOutfit(name.data());
-            result = outfit.allowsPassthrough;
+            result = false;
         } catch (std::out_of_range) {
             registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
         }
         return result;
     }
+    // TODO: REMOVE THESE FUNCTIONS
     bool GetOutfitEquipRequiredStatus(RE::BSScript::IVirtualMachine* registry,
                                       std::uint32_t stackId,
                                       RE::StaticFunctionTag*,
@@ -589,7 +591,7 @@ namespace OutfitSystem {
         bool result = false;
         try {
             auto& outfit = service.getOutfit(name.data());
-            result = outfit.requiresEquipped;
+            result = false;
         } catch (std::out_of_range) {
             registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
         }
