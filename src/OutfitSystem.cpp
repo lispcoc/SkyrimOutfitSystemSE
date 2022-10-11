@@ -419,7 +419,7 @@ namespace OutfitSystem {
             auto policies = std::vector<SlotPolicy::Metadata>(SlotPolicy::g_policiesMetadata.begin(), SlotPolicy::g_policiesMetadata.end());
             std::erase_if(policies, [](const SlotPolicy::Metadata& first) { return first.advanced; });
             std::sort(policies.begin(), policies.end(), [](const SlotPolicy::Metadata& first, const SlotPolicy::Metadata& second) {
-                return first.code < second.code;
+                return first.sortOrder < second.sortOrder;
             });
             std::vector<RE::BSFixedString> result;
             for (const auto& policy : policies) {
@@ -433,7 +433,7 @@ namespace OutfitSystem {
             auto policies = std::vector<SlotPolicy::Metadata>(SlotPolicy::g_policiesMetadata.begin(), SlotPolicy::g_policiesMetadata.end());
             std::erase_if(policies, [](const SlotPolicy::Metadata& first) { return first.advanced; });
             std::sort(policies.begin(), policies.end(), [](const SlotPolicy::Metadata& first, const SlotPolicy::Metadata& second) {
-                return first.code < second.code;
+                return first.sortOrder < second.sortOrder;
             });
             std::vector<RE::BSFixedString> result;
             for (const auto& policy : policies) {

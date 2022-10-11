@@ -22,8 +22,10 @@ namespace cobb {
                     //
                     c_a = std::towlower(c_a);// not sure about this; seems to use two-byte chars when unicode can be up to four bytes, no?
                     c_b = std::towlower(c_b);// then again, anything past the two-byte mark probably isn't even a "letter" as Westerners conceive of them...
-                    if (c_a == c_b)
+                    if (c_a == c_b) {
+                        if (i_a == a.end() || i_b == b.end()) break;
                         continue;
+                    }
                     return c_b - c_a;
                 }
                 std::uint32_t n_a = c_a - '0';
@@ -44,6 +46,7 @@ namespace cobb {
                 }
                 if (n_a != n_b)
                     return n_b - n_a;
+                if (i_a == a.end() || i_b == b.end()) break;
             }
             //
             // If we've reached this point, then we've reached the end of ONE OF the

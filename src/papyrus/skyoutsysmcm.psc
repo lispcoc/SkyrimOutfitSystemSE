@@ -91,6 +91,7 @@ Function ResetOutfitBrowser()
    _sEditingOutfit       = ""
    _sOutfitShowingContextMenu = ""
    _sOutfitNames = new String[1]
+   _sOutfitShowingSlotEditor = False
 EndFunction
 Function ResetOutfitEditor()
    _sOutfitSlotNames  = new String[1]
@@ -447,6 +448,7 @@ EndFunction
       _sEditingOutfit = asOutfitName
       SetupSlotDataForOutfit(_sEditingOutfit)
       _iOutfitEditorBodySlotPage = 0
+      _sOutfitShowingSlotEditor = False
       ForcePageReset()
    EndFunction
    Function StopEditingOutfit()
