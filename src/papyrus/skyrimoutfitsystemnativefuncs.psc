@@ -77,6 +77,7 @@ Bool     Function GetOutfitEquipRequiredStatus(String asOutfitName) Global Nativ
          Function SetOutfitEquipRequiredStatus(String asOutfitName, Bool asEquipRequired) Global Native
 String[] Function BodySlotPolicyNamesForOutfit(String asOutfitName) Global Native
          Function SetBodySlotPoliciesForOutfit(String asOutfitName, Int aiSlot, String aiPolicyCode) Global Native
+         Function SetAllBodySlotPoliciesForOutfit(String asOutfitName, String aiPolicyCode) Global Native
          Function SetBodySlotPolicyToDefaultForOutfit(String asOutfitName) Global Native
 String[] Function GetAvailablePolicyNames() Global Native
 String[] Function GetAvailablePolicyCodes() Global Native

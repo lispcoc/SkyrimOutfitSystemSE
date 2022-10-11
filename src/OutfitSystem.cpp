@@ -391,6 +391,20 @@ namespace OutfitSystem {
             if (found == SlotPolicy::g_policiesMetadata.end()) return;
             outfit.setSlotPolicy(static_cast<RE::BIPED_OBJECT>(slot), static_cast<SlotPolicy::Preference>(found - SlotPolicy::g_policiesMetadata.begin()));
         }
+        void SetAllBodySlotPoliciesForOutfit(RE::BSScript::IVirtualMachine* registry,
+                                          std::uint32_t stackId,
+                                          RE::StaticFunctionTag*,
+                                          RE::BSFixedString name,
+                                          RE::BSFixedString code) {
+            auto& service = ArmorAddonOverrideService::GetInstance();
+            auto& outfit = service.getOutfit(name.data());
+            std::string codeString(code);
+            auto found = std::find_if(SlotPolicy::g_policiesMetadata.begin(), SlotPolicy::g_policiesMetadata.end(), [&](const SlotPolicy::Metadata& first) {
+                return first.code == codeString;
+            });
+            if (found == SlotPolicy::g_policiesMetadata.end()) return;
+            outfit.setAllSlotPolicy(static_cast<SlotPolicy::Preference>(found - SlotPolicy::g_policiesMetadata.begin()));
+        }
         void SetBodySlotPolicyToDefaultForOutfit(RE::BSScript::IVirtualMachine* registry,
                                           std::uint32_t stackId,
                                           RE::StaticFunctionTag*,
@@ -402,7 +416,8 @@ namespace OutfitSystem {
         std::vector<RE::BSFixedString> GetAvailablePolicyNames(RE::BSScript::IVirtualMachine* registry,
                                           std::uint32_t stackId,
                                           RE::StaticFunctionTag*) {
-            auto policies = SlotPolicy::g_policiesMetadata;
+            auto policies = std::vector<SlotPolicy::Metadata>(SlotPolicy::g_policiesMetadata.begin(), SlotPolicy::g_policiesMetadata.end());
+            std::erase_if(policies, [](const SlotPolicy::Metadata& first) { return first.advanced; });
             std::sort(policies.begin(), policies.end(), [](const SlotPolicy::Metadata& first, const SlotPolicy::Metadata& second) {
                 return first.code < second.code;
             });
@@ -415,7 +430,8 @@ namespace OutfitSystem {
         std::vector<RE::BSFixedString> GetAvailablePolicyCodes(RE::BSScript::IVirtualMachine* registry,
                                                                std::uint32_t stackId,
                                                                RE::StaticFunctionTag*) {
-            auto policies = SlotPolicy::g_policiesMetadata;
+            auto policies = std::vector<SlotPolicy::Metadata>(SlotPolicy::g_policiesMetadata.begin(), SlotPolicy::g_policiesMetadata.end());
+            std::erase_if(policies, [](const SlotPolicy::Metadata& first) { return first.advanced; });
             std::sort(policies.begin(), policies.end(), [](const SlotPolicy::Metadata& first, const SlotPolicy::Metadata& second) {
                 return first.code < second.code;
             });
@@ -1159,6 +1175,10 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
             "SetBodySlotPoliciesForOutfit",
             "SkyrimOutfitSystemNativeFuncs",
             BodySlotPolicy::SetBodySlotPoliciesForOutfit);
+        registry->RegisterFunction(
+            "SetAllBodySlotPoliciesForOutfit",
+            "SkyrimOutfitSystemNativeFuncs",
+            BodySlotPolicy::SetAllBodySlotPoliciesForOutfit);
         registry->RegisterFunction(
             "SetBodySlotPolicyToDefaultForOutfit",
             "SkyrimOutfitSystemNativeFuncs",

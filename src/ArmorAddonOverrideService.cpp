@@ -50,6 +50,7 @@ void Outfit::setDefaultSlotPolicy() {
     slotPolicies.fill(SlotPolicy::defaultPolicy);
     slotPolicies[RE::BIPED_OBJECTS::kShield] = SlotPolicy::Preference::XEXO;
 }
+
 void Outfit::setAllSlotPolicy(SlotPolicy::Preference preference) {
     slotPolicies.fill(preference);
 }
