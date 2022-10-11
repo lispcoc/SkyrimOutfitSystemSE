@@ -113,7 +113,7 @@ void Outfit::load(const proto::Outfit& proto, const SKSE::SerializationInterface
     this->isFavorite = proto.is_favorite();
     auto src = proto.slotpolicy().begin();
     auto dst = this->slotPolicies.begin();
-    while (src < proto.slotpolicy().end(), dst < this->slotPolicies.end()) {
+    while (src < proto.slotpolicy().end() && dst < this->slotPolicies.end()) {
         auto policy = static_cast<SlotPolicy::Preference>(*src);
         if (policy < SlotPolicy::Preference::XXXX || policy >= SlotPolicy::Preference::MAX) {
             LOG(err, "Invalid slot preference {}", static_cast<char>(policy));
