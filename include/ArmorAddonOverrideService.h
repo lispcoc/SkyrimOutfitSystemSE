@@ -46,7 +46,7 @@ namespace SlotPolicy {
         std::string code;
         std::int32_t sortOrder;
         bool advanced;
-        std::string translationKey() {
+        std::string translationKey() const {
             return "$SkyOutSys_Desc_PolicyName_" + code;
         }
     };

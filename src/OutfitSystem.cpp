@@ -364,7 +364,7 @@ namespace OutfitSystem {
         }
     }// namespace BodySlotListing
     namespace BodySlotPolicy {
-        std::vector<RE::BSFixedString> BodySlotPoliciesForOutfit(RE::BSScript::IVirtualMachine* registry,
+        std::vector<RE::BSFixedString> BodySlotPolicyNamesForOutfit(RE::BSScript::IVirtualMachine* registry,
                                                      std::uint32_t stackId,
                                                      RE::StaticFunctionTag*,
                                                      RE::BSFixedString name) {
@@ -381,10 +381,15 @@ namespace OutfitSystem {
                                        RE::StaticFunctionTag*,
                                        RE::BSFixedString name,
                                        std::uint32_t slot,
-                                       std::uint32_t policy) {
+                                       RE::BSFixedString code) {
             auto& service = ArmorAddonOverrideService::GetInstance();
             auto& outfit = service.getOutfit(name.data());
-            outfit.setSlotPolicy(static_cast<RE::BIPED_OBJECT>(slot), static_cast<SlotPolicy::Preference>(policy));
+            std::string codeString(code);
+            auto found = std::find_if(SlotPolicy::g_policiesMetadata.begin(), SlotPolicy::g_policiesMetadata.end(), [&](const SlotPolicy::Metadata& first) {
+                return first.code == codeString;
+            });
+            if (found == SlotPolicy::g_policiesMetadata.end()) return;
+            outfit.setSlotPolicy(static_cast<RE::BIPED_OBJECT>(slot), static_cast<SlotPolicy::Preference>(found - SlotPolicy::g_policiesMetadata.begin()));
         }
         void SetBodySlotPolicyToDefaultForOutfit(RE::BSScript::IVirtualMachine* registry,
                                           std::uint32_t stackId,
@@ -394,7 +399,32 @@ namespace OutfitSystem {
             auto& outfit = service.getOutfit(name.data());
             outfit.setDefaultSlotPolicy();
         }
-
+        std::vector<RE::BSFixedString> GetAvailablePolicyNames(RE::BSScript::IVirtualMachine* registry,
+                                          std::uint32_t stackId,
+                                          RE::StaticFunctionTag*) {
+            auto policies = SlotPolicy::g_policiesMetadata;
+            std::sort(policies.begin(), policies.end(), [](const SlotPolicy::Metadata& first, const SlotPolicy::Metadata& second) {
+                return first.code < second.code;
+            });
+            std::vector<RE::BSFixedString> result;
+            for (const auto& policy : policies) {
+                result.emplace_back(policy.translationKey());
+            }
+            return result;
+        }
+        std::vector<RE::BSFixedString> GetAvailablePolicyCodes(RE::BSScript::IVirtualMachine* registry,
+                                                               std::uint32_t stackId,
+                                                               RE::StaticFunctionTag*) {
+            auto policies = SlotPolicy::g_policiesMetadata;
+            std::sort(policies.begin(), policies.end(), [](const SlotPolicy::Metadata& first, const SlotPolicy::Metadata& second) {
+                return first.code < second.code;
+            });
+            std::vector<RE::BSFixedString> result;
+            for (const auto& policy : policies) {
+                result.emplace_back(policy.code);
+            }
+            return result;
+        }
     }
     namespace StringSorts {
         std::vector<RE::BSFixedString> NaturalSort_ASCII(RE::BSScript::IVirtualMachine* registry,
@@ -1122,9 +1152,9 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
     }
     {//body slot policy
         registry->RegisterFunction(
-            "BodySlotPoliciesForOutfit",
+            "BodySlotPolicyNamesForOutfit",
             "SkyrimOutfitSystemNativeFuncs",
-            BodySlotPolicy::BodySlotPoliciesForOutfit);
+            BodySlotPolicy::BodySlotPolicyNamesForOutfit);
         registry->RegisterFunction(
             "SetBodySlotPoliciesForOutfit",
             "SkyrimOutfitSystemNativeFuncs",
@@ -1133,6 +1163,14 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
             "SetBodySlotPolicyToDefaultForOutfit",
             "SkyrimOutfitSystemNativeFuncs",
             BodySlotPolicy::SetBodySlotPolicyToDefaultForOutfit);
+        registry->RegisterFunction(
+            "GetAvailablePolicyNames",
+            "SkyrimOutfitSystemNativeFuncs",
+            BodySlotPolicy::GetAvailablePolicyNames);
+        registry->RegisterFunction(
+            "GetAvailablePolicyCodes",
+            "SkyrimOutfitSystemNativeFuncs",
+            BodySlotPolicy::GetAvailablePolicyCodes);
     }
     {// string sorts
         registry->RegisterFunction(

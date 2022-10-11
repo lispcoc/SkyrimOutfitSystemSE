@@ -75,9 +75,11 @@ Bool     Function GetOutfitPassthroughStatus(String asOutfitName) Global Native
          Function SetOutfitPassthroughStatus(String asOutfitName, Bool abPassthrough) Global Native
 Bool     Function GetOutfitEquipRequiredStatus(String asOutfitName) Global Native
          Function SetOutfitEquipRequiredStatus(String asOutfitName, Bool asEquipRequired) Global Native
-String[] Function BodySlotPoliciesForOutfit(String asOutfitName) Global Native
-         Function SetBodySlotPoliciesForOutfit(String asOutfitName, Int aiSlot, Int aiPolicy) Global Native
+String[] Function BodySlotPolicyNamesForOutfit(String asOutfitName) Global Native
+         Function SetBodySlotPoliciesForOutfit(String asOutfitName, Int aiSlot, String aiPolicyCode) Global Native
          Function SetBodySlotPolicyToDefaultForOutfit(String asOutfitName) Global Native
+String[] Function GetAvailablePolicyNames() Global Native
+String[] Function GetAvailablePolicyCodes() Global Native
 String   Function GetSelectedOutfit (Actor actor) Global Native
 Bool     Function IsEnabled         () Global Native
 String[] Function ListOutfits       (Bool favoritesOnly = False) Global Native
