@@ -1,9 +1,5 @@
 #include "ArmorAddonOverrideService.h"
 
-//#include "skse64/GameForms.h"
-//#include "skse64/GameRTTI.h"
-//#include "skse64/Serialization.h"
-
 void _assertWrite(bool result, const char* err) {
     if (!result)
         throw ArmorAddonOverrideService::save_error(err);
@@ -598,4 +594,32 @@ void ArmorAddonOverrideService::dump() const {
         }
     }
     LOG(info, "All state has been dumped.");
+}
+
+static std::string g_policies[static_cast<char>(SlotPolicy::Preference::MAX)] = {"XXXX", "XXXE","XXXO","XXOX","XXOE","XXOO","XEXX","XEXE","XEXO","XEOX","XEOE","XEOO"};
+
+SlotPolicy::Selection SlotPolicy::select(SlotPolicy::Preference policy, bool hasEquipped, bool hasOutfit) {
+    if (policy < Preference::XXXX || policy >= Preference::MAX) {
+        LOG(err, "Invalid slot preference {}", static_cast<char>(policy));
+        policy = Preference::XXXX;
+    }
+    char out = 'X';
+    if (!hasEquipped && !hasOutfit) {
+        out = g_policies[static_cast<char>(policy)][0];
+    } else if (hasEquipped && !hasOutfit) {
+        out = g_policies[static_cast<char>(policy)][1];
+    } else if (!hasEquipped && hasOutfit) {
+        out = g_policies[static_cast<char>(policy)][2];
+    } else if (hasEquipped && hasOutfit) {
+        out = g_policies[static_cast<char>(policy)][3];
+    }
+    if (out == 'X') {
+        return SlotPolicy::Selection::EMPTY;
+    } else if (out == 'E') {
+        return SlotPolicy::Selection::EQUIPPED;
+    } else if (out == 'O') {
+        return SlotPolicy::Selection::OUTFIT;
+    } else {
+        return SlotPolicy::Selection::EMPTY;
+    }
 }

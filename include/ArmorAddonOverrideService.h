@@ -4,7 +4,6 @@
 #include <unordered_map>
 #include <vector>
 
-//#include "skse64/PluginAPI.h"
 #include "cobb/strings.h"
 #include "outfit.pb.h"
 
@@ -33,6 +32,18 @@ struct WeatherFlags {
     bool snowy = false;
     bool rainy = false;
 };
+
+namespace SlotPolicy {
+    enum class Preference: char {
+        XXXX = 0, XXXE, XXXO, XXOX, XXOE, XXOO, XEXX, XEXE, XEXO, XEOX, XEOE, XEOO, MAX
+    };
+
+    enum class Selection {
+        EMPTY, EQUIPPED, OUTFIT
+    };
+
+    Selection select(Preference policy, bool hasEquipped, bool hasOutfit);
+}
 
 struct Outfit {
     Outfit(){};// we shouldn't need this, really, but std::unordered_map is a brat
