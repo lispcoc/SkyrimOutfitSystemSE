@@ -42,7 +42,17 @@ namespace SlotPolicy {
         EMPTY, EQUIPPED, OUTFIT
     };
 
-    inline constexpr Preference defaultPolicy = SlotPolicy::Preference::XXOO;
+    struct Metadata {
+        std::string code;
+        std::int32_t sortOrder;
+        bool advanced;
+        std::string translationKey() {
+            return "$SkyOutSys_Desc_PolicyName_" + code;
+        }
+    };
+
+    extern std::array<Metadata, static_cast<char>(Preference::MAX)> g_policiesMetadata;
+    inline constexpr Preference defaultPolicy = Preference::XXOO;
 
     inline constexpr std::uint32_t firstSlot = RE::BIPED_OBJECTS::kHead;
     inline constexpr std::uint32_t numSlots = RE::BIPED_OBJECTS::kEditorTotal;
@@ -66,8 +76,9 @@ struct Outfit {
     bool hasShield() const;
     std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet);
 
+    void setSlotPolicy(RE::BIPED_OBJECT slot, SlotPolicy::Preference policy);
     void setDefaultSlotPolicy();
-    void setAllSlotPolicy(SlotPolicy::Preference preference);
+    void setAllSlotPolicy(SlotPolicy::Preference policy);
 
     void load(const proto::Outfit& proto, const SKSE::SerializationInterface*);
     void load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version);// can throw ArmorAddonOverrideService::load_error

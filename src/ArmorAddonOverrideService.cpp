@@ -34,6 +34,18 @@ bool Outfit::hasShield() const {
     return false;
 };
 
+void Outfit::setSlotPolicy(RE::BIPED_OBJECT slot, SlotPolicy::Preference policy) {
+    if (policy < SlotPolicy::Preference::XXXX || policy >= SlotPolicy::Preference::MAX) {
+        LOG(err, "Invalid slot preference {}.", static_cast<char>(policy));
+        return;
+    }
+    if (slot < SlotPolicy::firstSlot || slot >= SlotPolicy::numSlots) {
+        LOG(err, "Invalid slot {}.", static_cast<char>(policy));
+        return;
+    }
+    slotPolicies[slot] = policy;
+}
+
 void Outfit::setDefaultSlotPolicy() {
     slotPolicies.fill(SlotPolicy::defaultPolicy);
     slotPolicies[RE::BIPED_OBJECTS::kShield] = SlotPolicy::Preference::XEXO;
@@ -557,7 +569,21 @@ void ArmorAddonOverrideService::dump() const {
     LOG(info, "All state has been dumped.");
 }
 
-static std::string g_policies[static_cast<char>(SlotPolicy::Preference::MAX)] = {"XXXX", "XXXE","XXXO","XXOX","XXOE","XXOO","XEXX","XEXE","XEXO","XEOX","XEOE","XEOO"};
+// Negative values mean "advanced option"
+std::array<SlotPolicy::Metadata, static_cast<char>(SlotPolicy::Preference::MAX)> SlotPolicy::g_policiesMetadata = {
+    SlotPolicy::Metadata{"XXXX", 100, true},   // Never show anything
+    SlotPolicy::Metadata{"XXXE", 101, true},   // If outfit and equipped, show equipped
+    SlotPolicy::Metadata{"XXXO", 2, false},    // If outfit and equipped, show outfit (require equipped, no passthrough)
+    SlotPolicy::Metadata{"XXOX", 102, true},   // If only outfit, show outfit
+    SlotPolicy::Metadata{"XXOE", 103, true},   // If only outfit, show outfit. If both, show equipped
+    SlotPolicy::Metadata{"XXOO", 1, false},    // If outfit, show outfit (always show outfit, no passthough)
+    SlotPolicy::Metadata{"XEXX", 104, true},   // If only equipped, show equipped
+    SlotPolicy::Metadata{"XEXE", 105, true},   // If equipped, show equipped
+    SlotPolicy::Metadata{"XEXO", 3, false},    // If only equipped, show equipped. If both, show outfit
+    SlotPolicy::Metadata{"XEOX", 106, true},   // If only equipped, show equipped. If only outfit, show outfit
+    SlotPolicy::Metadata{"XEOE", 107, true},   // If only equipped, show equipped. If only outfit, show outfit. If both, show equipped
+    SlotPolicy::Metadata{"XEOO", 108, true}    // If only equipped, show equipped. If only outfit, show outfit. If both, show outfit
+};
 
 SlotPolicy::Selection SlotPolicy::select(SlotPolicy::Preference policy, bool hasEquipped, bool hasOutfit) {
     if (policy < Preference::XXXX || policy >= Preference::MAX) {
@@ -566,13 +592,13 @@ SlotPolicy::Selection SlotPolicy::select(SlotPolicy::Preference policy, bool has
     }
     char out = 'X';
     if (!hasEquipped && !hasOutfit) {
-        out = g_policies[static_cast<char>(policy)][0];
+        out = g_policiesMetadata[static_cast<char>(policy)].code[0];
     } else if (hasEquipped && !hasOutfit) {
-        out = g_policies[static_cast<char>(policy)][1];
+        out = g_policiesMetadata[static_cast<char>(policy)].code[1];
     } else if (!hasEquipped && hasOutfit) {
-        out = g_policies[static_cast<char>(policy)][2];
+        out = g_policiesMetadata[static_cast<char>(policy)].code[2];
     } else if (hasEquipped && hasOutfit) {
-        out = g_policies[static_cast<char>(policy)][3];
+        out = g_policiesMetadata[static_cast<char>(policy)].code[3];
     }
     if (out == 'X') {
         return SlotPolicy::Selection::EMPTY;
