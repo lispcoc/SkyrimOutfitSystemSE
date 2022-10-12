@@ -35,7 +35,7 @@ struct WeatherFlags {
 
 namespace SlotPolicy {
     enum class Preference: char {
-        XXXX = 0, XXXE, XXXO, XXOX, XXOE, XXOO, XEXX, XEXE, XEXO, XEOX, XEOE, XEOO, MAX
+        XXXX, XXXE, XXXO, XXOX, XXOE, XXOO, XEXX, XEXE, XEXO, XEOX, XEOE, XEOO, MAX
     };
 
     enum class Selection {
@@ -61,22 +61,28 @@ namespace SlotPolicy {
 }
 
 struct Outfit {
-    Outfit(){};// we shouldn't need this, really, but std::unordered_map is a brat
-    Outfit(const char* n) : name(n), isFavorite(false), slotPolicies{SlotPolicy::defaultPolicy} {};
+    Outfit() {};// we shouldn't need this, really, but std::unordered_map is a brat
+    Outfit(const char* n) : name(n), isFavorite(false) {
+        setDefaultSlotPolicy();
+    };
     Outfit(const Outfit& other) = default;
-    Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false), slotPolicies{SlotPolicy::defaultPolicy} {
+    Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false) {
         this->armors = other.armors;
+        slotPolicies = other.slotPolicies;
+        slotPolicy = other.slotPolicy;
     }
     std::string name;// can't be const; prevents assigning to Outfit vars
     std::unordered_set<RE::TESObjectARMO*> armors;
     bool isFavorite;
-    std::array<SlotPolicy::Preference, SlotPolicy::numSlots> slotPolicies;
+    std::map<RE::BIPED_OBJECT, SlotPolicy::Preference> slotPolicies;
+    SlotPolicy::Preference slotPolicy;
 
     bool conflictsWith(RE::TESObjectARMO*) const;
     bool hasShield() const;
     std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet);
 
-    void setSlotPolicy(RE::BIPED_OBJECT slot, SlotPolicy::Preference policy);
+    SlotPolicy::Preference effectivePolicyForSlot(RE::BIPED_OBJECT slot);
+    void setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Preference> policy);
     void setDefaultSlotPolicy();
     void setAllSlotPolicy(SlotPolicy::Preference policy);
 

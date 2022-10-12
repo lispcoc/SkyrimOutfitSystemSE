@@ -34,25 +34,40 @@ bool Outfit::hasShield() const {
     return false;
 };
 
-void Outfit::setSlotPolicy(RE::BIPED_OBJECT slot, SlotPolicy::Preference policy) {
-    if (policy < SlotPolicy::Preference::XXXX || policy >= SlotPolicy::Preference::MAX) {
-        LOG(err, "Invalid slot preference {}.", static_cast<char>(policy));
-        return;
-    }
-    if (slot < SlotPolicy::firstSlot || slot >= SlotPolicy::numSlots) {
-        LOG(err, "Invalid slot {}.", static_cast<char>(policy));
-        return;
-    }
-    slotPolicies[slot] = policy;
+SlotPolicy::Preference Outfit::effectivePolicyForSlot(RE::BIPED_OBJECT slot) {
+    auto policy = slotPolicies.find(slot);
+    if (policy != slotPolicies.end()) return policy->second;
+    return slotPolicy;
 }
 
 void Outfit::setDefaultSlotPolicy() {
-    slotPolicies.fill(SlotPolicy::defaultPolicy);
+    slotPolicies.clear();
     slotPolicies[RE::BIPED_OBJECTS::kShield] = SlotPolicy::Preference::XEXO;
+    slotPolicy = SlotPolicy::Preference::XXOO;
 }
 
 void Outfit::setAllSlotPolicy(SlotPolicy::Preference preference) {
-    slotPolicies.fill(preference);
+    if (preference < SlotPolicy::Preference::XXXX || preference >= SlotPolicy::Preference::MAX) {
+        LOG(err, "Invalid slot preference {}.", static_cast<char>(preference));
+        return;
+    }
+    slotPolicy = preference;
+}
+
+void Outfit::setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Preference> policy) {
+    if (slot >= SlotPolicy::numSlots) {
+        LOG(err, "Invalid slot {}.", static_cast<std::uint32_t>(slot));
+        return;
+    }
+    if (policy.has_value()) {
+        if (policy.value() < SlotPolicy::Preference::XXXX || policy.value() >= SlotPolicy::Preference::MAX) {
+            LOG(err, "Invalid slot preference {}.", static_cast<char>(policy.value()));
+            return;
+        }
+        slotPolicies[slot] = policy.value();
+    } else {
+        slotPolicies.erase(slot);
+    }
 }
 
 std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet) {
@@ -65,7 +80,7 @@ std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unor
     for (auto armor : equippedSet) {
         if (!armor) continue;
         auto mask = static_cast<uint32_t>(armor->GetSlotMask());
-        for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot = static_cast<RE::BIPED_OBJECTS::BIPED_OBJECT>(static_cast<std::uint32_t>(slot) + 1)) {
+        for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot++) {
             if (mask & (1 << slot)) equipped[slot] = armor;
         }
     }
@@ -73,14 +88,19 @@ std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unor
     for (auto armor : armors) {
         if (!armor) continue;
         auto mask = static_cast<uint32_t>(armor->GetSlotMask());
-        for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot = static_cast<RE::BIPED_OBJECTS::BIPED_OBJECT>(static_cast<std::uint32_t>(slot) + 1)) {
+        for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot++) {
             if (mask & (1 << slot)) outfit[slot] = armor;
         }
     }
 
-    for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot = static_cast<RE::BIPED_OBJECTS::BIPED_OBJECT>(static_cast<std::uint32_t>(slot) + 1)) {
-        if (occupiedMask & (1 << slot)) continue; // Someone before us already got this slot.
-        auto selection = SlotPolicy::select(slotPolicies[slot], equipped[slot], outfit[slot]);
+    for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot++) {
+        // Someone before us already got this slot.
+        if (occupiedMask & (1 << slot)) continue;
+        // Select the slot's policy, falling back to the outfit's policy if none.
+        SlotPolicy::Preference preference = slotPolicy;
+        auto slotSpecificPolicy = slotPolicies.find(static_cast<RE::BIPED_OBJECT>(slot));
+        if (slotSpecificPolicy != slotPolicies.end()) preference = slotSpecificPolicy->second;
+        auto selection = SlotPolicy::select(preference, equipped[slot], outfit[slot]);
         RE::TESObjectARMO* selectedArmor = nullptr;
         switch (selection) {
         case SlotPolicy::Selection::EMPTY:
@@ -131,22 +151,20 @@ void Outfit::load(const proto::Outfit& proto, const SKSE::SerializationInterface
         }
     }
     this->isFavorite = proto.is_favorite();
-
-    // Load slot policies from proto
-    setDefaultSlotPolicy();
-    auto src = proto.slotpolicy().begin();
-    auto dst = slotPolicies.begin();
-    while (src < proto.slotpolicy().end() && dst < slotPolicies.end()) {
-        auto policy = static_cast<SlotPolicy::Preference>(*src);
-        if (policy < SlotPolicy::Preference::XXXX || policy >= SlotPolicy::Preference::MAX) {
-            LOG(err, "Invalid slot preference {}. Using default", static_cast<char>(policy));
-            policy = SlotPolicy::defaultPolicy;
-        } else {
-            *dst = policy;
+    for (const auto& pair : proto.slot_policies()) {
+        auto slot = static_cast<RE::BIPED_OBJECT>(pair.first);
+        auto policy = static_cast<SlotPolicy::Preference>(pair.second);
+        if (slot >= SlotPolicy::numSlots) {
+            LOG(err, "Invalid slot {}.", static_cast<std::uint32_t>(slot));
+            continue;
         }
-        dst++;
-        src++;
+        if (policy < SlotPolicy::Preference::XXXX || policy >= SlotPolicy::Preference::MAX) {
+            LOG(err, "Invalid slot preference {}", static_cast<char>(policy));
+            continue;
+        }
+        slotPolicies[slot] = policy;
     }
+    slotPolicy = static_cast<SlotPolicy::Preference>(proto.slot_policy());
 }
 
 proto::Outfit Outfit::save() const {
@@ -157,9 +175,10 @@ proto::Outfit Outfit::save() const {
             out.add_armors(armor->formID);
     }
     out.set_is_favorite(this->isFavorite);
-    for (auto policy : slotPolicies) {
-        out.add_slotpolicy(static_cast<std::uint32_t>(policy));
+    for (const auto& policy : slotPolicies) {
+        out.mutable_slot_policies()->emplace(static_cast<std::uint32_t>(policy.first), static_cast<std::uint32_t>(policy.second));
     }
+    out.set_slot_policy(static_cast<std::uint32_t>(slotPolicy));
     return out;
 }
 

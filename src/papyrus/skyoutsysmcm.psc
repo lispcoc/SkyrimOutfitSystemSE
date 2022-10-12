@@ -191,7 +191,8 @@ EndFunction
       If StringUtil.Substring(sState, 0, 28) == "OutfitEditor_BodySlotPolicy_"
          Int iEntryIndex = (StringUtil.Substring(sState, 28) as Int)
          String[] sMenuOptions = SkyrimOutfitSystemNativeFuncs.GetAvailablePolicyNames()
-         String[] sMenu = PrependStringToArray(sMenuOptions, "$SkyOutSys_AutoswitchEdit_Cancel")
+         String[] sMenu = PrependStringToArray(sMenu, "$SkyOutSys_Desc_PolicyName_INHERIT")
+         sMenu = PrependStringToArray(sMenuOptions, "$SkyOutSys_AutoswitchEdit_Cancel")
          SetMenuDialogOptions(sMenu)
          SetMenuDialogStartIndex(0)
          SetMenuDialogDefaultIndex(0)
@@ -218,12 +219,16 @@ EndFunction
       EndIf
       If StringUtil.Substring(sState, 0, 28) == "OutfitEditor_BodySlotPolicy_"
          Int iEntryIndex = (StringUtil.Substring(sState, 28) as Int)
-         aiIndex = aiIndex - 1
-         If aiIndex == -1 ; user canceled
+         aiIndex = aiIndex - 2
+         If aiIndex == -2 ; user canceled
             Return
          EndIf
          String[] sCodes = SkyrimOutfitSystemNativeFuncs.GetAvailablePolicyCodes()
-         SkyrimOutfitSystemNativeFuncs.SetBodySlotPoliciesForOutfit(_sEditingOutfit, iEntryIndex, sCodes[aiIndex])
+         If aiIndex != -1
+            SkyrimOutfitSystemNativeFuncs.SetBodySlotPoliciesForOutfit(_sEditingOutfit, iEntryIndex, sCodes[aiIndex])
+         Else
+            SkyrimOutfitSystemNativeFuncs.SetBodySlotPoliciesForOutfit(_sEditingOutfit, iEntryIndex, "")
+         EndIf
          ForcePageReset()
          Return
       EndIf

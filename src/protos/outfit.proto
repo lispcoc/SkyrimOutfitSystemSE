@@ -6,7 +6,8 @@ message Outfit {
   string name = 1;
   repeated uint32 armors = 2; // A list of formIDs that will be resolved as pointers to RE::TESObjectARMO
   bool is_favorite = 3;
-  repeated uint32 slotPolicy = 6;
+  map<uint32, uint32> slot_policies = 6;
+  uint32 slot_policy = 7;
 }
 
 message ActorOutfitAssignment {
