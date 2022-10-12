@@ -662,40 +662,6 @@ namespace OutfitSystem {
         }
         return result;
     }
-    // TODO: REMOVE THESE FUNCTIONS
-    bool GetOutfitPassthroughStatus(RE::BSScript::IVirtualMachine* registry,
-                                    std::uint32_t stackId,
-                                    RE::StaticFunctionTag*,
-
-                                    RE::BSFixedString name) {
-        LogExit exitPrint("GetOutfitPassthroughStatus"sv);
-        auto& service = ArmorAddonOverrideService::GetInstance();
-        bool result = false;
-        try {
-            auto& outfit = service.getOutfit(name.data());
-            result = false;
-        } catch (std::out_of_range) {
-            registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
-        }
-        return result;
-    }
-    // TODO: REMOVE THESE FUNCTIONS
-    bool GetOutfitEquipRequiredStatus(RE::BSScript::IVirtualMachine* registry,
-                                      std::uint32_t stackId,
-                                      RE::StaticFunctionTag*,
-
-                                      RE::BSFixedString name) {
-        LogExit exitPrint("GetOutfitEquipRequiredStatus"sv);
-        auto& service = ArmorAddonOverrideService::GetInstance();
-        bool result = false;
-        try {
-            auto& outfit = service.getOutfit(name.data());
-            result = false;
-        } catch (std::out_of_range) {
-            registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
-        }
-        return result;
-    }
     RE::BSFixedString GetSelectedOutfit(RE::BSScript::IVirtualMachine* registry,
                                         std::uint32_t stackId,
                                         RE::StaticFunctionTag*,
@@ -804,26 +770,6 @@ namespace OutfitSystem {
         LogExit exitPrint("SetOutfitFavoriteStatus"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         service.setFavorite(name.data(), favorite);
-    }
-    void SetOutfitPassthroughStatus(RE::BSScript::IVirtualMachine* registry,
-                                    std::uint32_t stackId,
-                                    RE::StaticFunctionTag*,
-
-                                    RE::BSFixedString name,
-                                    bool allowsPassthrough) {
-        LogExit exitPrint("SetOutfitPassthroughStatus"sv);
-        auto& service = ArmorAddonOverrideService::GetInstance();
-        service.setOutfitPassthrough(name.data(), allowsPassthrough);
-    }
-    void SetOutfitEquipRequiredStatus(RE::BSScript::IVirtualMachine* registry,
-                                      std::uint32_t stackId,
-                                      RE::StaticFunctionTag*,
-
-                                      RE::BSFixedString name,
-                                      bool equipRequired) {
-        LogExit exitPrint("SetOutfitEquipRequiredStatus"sv);
-        auto& service = ArmorAddonOverrideService::GetInstance();
-        service.setOutfitEquipRequired(name.data(), equipRequired);
     }
     bool OutfitExists(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
 
@@ -1263,25 +1209,9 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
         "SkyrimOutfitSystemNativeFuncs",
         GetOutfitFavoriteStatus);
     registry->RegisterFunction(
-        "GetOutfitPassthroughStatus",
-        "SkyrimOutfitSystemNativeFuncs",
-        GetOutfitPassthroughStatus);
-    registry->RegisterFunction(
-        "GetOutfitEquipRequiredStatus",
-        "SkyrimOutfitSystemNativeFuncs",
-        GetOutfitEquipRequiredStatus);
-    registry->RegisterFunction(
         "SetOutfitFavoriteStatus",
         "SkyrimOutfitSystemNativeFuncs",
         SetOutfitFavoriteStatus);
-    registry->RegisterFunction(
-        "SetOutfitPassthroughStatus",
-        "SkyrimOutfitSystemNativeFuncs",
-        SetOutfitPassthroughStatus);
-    registry->RegisterFunction(
-        "SetOutfitEquipRequiredStatus",
-        "SkyrimOutfitSystemNativeFuncs",
-        SetOutfitEquipRequiredStatus);
     registry->RegisterFunction(
         "IsEnabled",
         "SkyrimOutfitSystemNativeFuncs",

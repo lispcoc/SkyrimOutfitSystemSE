@@ -255,14 +255,6 @@ void ArmorAddonOverrideService::setFavorite(const char* name, bool favorite) {
         outfit->second.isFavorite = favorite;
 }
 
-// TODO: REMOVE THESE FUNCTIONS
-void ArmorAddonOverrideService::setOutfitPassthrough(const char* name, bool allowPassthrough) {
-}
-
-// TODO: REMOVE THESE FUNCTIONS
-void ArmorAddonOverrideService::setOutfitEquipRequired(const char* name, bool requiresEquipped) {
-}
-
 void ArmorAddonOverrideService::modifyOutfit(const char* name,
                                              std::vector<RE::TESObjectARMO*>& add,
                                              std::vector<RE::TESObjectARMO*>& remove,
