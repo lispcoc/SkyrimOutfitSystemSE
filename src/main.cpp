@@ -163,7 +163,7 @@ void _assertRead(bool result, const char* err);
 void Callback_Serialization_Save(SKSE::SerializationInterface* intfc) {
     LOG(info, "Writing savedata...");
     //
-    if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV4)) {
+    if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV5)) {
         try {
             auto& service = ArmorAddonOverrideService::GetInstance();
             const auto& data = service.save();
@@ -206,6 +206,13 @@ void Callback_Serialization_Load(SKSE::SerializationInterface* intfc) {
 
                     // Load data from protobuf struct.
                     service.load(intfc, data);
+
+                    if (version == ArmorAddonOverrideService::kSaveVersionV4) {
+                        LOG(info, "Migrating outfit slot settings");
+                        for (auto& outfit : service.outfits) {
+                            outfit.second.setDefaultSlotPolicy();
+                        }
+                    }
                 } else {
                     service.load_legacy(intfc, version);
                 }

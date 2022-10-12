@@ -52,7 +52,6 @@ namespace SlotPolicy {
     };
 
     extern std::array<Metadata, static_cast<char>(Preference::MAX)> g_policiesMetadata;
-    inline constexpr Preference defaultPolicy = Preference::XXOO;
 
     inline constexpr std::uint32_t firstSlot = RE::BIPED_OBJECTS::kHead;
     inline constexpr std::uint32_t numSlots = RE::BIPED_OBJECTS::kEditorTotal;
@@ -62,9 +61,7 @@ namespace SlotPolicy {
 
 struct Outfit {
     Outfit() {};// we shouldn't need this, really, but std::unordered_map is a brat
-    Outfit(const char* n) : name(n), isFavorite(false) {
-        setDefaultSlotPolicy();
-    };
+    Outfit(const char* n) : name(n), isFavorite(false), slotPolicy(SlotPolicy::Preference::XXOO) {};
     Outfit(const Outfit& other) = default;
     Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false) {
         this->armors = other.armors;
@@ -101,7 +98,8 @@ public:
         kSaveVersionV1 = 1,
         kSaveVersionV2 = 2,
         kSaveVersionV3 = 3,
-        kSaveVersionV4 = 4// First version with protobuf
+        kSaveVersionV4 = 4, // First version with protobuf
+        kSaveVersionV5 = 5, // First version with Slot Control System
     };
     //
     static constexpr std::uint32_t ce_outfitNameMaxLength = 256;// SKSE caps serialized std::strings and const char*s to 256 bytes.

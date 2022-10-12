@@ -138,6 +138,7 @@ void Outfit::load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_
     } else {
         this->isFavorite = false;
     }
+    setDefaultSlotPolicy();
 }
 
 void Outfit::load(const proto::Outfit& proto, const SKSE::SerializationInterface* intfc) {
@@ -194,12 +195,15 @@ Outfit& ArmorAddonOverrideService::getOutfit(const char* name) {
 }
 Outfit& ArmorAddonOverrideService::getOrCreateOutfit(const char* name) {
     _validateNameOrThrow(name);
-    return this->outfits.emplace(name, name).first->second;
+    auto created = this->outfits.emplace(name, name);
+    if (created.second) created.first->second.setDefaultSlotPolicy();
+    return created.first->second;
 }
 //
 void ArmorAddonOverrideService::addOutfit(const char* name) {
     _validateNameOrThrow(name);
-    this->outfits.emplace(name, name);
+    auto created = this->outfits.emplace(name, name);
+    if (created.second) created.first->second.setDefaultSlotPolicy();
 }
 void ArmorAddonOverrideService::addOutfit(const char* name, std::vector<RE::TESObjectARMO*> armors) {
     _validateNameOrThrow(name);
@@ -209,6 +213,7 @@ void ArmorAddonOverrideService::addOutfit(const char* name, std::vector<RE::TESO
         if (armor)
             created.armors.insert(armor);
     }
+    created.setDefaultSlotPolicy();
 }
 Outfit& ArmorAddonOverrideService::currentOutfit(RE::RawActorHandle target) {
     if (this->actorOutfitAssignments.count(target) == 0)
