@@ -701,8 +701,8 @@ EndFunction
             AddToggleOptionST("OutfitEditor_AddFromList_Playable", "$SkyOutSys_OEdit_AddFromList_Filter_Playable", _bOutfitEditor_AddFromList_Playable)
             AddEmptyOption()
             AddHeaderOption  ("$SkyOutSys_OEdit_OutfitSettings_Header")
-            AddToggleOptionST("OutfitEditor_ToggleEditSlotPolicy", "$SkyOutSys_OEdit_ToggleSlotPolicyEditor", _sOutfitShowingSlotEditor)
             AddMenuOptionST  ("OutfitEditor_EditAllSlotPolicy", "$SkyOutSys_OEdit_EditAllSlotPolicy", SkyrimOutfitSystemNativeFuncs.BodySlotPolicyNamesForOutfit(_sEditingOutfit)[32])
+            AddToggleOptionST("OutfitEditor_ToggleEditSlotPolicy", "$SkyOutSys_OEdit_ToggleSlotPolicyEditor", _sOutfitShowingSlotEditor)
 
             If !_sOutfitShowingSlotEditor
                ShowOutfitSlots()
@@ -1081,6 +1081,9 @@ EndFunction
                String[] sCodes = SkyrimOutfitSystemNativeFuncs.GetAvailablePolicyCodes()
                SkyrimOutfitSystemNativeFuncs.SetAllBodySlotPoliciesForOutfit(_sEditingOutfit, sCodes[aiIndex])
                ForcePageReset()
+            EndEvent
+            Event OnHighlightST()
+               SetInfoText("$SkyOutSys_OEdit_EditAllSlotPolicy_Desc")
             EndEvent
          EndState
       ;/EndBlock/;
