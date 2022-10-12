@@ -368,6 +368,7 @@ namespace OutfitSystem {
                                                      std::uint32_t stackId,
                                                      RE::StaticFunctionTag*,
                                                      RE::BSFixedString name) {
+            LogExit exitPrint("BodySlotPolicy.BodySlotPolicyNamesForOutfit"sv);
             std::vector<RE::BSFixedString> result;
             auto& service = ArmorAddonOverrideService::GetInstance();
             auto& outfit = service.getOutfit(name.data());
@@ -389,6 +390,7 @@ namespace OutfitSystem {
                                        RE::BSFixedString name,
                                        std::uint32_t slot,
                                        RE::BSFixedString code) {
+            LogExit exitPrint("BodySlotPolicy.SetBodySlotPoliciesForOutfit"sv);
             auto& service = ArmorAddonOverrideService::GetInstance();
             auto& outfit = service.getOutfit(name.data());
             if (slot >= SlotPolicy::numSlots) {
@@ -411,6 +413,7 @@ namespace OutfitSystem {
                                           RE::StaticFunctionTag*,
                                           RE::BSFixedString name,
                                           RE::BSFixedString code) {
+            LogExit exitPrint("BodySlotPolicy.SetAllBodySlotPoliciesForOutfit"sv);
             auto& service = ArmorAddonOverrideService::GetInstance();
             auto& outfit = service.getOutfit(name.data());
             std::string codeString(code);
@@ -424,6 +427,7 @@ namespace OutfitSystem {
                                           std::uint32_t stackId,
                                           RE::StaticFunctionTag*,
                                           RE::BSFixedString name) {
+            LogExit exitPrint("BodySlotPolicy.SetBodySlotPolicyToDefaultForOutfit"sv);
             auto& service = ArmorAddonOverrideService::GetInstance();
             auto& outfit = service.getOutfit(name.data());
             outfit.setDefaultSlotPolicy();
@@ -431,6 +435,7 @@ namespace OutfitSystem {
         std::vector<RE::BSFixedString> GetAvailablePolicyNames(RE::BSScript::IVirtualMachine* registry,
                                           std::uint32_t stackId,
                                           RE::StaticFunctionTag*) {
+            LogExit exitPrint("BodySlotPolicy.GetAvailablePolicyNames"sv);
             auto policies = std::vector<SlotPolicy::Metadata>(SlotPolicy::g_policiesMetadata.begin(), SlotPolicy::g_policiesMetadata.end());
             std::erase_if(policies, [](const SlotPolicy::Metadata& first) { return first.advanced; });
             std::sort(policies.begin(), policies.end(), [](const SlotPolicy::Metadata& first, const SlotPolicy::Metadata& second) {
@@ -445,6 +450,7 @@ namespace OutfitSystem {
         std::vector<RE::BSFixedString> GetAvailablePolicyCodes(RE::BSScript::IVirtualMachine* registry,
                                                                std::uint32_t stackId,
                                                                RE::StaticFunctionTag*) {
+            LogExit exitPrint("BodySlotPolicy.GetAvailablePolicyCodes"sv);
             auto policies = std::vector<SlotPolicy::Metadata>(SlotPolicy::g_policiesMetadata.begin(), SlotPolicy::g_policiesMetadata.end());
             std::erase_if(policies, [](const SlotPolicy::Metadata& first) { return first.advanced; });
             std::sort(policies.begin(), policies.end(), [](const SlotPolicy::Metadata& first, const SlotPolicy::Metadata& second) {

@@ -694,15 +694,16 @@ EndFunction
             AddMenuOptionST ("OutfitEditor_AddFromCarried", "$SkyOutSys_OEdit_AddFromCarried", "")
             AddMenuOptionST ("OutfitEditor_AddFromWorn",    "$SkyOutSys_OEdit_AddFromWorn", "")
             AddInputOptionST("OutfitEditor_AddByID",        "$SkyOutSys_OEdit_AddByID", "")
-            AddEmptyOption()
+            ; AddEmptyOption()
             AddHeaderOption  ("$SkyOutSys_OEdit_AddFromList_Header")
             AddMenuOptionST  ("OutfitEditor_AddFromList_Menu",     "$SkyOutSys_OEdit_AddFromList_Search", "")
             AddInputOptionST ("OutfitEditor_AddFromList_Filter",   "$SkyOutSys_OEdit_AddFromList_Filter_Name", _sOutfitEditor_AddFromList_Filter)
             AddToggleOptionST("OutfitEditor_AddFromList_Playable", "$SkyOutSys_OEdit_AddFromList_Filter_Playable", _bOutfitEditor_AddFromList_Playable)
-            AddEmptyOption()
+            ; AddEmptyOption()
             AddHeaderOption  ("$SkyOutSys_OEdit_OutfitSettings_Header")
             AddMenuOptionST  ("OutfitEditor_EditAllSlotPolicy", "$SkyOutSys_OEdit_EditAllSlotPolicy", SkyrimOutfitSystemNativeFuncs.BodySlotPolicyNamesForOutfit(_sEditingOutfit)[32])
             AddToggleOptionST("OutfitEditor_ToggleEditSlotPolicy", "$SkyOutSys_OEdit_ToggleSlotPolicyEditor", _sOutfitShowingSlotEditor)
+            AddTextOptionST ("OutfitEditor_SlotPolicyHelp", "$SkyOutSys_OEdit_SlotPolicyHelp", "")
 
             If !_sOutfitShowingSlotEditor
                ShowOutfitSlots()
@@ -1063,6 +1064,13 @@ EndFunction
             EndEvent
             Event OnHighlightST()
                SetInfoText("$SkyOutSys_OEdit_ToggleEditSlotPolicy_Desc")
+            EndEvent
+         EndState
+         State OutfitEditor_SlotPolicyHelp
+            Event OnSelectST()
+               ShowMessage("$SkyOutSys_OEdit_SlotPolicy_HelpText1", false)
+               ShowMessage("$SkyOutSys_OEdit_SlotPolicy_HelpText2", false)
+               ShowMessage("$SkyOutSys_OEdit_SlotPolicy_HelpText3", false)
             EndEvent
          EndState
          State OutfitEditor_EditAllSlotPolicy
