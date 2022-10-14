@@ -34,7 +34,7 @@ struct WeatherFlags {
 };
 
 namespace SlotPolicy {
-    enum class Preference: char {
+    enum class Preference: std::uint8_t {
         XXXX, XXXE, XXXO, XXOX, XXOE, XXOO, XEXX, XEXE, XEXO, XEOX, XEOE, XEOO, MAX
     };
 
@@ -51,7 +51,7 @@ namespace SlotPolicy {
         }
     };
 
-    extern std::array<Metadata, static_cast<char>(Preference::MAX)> g_policiesMetadata;
+    extern std::array<Metadata, static_cast<std::uint8_t>(Preference::MAX)> g_policiesMetadata;
 
     inline constexpr std::uint32_t firstSlot = RE::BIPED_OBJECTS::kHead;
     inline constexpr std::uint32_t numSlots = RE::BIPED_OBJECTS::kEditorTotal;
