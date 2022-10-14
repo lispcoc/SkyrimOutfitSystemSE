@@ -1,4 +1,8 @@
 {
     "cmake.configureOnOpen": false,
-    "search.useIgnoreFiles": false
+    "search.useIgnoreFiles": false,
+    "cmake.configureSettings": {
+        "DCMAKE_TOOLCHAIN_FILE": "C:\\Users\\m\\source\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake",
+        "DVCPKG_TARGET_TRIPLET": "x64-windows-static"
+    }
 }
