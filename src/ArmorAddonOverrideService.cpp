@@ -382,7 +382,7 @@ std::optional<cobb::istring> ArmorAddonOverrideService::getLocationOutfit(Locati
     }
 }
 
-#define CHECK_LOCATION(TYPE, CHECK_CODE)                                                                   \
+#define CHECK_LOCATION(TYPE, CHECK_CODE)                                                             \
     if (actorOutfitAssignments.at(target).locationOutfits.count(LocationType::TYPE) && (CHECK_CODE)) \
         return std::optional<LocationType>(LocationType::TYPE);
 
@@ -483,18 +483,18 @@ void ArmorAddonOverrideService::dump() const {
 namespace SlotPolicy {
     // Negative values mean "advanced option"
     std::array<Metadata, kNumModes> g_policiesMetadata = {
-        Metadata{"XXXX", 100, true},   // Never show anything
-        Metadata{"XXXE", 101, true},   // If outfit and equipped, show equipped
-        Metadata{"XXXO", 2, false},    // If outfit and equipped, show outfit (require equipped, no passthrough)
-        Metadata{"XXOX", 102, true},   // If only outfit, show outfit
-        Metadata{"XXOE", 103, true},   // If only outfit, show outfit. If both, show equipped
-        Metadata{"XXOO", 1, false},    // If outfit, show outfit (always show outfit, no passthough)
-        Metadata{"XEXX", 104, true},   // If only equipped, show equipped
-        Metadata{"XEXE", 105, true},   // If equipped, show equipped
-        Metadata{"XEXO", 3, false},    // If only equipped, show equipped. If both, show outfit
-        Metadata{"XEOX", 106, true},   // If only equipped, show equipped. If only outfit, show outfit
-        Metadata{"XEOE", 107, true},   // If only equipped, show equipped. If only outfit, show outfit. If both, show equipped
-        Metadata{"XEOO", 108, true}    // If only equipped, show equipped. If only outfit, show outfit. If both, show outfit
+        Metadata{"XXXX", 100, true},// Never show anything
+        Metadata{"XXXE", 101, true},// If outfit and equipped, show equipped
+        Metadata{"XXXO", 2, false}, // If outfit and equipped, show outfit (require equipped, no passthrough)
+        Metadata{"XXOX", 102, true},// If only outfit, show outfit
+        Metadata{"XXOE", 103, true},// If only outfit, show outfit. If both, show equipped
+        Metadata{"XXOO", 1, false}, // If outfit, show outfit (always show outfit, no passthough)
+        Metadata{"XEXX", 104, true},// If only equipped, show equipped
+        Metadata{"XEXE", 105, true},// If equipped, show equipped
+        Metadata{"XEXO", 3, false}, // If only equipped, show equipped. If both, show outfit
+        Metadata{"XEOX", 106, true},// If only equipped, show equipped. If only outfit, show outfit
+        Metadata{"XEOE", 107, true},// If only equipped, show equipped. If only outfit, show outfit. If both, show equipped
+        Metadata{"XEOO", 108, true} // If only equipped, show equipped. If only outfit, show outfit. If both, show outfit
     };
 
     Selection select(Mode policy, bool hasEquipped, bool hasOutfit) {
@@ -521,4 +521,4 @@ namespace SlotPolicy {
             return Selection::EMPTY;
         }
     }
-}
+}// namespace SlotPolicy

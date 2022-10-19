@@ -92,14 +92,14 @@ struct Outfit {
     void setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Mode> policy);
     void setBlanketSlotPolicy(SlotPolicy::Mode policy);
     void setDefaultSlotPolicy();
-    proto::Outfit save() const;                                                        // can throw ArmorAddonOverrideService::save_error
+    proto::Outfit save() const;// can throw ArmorAddonOverrideService::save_error
 };
 const constexpr char* g_noOutfitName = "";
 static Outfit g_noOutfit(g_noOutfitName);// can't be const; prevents us from assigning it to Outfit&s
 
 class ArmorAddonOverrideService {
 public:
-    ArmorAddonOverrideService() {};
+    ArmorAddonOverrideService(){};
     ArmorAddonOverrideService(const proto::OutfitSystem& data, const SKSE::SerializationInterface* intfc);// can throw load_error
     typedef Outfit Outfit;
     static constexpr std::uint32_t signature = 'AAOS';
