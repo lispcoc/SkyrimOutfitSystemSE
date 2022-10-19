@@ -305,7 +305,7 @@ namespace OutfitSystem {
             auto& service = ArmorAddonOverrideService::GetInstance();
             try {
                 auto& outfit = service.getOutfit(name.data());
-                auto& armors = outfit.armors;
+                auto& armors = outfit.m_armors;
                 for (std::uint8_t i = kBodySlotMin; i <= kBodySlotMax; i++) {
                     std::uint32_t mask = 1 << (i - kBodySlotMin);
                     for (auto it = armors.begin(); it != armors.end(); it++) {
@@ -373,15 +373,15 @@ namespace OutfitSystem {
             auto& service = ArmorAddonOverrideService::GetInstance();
             auto& outfit = service.getOutfit(name.data());
             for (auto slot = RE::BIPED_OBJECTS_META::kFirstSlot; slot < RE::BIPED_OBJECTS_META::kNumSlots; slot++) {
-                auto slotSpecificPolicy = outfit.slotPolicies.find(static_cast<RE::BIPED_OBJECT>(slot));
-                if (slotSpecificPolicy != outfit.slotPolicies.end()) {
+                auto slotSpecificPolicy = outfit.m_slotPolicies.find(static_cast<RE::BIPED_OBJECT>(slot));
+                if (slotSpecificPolicy != outfit.m_slotPolicies.end()) {
                     result.emplace_back(SlotPolicy::g_policiesMetadata.at(static_cast<char>(slotSpecificPolicy->second)).translationKey());
                 } else {
                     result.emplace_back("$SkyOutSys_Desc_PolicyName_INHERIT");
                 }
             }
             // Add in the overall outfit's policy to the end
-            result.emplace_back(SlotPolicy::g_policiesMetadata.at(static_cast<char>(outfit.slotPolicy)).translationKey());
+            result.emplace_back(SlotPolicy::g_policiesMetadata.at(static_cast<char>(outfit.m_blanketSlotPolicy)).translationKey());
             return result;
         }
         void SetBodySlotPoliciesForOutfit(RE::BSScript::IVirtualMachine* registry,
@@ -576,7 +576,7 @@ namespace OutfitSystem {
         auto& service = ArmorAddonOverrideService::GetInstance();
         try {
             auto& outfit = service.getOutfit(name.data());
-            outfit.armors.insert(armor);
+            outfit.m_armors.insert(armor);
         } catch (std::out_of_range) {
             registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
         }
@@ -633,7 +633,7 @@ namespace OutfitSystem {
         auto& service = ArmorAddonOverrideService::GetInstance();
         try {
             auto& outfit = service.getOutfit(name.data());
-            auto& armors = outfit.armors;
+            auto& armors = outfit.m_armors;
             for (auto it = armors.begin(); it != armors.end(); ++it)
                 result.push_back(*it);
         } catch (std::out_of_range) {
@@ -656,7 +656,7 @@ namespace OutfitSystem {
         bool result = false;
         try {
             auto& outfit = service.getOutfit(name.data());
-            result = outfit.isFavorite;
+            result = outfit.m_favorited;
         } catch (std::out_of_range) {
             registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
         }
@@ -670,7 +670,7 @@ namespace OutfitSystem {
         if (!actor)
             return RE::BSFixedString("");
         auto& service = ArmorAddonOverrideService::GetInstance();
-        return service.currentOutfit(actor->GetHandle().native_handle()).name.c_str();
+        return service.currentOutfit(actor->GetHandle().native_handle()).m_name.c_str();
     }
     bool IsEnabled(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*) {
         LogExit exitPrint("IsEnabled"sv);
@@ -702,7 +702,7 @@ namespace OutfitSystem {
         auto& service = ArmorAddonOverrideService::GetInstance();
         try {
             auto& outfit = service.getOutfit(name.data());
-            outfit.armors.erase(armor);
+            outfit.m_armors.erase(armor);
         } catch (std::out_of_range) {
             registry->TraceStack("The specified outfit does not exist.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
         }
@@ -722,7 +722,7 @@ namespace OutfitSystem {
         auto& service = ArmorAddonOverrideService::GetInstance();
         try {
             auto& outfit = service.getOutfit(name.data());
-            auto& armors = outfit.armors;
+            auto& armors = outfit.m_armors;
             std::vector<RE::TESObjectARMO*> conflicts;
             const auto candidateMask = armor->GetSlotMask();
             for (auto it = armors.begin(); it != armors.end(); ++it) {
@@ -787,13 +787,13 @@ namespace OutfitSystem {
         auto& service = ArmorAddonOverrideService::GetInstance();
         try {
             auto& outfit = service.getOrCreateOutfit(name.data());
-            outfit.armors.clear();
+            outfit.m_armors.clear();
             auto count = armors.size();
             for (std::uint32_t i = 0; i < count; i++) {
                 RE::TESObjectARMO* ptr = nullptr;
                 ptr = armors.at(i);
                 if (ptr)
-                    outfit.armors.insert(ptr);
+                    outfit.m_armors.insert(ptr);
             }
         } catch (ArmorAddonOverrideService::bad_name) {
             registry->TraceStack("Invalid outfit name specified.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);

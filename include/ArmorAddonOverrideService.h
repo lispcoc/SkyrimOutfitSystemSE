@@ -72,18 +72,18 @@ namespace SlotPolicy {
 
 struct Outfit {
     Outfit(){};// we shouldn't need this, really, but std::unordered_map is a brat
-    Outfit(const char* n) : name(n), isFavorite(false), slotPolicy(SlotPolicy::Mode::XXOO){};
+    Outfit(const char* n) : m_name(n), m_favorited(false), m_blanketSlotPolicy(SlotPolicy::Mode::XXOO){};
     Outfit(const Outfit& other) = default;
-    Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false) {
-        this->armors = other.armors;
-        slotPolicies = other.slotPolicies;
-        slotPolicy = other.slotPolicy;
+    Outfit(const char* n, const Outfit& other) : m_name(n), m_favorited(false) {
+        m_armors = other.m_armors;
+        m_slotPolicies = other.m_slotPolicies;
+        m_blanketSlotPolicy = other.m_blanketSlotPolicy;
     }
-    std::string name;// can't be const; prevents assigning to Outfit vars
-    std::unordered_set<RE::TESObjectARMO*> armors;
-    bool isFavorite;
-    std::map<RE::BIPED_OBJECT, SlotPolicy::Mode> slotPolicies;
-    SlotPolicy::Mode slotPolicy;
+    std::string m_name;// can't be const; prevents assigning to Outfit vars
+    std::unordered_set<RE::TESObjectARMO*> m_armors;
+    bool m_favorited;
+    std::map<RE::BIPED_OBJECT, SlotPolicy::Mode> m_slotPolicies;
+    SlotPolicy::Mode m_blanketSlotPolicy;
 
     bool conflictsWith(RE::TESObjectARMO*) const;
     bool hasShield() const;
