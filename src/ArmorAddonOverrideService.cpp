@@ -48,7 +48,7 @@ void Outfit::setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Mode
         return;
     }
     if (policy.has_value()) {
-        if (policy.value() >= SlotPolicy::Mode::MAX) {
+        if (policy.value() >= SlotPolicy::Mode::kNumModes) {
             LOG(err, "Invalid slot preference {}.", policy.value());
             return;
         }
@@ -59,7 +59,7 @@ void Outfit::setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Mode
 }
 
 void Outfit::setBlanketSlotPolicy(SlotPolicy::Mode policy) {
-    if (policy >= SlotPolicy::Mode::MAX) {
+    if (policy >= SlotPolicy::Mode::kNumModes) {
         LOG(err, "Invalid slot preference {}.", policy);
         return;
     }
@@ -158,7 +158,7 @@ void Outfit::load(const proto::Outfit& proto, const SKSE::SerializationInterface
             LOG(err, "Invalid slot {}.", static_cast<std::uint32_t>(slot));
             continue;
         }
-        if (policy >= SlotPolicy::Mode::MAX) {
+        if (policy >= SlotPolicy::Mode::kNumModes) {
             LOG(err, "Invalid slot preference {}", policy);
             continue;
         }
@@ -587,7 +587,7 @@ void ArmorAddonOverrideService::dump() const {
 
 namespace SlotPolicy {
     // Negative values mean "advanced option"
-    std::array<Metadata, MAX> g_policiesMetadata = {
+    std::array<Metadata, kNumModes> g_policiesMetadata = {
         Metadata{"XXXX", 100, true},   // Never show anything
         Metadata{"XXXE", 101, true},   // If outfit and equipped, show equipped
         Metadata{"XXXO", 2, false},    // If outfit and equipped, show outfit (require equipped, no passthrough)
@@ -603,7 +603,7 @@ namespace SlotPolicy {
     };
 
     Selection select(Mode policy, bool hasEquipped, bool hasOutfit) {
-        if (policy >= Mode::MAX) {
+        if (policy >= Mode::kNumModes) {
             LOG(err, "Invalid slot preference {}", policy);
             policy = Mode::XXXX;
         }

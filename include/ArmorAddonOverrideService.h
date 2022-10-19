@@ -34,8 +34,20 @@ struct WeatherFlags {
 };
 
 namespace SlotPolicy {
-    enum Mode: std::uint8_t {
-        XXXX, XXXE, XXXO, XXOX, XXOE, XXOO, XEXX, XEXE, XEXO, XEOX, XEOE, XEOO, MAX
+    enum Mode : std::uint8_t {
+        XXXX,
+        XXXE,
+        XXXO,
+        XXOX,
+        XXOE,
+        XXOO,
+        XEXX,
+        XEXE,
+        XEXO,
+        XEOX,
+        XEOE,
+        XEOO,
+        kNumModes
     };
 
     struct Metadata {
@@ -47,18 +59,20 @@ namespace SlotPolicy {
         }
     };
 
-    extern std::array<Metadata, MAX> g_policiesMetadata;
+    extern std::array<Metadata, kNumModes> g_policiesMetadata;
 
     enum class Selection {
-        EMPTY, EQUIPPED, OUTFIT
+        EMPTY,
+        EQUIPPED,
+        OUTFIT
     };
 
     Selection select(Mode policy, bool hasEquipped, bool hasOutfit);
-}
+}// namespace SlotPolicy
 
 struct Outfit {
-    Outfit() {};// we shouldn't need this, really, but std::unordered_map is a brat
-    Outfit(const char* n) : name(n), isFavorite(false), slotPolicy(SlotPolicy::Mode::XXOO) {};
+    Outfit(){};// we shouldn't need this, really, but std::unordered_map is a brat
+    Outfit(const char* n) : name(n), isFavorite(false), slotPolicy(SlotPolicy::Mode::XXOO){};
     Outfit(const Outfit& other) = default;
     Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false) {
         this->armors = other.armors;
@@ -94,8 +108,8 @@ public:
         kSaveVersionV1 = 1,
         kSaveVersionV2 = 2,
         kSaveVersionV3 = 3,
-        kSaveVersionV4 = 4, // First version with protobuf
-        kSaveVersionV5 = 5, // First version with Slot Control System
+        kSaveVersionV4 = 4,// First version with protobuf
+        kSaveVersionV5 = 5,// First version with Slot Control System
     };
     //
     static constexpr std::uint32_t ce_outfitNameMaxLength = 256;// SKSE caps serialized std::strings and const char*s to 256 bytes.

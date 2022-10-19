@@ -1,8 +1,8 @@
 #include "OutfitSystem.h"
 
 #include "ArmorAddonOverrideService.h"
-#include "hooking/Hooks.hpp"
 #include "Utility.h"
+#include "hooking/Hooks.hpp"
 
 void WaitForDebugger(void) {
     while (!IsDebuggerPresent()) {
