@@ -1,5 +1,7 @@
 #include "ArmorAddonOverrideService.h"
 
+#include "RE/REAugments.h"
+
 void _assertWrite(bool result, const char* err) {
     if (!result)
         throw ArmorAddonOverrideService::save_error(err);
@@ -55,7 +57,7 @@ void Outfit::setAllSlotPolicy(SlotPolicy::Mode preference) {
 }
 
 void Outfit::setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Mode> policy) {
-    if (slot >= SlotPolicy::numSlots) {
+    if (slot >= RE::BIPED_OBJECTS_META::numSlots) {
         LOG(err, "Invalid slot {}.", static_cast<std::uint32_t>(slot));
         return;
     }
@@ -73,14 +75,14 @@ void Outfit::setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Mode
 std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet) {
     std::unordered_set<RE::TESObjectARMO*> result;
 
-    std::array<RE::TESObjectARMO*, SlotPolicy::numSlots> equipped{nullptr};
-    std::array<RE::TESObjectARMO*, SlotPolicy::numSlots> outfit{nullptr};
+    std::array<RE::TESObjectARMO*, RE::BIPED_OBJECTS_META::numSlots> equipped{nullptr};
+    std::array<RE::TESObjectARMO*, RE::BIPED_OBJECTS_META::numSlots> outfit{nullptr};
     std::uint32_t occupiedMask = 0;
 
     for (auto armor : equippedSet) {
         if (!armor) continue;
         auto mask = static_cast<uint32_t>(armor->GetSlotMask());
-        for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot++) {
+        for (auto slot = RE::BIPED_OBJECTS_META::firstSlot; slot < RE::BIPED_OBJECTS_META::numSlots; slot++) {
             if (mask & (1 << slot)) equipped[slot] = armor;
         }
     }
@@ -88,12 +90,12 @@ std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unor
     for (auto armor : armors) {
         if (!armor) continue;
         auto mask = static_cast<uint32_t>(armor->GetSlotMask());
-        for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot++) {
+        for (auto slot = RE::BIPED_OBJECTS_META::firstSlot; slot < RE::BIPED_OBJECTS_META::numSlots; slot++) {
             if (mask & (1 << slot)) outfit[slot] = armor;
         }
     }
 
-    for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot++) {
+    for (auto slot = RE::BIPED_OBJECTS_META::firstSlot; slot < RE::BIPED_OBJECTS_META::numSlots; slot++) {
         // Someone before us already got this slot.
         if (occupiedMask & (1 << slot)) continue;
         // Select the slot's policy, falling back to the outfit's policy if none.
@@ -155,7 +157,7 @@ void Outfit::load(const proto::Outfit& proto, const SKSE::SerializationInterface
     for (const auto& pair : proto.slot_policies()) {
         auto slot = static_cast<RE::BIPED_OBJECT>(pair.first);
         auto policy = static_cast<SlotPolicy::Mode>(pair.second);
-        if (slot >= SlotPolicy::numSlots) {
+        if (slot >= RE::BIPED_OBJECTS_META::numSlots) {
             LOG(err, "Invalid slot {}.", static_cast<std::uint32_t>(slot));
             continue;
         }

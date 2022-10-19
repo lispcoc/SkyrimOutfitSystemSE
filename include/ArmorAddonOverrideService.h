@@ -38,10 +38,6 @@ namespace SlotPolicy {
         XXXX, XXXE, XXXO, XXOX, XXOE, XXOO, XEXX, XEXE, XEXO, XEOX, XEOE, XEOO, MAX
     };
 
-    enum class Selection {
-        EMPTY, EQUIPPED, OUTFIT
-    };
-
     struct Metadata {
         std::string code;
         std::int32_t sortOrder;
@@ -53,8 +49,9 @@ namespace SlotPolicy {
 
     extern std::array<Metadata, MAX> g_policiesMetadata;
 
-    inline constexpr std::uint32_t firstSlot = RE::BIPED_OBJECTS::kHead;
-    inline constexpr std::uint32_t numSlots = RE::BIPED_OBJECTS::kEditorTotal;
+    enum class Selection {
+        EMPTY, EQUIPPED, OUTFIT
+    };
 
     Selection select(Mode policy, bool hasEquipped, bool hasOutfit);
 }

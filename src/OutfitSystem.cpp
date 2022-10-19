@@ -372,7 +372,7 @@ namespace OutfitSystem {
             std::vector<RE::BSFixedString> result;
             auto& service = ArmorAddonOverrideService::GetInstance();
             auto& outfit = service.getOutfit(name.data());
-            for (auto slot = SlotPolicy::firstSlot; slot < SlotPolicy::numSlots; slot++) {
+            for (auto slot = RE::BIPED_OBJECTS_META::firstSlot; slot < RE::BIPED_OBJECTS_META::numSlots; slot++) {
                 auto slotSpecificPolicy = outfit.slotPolicies.find(static_cast<RE::BIPED_OBJECT>(slot));
                 if (slotSpecificPolicy != outfit.slotPolicies.end()) {
                     result.emplace_back(SlotPolicy::g_policiesMetadata.at(static_cast<char>(slotSpecificPolicy->second)).translationKey());
@@ -393,7 +393,7 @@ namespace OutfitSystem {
             LogExit exitPrint("BodySlotPolicy.SetBodySlotPoliciesForOutfit"sv);
             auto& service = ArmorAddonOverrideService::GetInstance();
             auto& outfit = service.getOutfit(name.data());
-            if (slot >= SlotPolicy::numSlots) {
+            if (slot >= RE::BIPED_OBJECTS_META::numSlots) {
                 LOG(err, "Invalid slot {}.", static_cast<std::uint32_t>(slot));
                 return;
             }
