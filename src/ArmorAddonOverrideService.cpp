@@ -234,23 +234,14 @@ void ArmorAddonOverrideService::addOutfit(const char* name, std::vector<RE::TESO
     created.setDefaultSlotPolicy();
 }
 Outfit& ArmorAddonOverrideService::currentOutfit(RE::RawActorHandle target) {
-    if (actorOutfitAssignments.count(target) == 0)
-        return g_noOutfit;
-    if (actorOutfitAssignments.at(target).currentOutfitName == g_noOutfitName)
-        return g_noOutfit;
-    try {
-        return outfits.at(actorOutfitAssignments.at(target).currentOutfitName);
-    } catch (std::out_of_range) {
-        return g_noOutfit;
-    }
+    if (!actorOutfitAssignments.contains(target)) return g_noOutfit;
+    if (actorOutfitAssignments.at(target).currentOutfitName == g_noOutfitName) return g_noOutfit;
+    auto outfit = outfits.find(actorOutfitAssignments.at(target).currentOutfitName);
+    if (outfit == outfits.end()) return g_noOutfit;
+    return outfit->second;
 };
 bool ArmorAddonOverrideService::hasOutfit(const char* name) const {
-    try {
-        static_cast<void>(outfits.at(name));
-        return true;
-    } catch (std::out_of_range) {
-        return false;
-    }
+    return outfits.contains(name);
 }
 void ArmorAddonOverrideService::deleteOutfit(const char* name) {
     outfits.erase(name);
@@ -304,21 +295,20 @@ void ArmorAddonOverrideService::renameOutfit(const char* oldName, const char* ne
     outfitNode.key() = newName;
     outfitNode.mapped().m_name = newName;
     outfits.insert(std::move(outfitNode));
-    for (auto& assn : actorOutfitAssignments) {
-        if (assn.second.currentOutfitName == oldName)
-            assn.second.currentOutfitName = newName;
+    for (auto& assignment : actorOutfitAssignments) {
+        if (assignment.second.currentOutfitName == oldName)
+            assignment.second.currentOutfitName = newName;
         // If the outfit is assigned as a location outfit, remove it there as well.
-        for (auto& locationOutfit : assn.second.locationOutfits) {
+        for (auto& locationOutfit : assignment.second.locationOutfits) {
             if (locationOutfit.second == oldName) {
-                assn.second.locationOutfits[locationOutfit.first] = newName;
+                assignment.second.locationOutfits[locationOutfit.first] = newName;
                 break;
             }
         }
     }
 }
 void ArmorAddonOverrideService::setOutfit(const char* name, RE::RawActorHandle target) {
-    if (actorOutfitAssignments.count(target) == 0)
-        return;
+    if (!actorOutfitAssignments.contains(target)) return;
     if (strcmp(name, g_noOutfitName) == 0) {
         actorOutfitAssignments.at(target).currentOutfitName = g_noOutfitName;
         return;
