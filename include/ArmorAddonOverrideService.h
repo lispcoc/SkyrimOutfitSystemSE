@@ -71,7 +71,7 @@ namespace SlotPolicy {
 }// namespace SlotPolicy
 
 struct Outfit {
-    Outfit(){};// we shouldn't need this, really, but std::unordered_map is a brat
+    Outfit(const proto::Outfit& proto, const SKSE::SerializationInterface* intfc);
     Outfit(const char* n) : m_name(n), m_favorited(false), m_blanketSlotPolicy(SlotPolicy::Mode::XXOO){};
     Outfit(const Outfit& other) = default;
     Outfit(const char* n, const Outfit& other) : m_name(n), m_favorited(false) {
@@ -92,9 +92,6 @@ struct Outfit {
     void setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Mode> policy);
     void setBlanketSlotPolicy(SlotPolicy::Mode policy);
     void setDefaultSlotPolicy();
-
-    void load(const proto::Outfit& proto, const SKSE::SerializationInterface*);
-    void load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version);// can throw ArmorAddonOverrideService::load_error
     proto::Outfit save() const;                                                        // can throw ArmorAddonOverrideService::save_error
 };
 const constexpr char* g_noOutfitName = "";
@@ -102,12 +99,14 @@ static Outfit g_noOutfit(g_noOutfitName);// can't be const; prevents us from ass
 
 class ArmorAddonOverrideService {
 public:
+    ArmorAddonOverrideService() {};
+    ArmorAddonOverrideService(const proto::OutfitSystem& data, const SKSE::SerializationInterface* intfc);// can throw load_error
     typedef Outfit Outfit;
     static constexpr std::uint32_t signature = 'AAOS';
     enum {
-        kSaveVersionV1 = 1,
-        kSaveVersionV2 = 2,
-        kSaveVersionV3 = 3,
+        kSaveVersionV1 = 1,// Unsupported handwritten binary format
+        kSaveVersionV2 = 2,// Unsupported handwritten binary format
+        kSaveVersionV3 = 3,// Unsupported handwritten binary format
         kSaveVersionV4 = 4,// First version with protobuf
         kSaveVersionV5 = 5,// First version with Slot Control System
     };
@@ -183,12 +182,7 @@ public:
     void getOutfitNames(std::vector<std::string>& out, bool favoritesOnly = false) const;
     void setEnabled(bool) noexcept;
     //
-    void refreshCurrentIfChanged(const char* testName);
-    //
-    void reset();
-    void load(const SKSE::SerializationInterface* intfc, const proto::OutfitSystem& data);// can throw load_error
-    void load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version);   // can throw load_error
-    proto::OutfitSystem save();                                                           // can throw save_error
+    proto::OutfitSystem save();// can throw save_error
     //
     void dump() const;
 };

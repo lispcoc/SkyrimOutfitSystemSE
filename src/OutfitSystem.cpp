@@ -1056,7 +1056,7 @@ namespace OutfitSystem {
             return false;
         }
         auto& service = ArmorAddonOverrideService::GetInstance();
-        service.load(SKSE::GetSerializationInterface(), data);
+        service = ArmorAddonOverrideService(data, SKSE::GetSerializationInterface());
         std::string message = "Read JSON config from " + inputFile;
         RE::DebugNotification(message.c_str(), nullptr, false);
         return true;
