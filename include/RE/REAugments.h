@@ -51,6 +51,11 @@ namespace RE {
         bool ApplyArmorAddon(RE::TESObjectARMO* thisPtr, TESRace* a_race, ActorWeightModel* a_model, bool a_isFemale);
         bool TestBodyPartByIndex(RE::TESObjectARMO* thisPtr, std::uint32_t a_index);
     }// namespace TESObjectARMOAugments
+
+    namespace BIPED_OBJECTS_META {
+        inline constexpr std::uint32_t kFirstSlot = RE::BIPED_OBJECTS::kHead;
+        inline constexpr std::uint32_t kNumSlots = RE::BIPED_OBJECTS::kEditorTotal;
+    }// namespace BIPED_OBJECTS_META
 }// namespace RE
 
 #endif//SKYRIMOUTFITSYSTEMSE_INCLUDE_RE_REAUGMENTS_H

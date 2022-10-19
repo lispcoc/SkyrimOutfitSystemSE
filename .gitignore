@@ -344,3 +344,4 @@ dependencies/skse64/*
 build
 *.pex
 *.dll
+.vscode/settings.json

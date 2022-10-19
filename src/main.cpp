@@ -1,8 +1,8 @@
 #include "OutfitSystem.h"
 
 #include "ArmorAddonOverrideService.h"
-#include "hooking/Hooks.hpp"
 #include "Utility.h"
+#include "hooking/Hooks.hpp"
 
 void WaitForDebugger(void) {
     while (!IsDebuggerPresent()) {
@@ -150,10 +150,10 @@ void Callback_Messaging_SKSE(SKSE::MessagingInterface::Message* message) {
     } else if (message->type == SKSE::MessagingInterface::kPostPostLoad) {
     } else if (message->type == SKSE::MessagingInterface::kDataLoaded) {
     } else if (message->type == SKSE::MessagingInterface::kNewGame) {
-        ArmorAddonOverrideService::GetInstance().reset();
+        ArmorAddonOverrideService::GetInstance() = ArmorAddonOverrideService();
     } else if (message->type == SKSE::MessagingInterface::kPreLoadGame) {
-        ArmorAddonOverrideService::GetInstance()
-            .reset();// AAOS::load resets as well, but this is needed in case the save we're about to load doesn't have any AAOS data.
+        // AAOS::load resets as well, but this is needed in case the save we're about to load doesn't have any AAOS data.
+        ArmorAddonOverrideService::GetInstance() = ArmorAddonOverrideService();
     }
 }
 
@@ -163,7 +163,7 @@ void _assertRead(bool result, const char* err);
 void Callback_Serialization_Save(SKSE::SerializationInterface* intfc) {
     LOG(info, "Writing savedata...");
     //
-    if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV4)) {
+    if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV5)) {
         try {
             auto& service = ArmorAddonOverrideService::GetInstance();
             const auto& data = service.save();
@@ -205,9 +205,16 @@ void Callback_Serialization_Load(SKSE::SerializationInterface* intfc) {
                                 "Failed to parse protobuf.");
 
                     // Load data from protobuf struct.
-                    service.load(intfc, data);
+                    service = ArmorAddonOverrideService(data, intfc);
+
+                    if (version == ArmorAddonOverrideService::kSaveVersionV4) {
+                        LOG(info, "Migrating outfit slot settings");
+                        for (auto& outfit : service.outfits) {
+                            outfit.second.setDefaultSlotPolicy();
+                        }
+                    }
                 } else {
-                    service.load_legacy(intfc, version);
+                    LOG(err, "Legacy format not supported. Try upgrading through v0.4.0 first.");
                 }
             } catch (const ArmorAddonOverrideService::load_error& exception) {
                 LOG(info, "Load FAILED for ArmorAddonOverrideService.");

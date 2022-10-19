@@ -1,8 +1,6 @@
 #include "ArmorAddonOverrideService.h"
 
-//#include "skse64/GameForms.h"
-//#include "skse64/GameRTTI.h"
-//#include "skse64/Serialization.h"
+#include "RE/REAugments.h"
 
 void _assertWrite(bool result, const char* err) {
     if (!result)
@@ -13,11 +11,38 @@ void _assertRead(bool result, const char* err) {
         throw ArmorAddonOverrideService::load_error(err);
 }
 
+Outfit::Outfit(const proto::Outfit& proto, const SKSE::SerializationInterface* intfc) {
+    m_name = proto.name();
+    for (const auto& formID : proto.armors()) {
+        RE::FormID fixedID;
+        if (intfc->ResolveFormID(formID, fixedID)) {
+            auto armor = skyrim_cast<RE::TESObjectARMO*>(RE::TESForm::LookupByID(fixedID));
+            if (armor)
+                m_armors.insert(armor);
+        }
+    }
+    m_favorited = proto.is_favorite();
+    for (const auto& pair : proto.slot_policies()) {
+        auto slot = static_cast<RE::BIPED_OBJECT>(pair.first);
+        auto policy = static_cast<SlotPolicy::Mode>(pair.second);
+        if (slot >= RE::BIPED_OBJECTS_META::kNumSlots) {
+            LOG(err, "Invalid slot {}.", static_cast<std::uint32_t>(slot));
+            continue;
+        }
+        if (policy >= SlotPolicy::Mode::kNumModes) {
+            LOG(err, "Invalid slot preference {}", policy);
+            continue;
+        }
+        m_slotPolicies[slot] = policy;
+    }
+    m_blanketSlotPolicy = static_cast<SlotPolicy::Mode>(proto.slot_policy());
+}
+
 bool Outfit::conflictsWith(RE::TESObjectARMO* test) const {
     if (!test)
         return false;
     const auto mask = static_cast<uint32_t>(test->GetSlotMask());
-    for (auto it = this->armors.cbegin(); it != this->armors.cend(); ++it) {
+    for (auto it = m_armors.cbegin(); it != m_armors.cend(); ++it) {
         RE::TESObjectARMO* armor = *it;
         if (armor)
             if ((mask & static_cast<uint32_t>(armor->GetSlotMask()))
@@ -27,7 +52,7 @@ bool Outfit::conflictsWith(RE::TESObjectARMO* test) const {
     return false;
 }
 bool Outfit::hasShield() const {
-    auto& list = this->armors;
+    auto& list = m_armors;
     for (auto it = list.cbegin(); it != list.cend(); ++it) {
         RE::TESObjectARMO* armor = *it;
         if (armor) {
@@ -38,155 +63,142 @@ bool Outfit::hasShield() const {
     return false;
 };
 
-std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equipped) {
+void Outfit::setDefaultSlotPolicy() {
+    m_slotPolicies.clear();
+    m_slotPolicies[RE::BIPED_OBJECTS::kShield] = SlotPolicy::Mode::XEXO;
+    m_blanketSlotPolicy = SlotPolicy::Mode::XXOO;
+}
+
+void Outfit::setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Mode> policy) {
+    if (slot >= RE::BIPED_OBJECTS_META::kNumSlots) {
+        LOG(err, "Invalid slot {}.", static_cast<std::uint32_t>(slot));
+        return;
+    }
+    if (policy.has_value()) {
+        if (policy.value() >= SlotPolicy::Mode::kNumModes) {
+            LOG(err, "Invalid slot preference {}.", policy.value());
+            return;
+        }
+        m_slotPolicies[slot] = policy.value();
+    } else {
+        m_slotPolicies.erase(slot);
+    }
+}
+
+void Outfit::setBlanketSlotPolicy(SlotPolicy::Mode policy) {
+    if (policy >= SlotPolicy::Mode::kNumModes) {
+        LOG(err, "Invalid slot preference {}.", policy);
+        return;
+    }
+    m_blanketSlotPolicy = policy;
+}
+
+std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet) {
+    // Helper function that assigns the armor's to the positions in an array that match the armor's slot mask.
+    auto assignToMatchingSlots = [](std::array<RE::TESObjectARMO*, RE::BIPED_OBJECTS_META::kNumSlots>& dest, RE::TESObjectARMO* armor) {
+        auto mask = static_cast<uint32_t>(armor->GetSlotMask());
+        for (auto slot = RE::BIPED_OBJECTS_META::kFirstSlot; slot < RE::BIPED_OBJECTS_META::kNumSlots; slot++) {
+            if (mask & (1 << slot)) dest[slot] = armor;
+        }
+    };
+
+    // Get the list with the equipped armor in each slot
+    std::array<RE::TESObjectARMO*, RE::BIPED_OBJECTS_META::kNumSlots> equipped{nullptr};
+    for (auto armor : equippedSet) {
+        if (!armor) continue;
+        assignToMatchingSlots(equipped, armor);
+    }
+
+    // Get the list with the outfit armor in each slot
+    std::array<RE::TESObjectARMO*, RE::BIPED_OBJECTS_META::kNumSlots> outfit{nullptr};
+    for (auto armor : m_armors) {
+        if (!armor) continue;
+        assignToMatchingSlots(outfit, armor);
+    }
+
+    // Go pairwise through the two lists and select what goes in the results slot
     std::unordered_set<RE::TESObjectARMO*> result;
-
-    // Handle whatever combination of flags we have for how passthrough and equip requirements work.
-    if (!allowsPassthrough && !requiresEquipped) {
-        // The usual behavior: Don't allow passthrough of any slot and unconditionally apply the outfit items.
-
-        // The result is just my own armors...
-        result = armors;
-    } else if (allowsPassthrough && !requiresEquipped) {
-        // The much requested behavior. Allow compatible armors to show through the outfit
-
-        // The result is just my own armors...
-        result = armors;
-
-        // And now append equipped armors that *are compatible*.
-        for (const auto candidate : equipped) {
-            if (!conflictsWith(candidate)) {
-                result.emplace(candidate);
-            }
-        }
-    } else if (!allowsPassthrough && requiresEquipped) {
-        // No passthrough, but do require that items are equipped to show their overrides.
-
-        // Get the effective mask of all equipped armors
-        std::uint32_t equippedMask = 0;
-        for (const auto armor : equipped) {
-            equippedMask |= static_cast<std::uint32_t>(armor->GetSlotMask());
-        }
-
-        // Only add my armors if they are covered by the equip mask
-        for (const auto armor : armors) {
-            auto armorMask = static_cast<std::uint32_t>(armor->GetSlotMask());
-            if ((armorMask & equippedMask) == armorMask) {
-                result.emplace(armor);
-            }
-        }
-    } else if (allowsPassthrough && requiresEquipped) {
-        // Allow passthrough and also require that outfit items are equipped to show.
-
-        // Get the effective mask of all equipped armors
-        std::uint32_t equippedMask = 0;
-        for (const auto armor : equipped) {
-            equippedMask |= static_cast<std::uint32_t>(armor->GetSlotMask());
-        }
-
-        // Only add my armors if they are covered by the equip mask
-        for (const auto armor : armors) {
-            std::uint32_t armorMask = static_cast<std::uint32_t>(armor->GetSlotMask());
-            if ((armorMask & equippedMask) == armorMask) {
-                result.emplace(armor);
-            }
-        }
-
-        // And now append equipped armors that *are compatible*.
-        for (const auto candidate : equipped) {
-            if (!conflictsWith(candidate)) {
-                result.emplace(candidate);
-            }
-        }
-    }
-
-    // IN ALL CASES -- SPECIAL SHIELD HANDLING
-    // Check if the equipped and outfit have shields and save them.
-    std::optional<RE::TESObjectARMO*> equippedShield;
-    std::optional<RE::TESObjectARMO*> outfitShield;
-    for (const auto armor : equipped) {
-        if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
-            equippedShield = armor;
+    std::uint32_t occupiedMask = 0;
+    for (auto slot = RE::BIPED_OBJECTS_META::kFirstSlot; slot < RE::BIPED_OBJECTS_META::kNumSlots; slot++) {
+        // Someone before us already got this slot.
+        if (occupiedMask & (1 << slot)) continue;
+        // Select the slot's policy, falling back to the outfit's policy if none.
+        SlotPolicy::Mode preference = m_blanketSlotPolicy;
+        auto slotSpecificPolicy = m_slotPolicies.find(static_cast<RE::BIPED_OBJECT>(slot));
+        if (slotSpecificPolicy != m_slotPolicies.end()) preference = slotSpecificPolicy->second;
+        auto selection = SlotPolicy::select(preference, equipped[slot], outfit[slot]);
+        RE::TESObjectARMO* selectedArmor = nullptr;
+        switch (selection) {
+        case SlotPolicy::Selection::EQUIPPED:
+            selectedArmor = equipped[slot];
+            break;
+        case SlotPolicy::Selection::OUTFIT:
+            selectedArmor = outfit[slot];
+            break;
+        case SlotPolicy::Selection::EMPTY:
             break;
         }
+        if (!selectedArmor) continue;
+        occupiedMask |= static_cast<uint32_t>(selectedArmor->GetSlotMask());
+        result.emplace(selectedArmor);
     }
-    for (const auto armor : armors) {
-        if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
-            outfitShield = armor;
-            break;
-        }
-    }
-
-    // Unconditionally erase shields from the result, so that we can apply the correct one (if any)
-    for (auto it = result.begin(); it != result.end();) {
-        if (((*it)->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0) {
-            it = result.erase(it);
-        } else {
-            ++it;
-        }
-    }
-
-    // Add the correct shield to the outfit.
-    if (!equippedShield.has_value()) {
-        // No equipped shield. No shield will be added.
-    } else if (equippedShield.has_value() && !outfitShield.has_value()) {
-        // Equipped shield, but nothing in the outfit. Use the equipped shield.
-        result.emplace(equippedShield.value());
-    } else if (equippedShield.has_value() && outfitShield.has_value()) {
-        // Equipped shield, and outfit has shield. Use the outfit shield.
-        result.emplace(outfitShield.value());
-    }
-    // END SHIELD HANDLING
 
     return result;
 };
 
-void Outfit::load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version) {
-    std::uint32_t size = 0;
-    _assertRead(intfc->ReadRecordData(size), "Failed to read an outfit's armor count.");
-    for (std::uint32_t i = 0; i < size; i++) {
-        RE::FormID formID = 0;
-        _assertRead(intfc->ReadRecordData(formID), "Failed to read an outfit's armor.");
-        RE::FormID fixedID;
-        if (intfc->ResolveFormID(formID, fixedID)) {
-            auto armor = skyrim_cast<RE::TESObjectARMO*>(RE::TESForm::LookupByID(fixedID));
-            if (armor)
-                this->armors.insert(armor);
-        }
-    }
-    if (version >= ArmorAddonOverrideService::kSaveVersionV1) {
-        _assertRead(intfc->ReadRecordData(isFavorite), "Failed to read an outfit's favorite status.");
-    } else {
-        this->isFavorite = false;
-    }
-}
-
-void Outfit::load(const proto::Outfit& proto, const SKSE::SerializationInterface* intfc) {
-    this->name = proto.name();
-    for (const auto& formID : proto.armors()) {
-        RE::FormID fixedID;
-        if (intfc->ResolveFormID(formID, fixedID)) {
-            auto armor = skyrim_cast<RE::TESObjectARMO*>(RE::TESForm::LookupByID(fixedID));
-            if (armor)
-                this->armors.insert(armor);
-        }
-    }
-    this->isFavorite = proto.is_favorite();
-    this->allowsPassthrough = proto.allows_passthrough();
-    this->requiresEquipped = proto.requires_equipped();
-}
-
 proto::Outfit Outfit::save() const {
     proto::Outfit out;
-    out.set_name(this->name);
-    for (const auto& armor : this->armors) {
+    out.set_name(m_name);
+    for (const auto& armor : m_armors) {
         if (armor)
             out.add_armors(armor->formID);
     }
-    out.set_is_favorite(this->isFavorite);
-    out.set_allows_passthrough(this->allowsPassthrough);
-    out.set_requires_equipped(this->requiresEquipped);
+    out.set_is_favorite(m_favorited);
+    for (const auto& policy : m_slotPolicies) {
+        out.mutable_slot_policies()->emplace(static_cast<std::uint32_t>(policy.first), static_cast<std::uint32_t>(policy.second));
+    }
+    out.set_slot_policy(static_cast<std::uint32_t>(m_blanketSlotPolicy));
     return out;
+}
+
+ArmorAddonOverrideService::ArmorAddonOverrideService(const proto::OutfitSystem& data, const SKSE::SerializationInterface* intfc) {
+    // Extract data from the protobuf struct.
+    enabled = data.enabled();
+    std::map<RE::RawActorHandle, ActorOutfitAssignments> actorOutfitAssignmentsLocal;
+    for (const auto& actorAssn : data.actor_outfit_assignments()) {
+        // Lookup the actor
+        std::uint64_t handle;
+        RE::NiPointer<RE::Actor> actor;
+        if (!intfc->ResolveHandle(actorAssn.first, handle))
+            continue;
+
+        ActorOutfitAssignments assignments;
+        assignments.currentOutfitName =
+            cobb::istring(actorAssn.second.current_outfit_name().data(), actorAssn.second.current_outfit_name().size());
+        for (const auto& locOutfitData : actorAssn.second.location_based_outfits()) {
+            assignments.locationOutfits.emplace(LocationType(locOutfitData.first),
+                                                cobb::istring(locOutfitData.second.data(),
+                                                              locOutfitData.second.size()));
+        }
+        actorOutfitAssignmentsLocal[static_cast<RE::RawActorHandle>(handle)] = assignments;
+    }
+    actorOutfitAssignments = actorOutfitAssignmentsLocal;
+    for (const auto& outfitData : data.outfits()) {
+        outfits.emplace(std::piecewise_construct,
+                        std::forward_as_tuple(cobb::istring(outfitData.name().data(), outfitData.name().size())),
+                        std::forward_as_tuple(outfitData, intfc));
+    }
+    locationBasedAutoSwitchEnabled = data.location_based_auto_switch_enabled();
+
+    // If the loaded actor assignments are empty, then we know we loaded the old format... convert from that instead.
+    if (actorOutfitAssignmentsLocal.empty()) {
+        actorOutfitAssignments[RE::PlayerCharacter::GetSingleton()->GetHandle().native_handle()].currentOutfitName =
+            cobb::istring(data.obsolete_current_outfit_name().data(), data.obsolete_current_outfit_name().size());
+        for (const auto& locOutfitData : data.obsolete_location_based_outfits()) {
+            actorOutfitAssignments[RE::PlayerCharacter::GetSingleton()->GetHandle().native_handle()].locationOutfits.emplace(LocationType(locOutfitData.first),
+                                                                                                                             cobb::istring(locOutfitData.second.data(), locOutfitData.second.size()));
+        }
+    }
 }
 
 void ArmorAddonOverrideService::_validateNameOrThrow(const char* outfitName) {
@@ -197,47 +209,42 @@ void ArmorAddonOverrideService::_validateNameOrThrow(const char* outfitName) {
 }
 //
 Outfit& ArmorAddonOverrideService::getOutfit(const char* name) {
-    return this->outfits.at(name);
+    return outfits.at(name);
 }
 Outfit& ArmorAddonOverrideService::getOrCreateOutfit(const char* name) {
     _validateNameOrThrow(name);
-    return this->outfits.emplace(name, name).first->second;
+    auto created = outfits.emplace(name, name);
+    if (created.second) created.first->second.setDefaultSlotPolicy();
+    return created.first->second;
 }
 //
 void ArmorAddonOverrideService::addOutfit(const char* name) {
     _validateNameOrThrow(name);
-    this->outfits.emplace(name, name);
+    auto created = outfits.emplace(name, name);
+    if (created.second) created.first->second.setDefaultSlotPolicy();
 }
 void ArmorAddonOverrideService::addOutfit(const char* name, std::vector<RE::TESObjectARMO*> armors) {
     _validateNameOrThrow(name);
-    auto& created = this->outfits.emplace(name, name).first->second;
+    auto& created = outfits.emplace(name, name).first->second;
     for (auto it = armors.begin(); it != armors.end(); ++it) {
         auto armor = *it;
         if (armor)
-            created.armors.insert(armor);
+            created.m_armors.insert(armor);
     }
+    created.setDefaultSlotPolicy();
 }
 Outfit& ArmorAddonOverrideService::currentOutfit(RE::RawActorHandle target) {
-    if (this->actorOutfitAssignments.count(target) == 0)
-        return g_noOutfit;
-    if (this->actorOutfitAssignments.at(target).currentOutfitName == g_noOutfitName)
-        return g_noOutfit;
-    try {
-        return outfits.at(actorOutfitAssignments.at(target).currentOutfitName);
-    } catch (std::out_of_range) {
-        return g_noOutfit;
-    }
+    if (!actorOutfitAssignments.contains(target)) return g_noOutfit;
+    if (actorOutfitAssignments.at(target).currentOutfitName == g_noOutfitName) return g_noOutfit;
+    auto outfit = outfits.find(actorOutfitAssignments.at(target).currentOutfitName);
+    if (outfit == outfits.end()) return g_noOutfit;
+    return outfit->second;
 };
 bool ArmorAddonOverrideService::hasOutfit(const char* name) const {
-    try {
-        static_cast<void>(this->outfits.at(name));
-        return true;
-    } catch (std::out_of_range) {
-        return false;
-    }
+    return outfits.contains(name);
 }
 void ArmorAddonOverrideService::deleteOutfit(const char* name) {
-    this->outfits.erase(name);
+    outfits.erase(name);
     for (auto& assn : actorOutfitAssignments) {
         if (assn.second.currentOutfitName == name)
             assn.second.currentOutfitName = g_noOutfitName;
@@ -252,21 +259,9 @@ void ArmorAddonOverrideService::deleteOutfit(const char* name) {
 }
 
 void ArmorAddonOverrideService::setFavorite(const char* name, bool favorite) {
-    auto outfit = this->outfits.find(name);
-    if (outfit != this->outfits.end())
-        outfit->second.isFavorite = favorite;
-}
-
-void ArmorAddonOverrideService::setOutfitPassthrough(const char* name, bool allowPassthrough) {
-    auto outfit = this->outfits.find(name);
-    if (outfit != this->outfits.end())
-        outfit->second.allowsPassthrough = allowPassthrough;
-}
-
-void ArmorAddonOverrideService::setOutfitEquipRequired(const char* name, bool requiresEquipped) {
-    auto outfit = this->outfits.find(name);
-    if (outfit != this->outfits.end())
-        outfit->second.requiresEquipped = requiresEquipped;
+    auto outfit = outfits.find(name);
+    if (outfit != outfits.end())
+        outfit->second.m_favorited = favorite;
 }
 
 void ArmorAddonOverrideService::modifyOutfit(const char* name,
@@ -274,62 +269,58 @@ void ArmorAddonOverrideService::modifyOutfit(const char* name,
                                              std::vector<RE::TESObjectARMO*>& remove,
                                              bool createIfMissing) {
     try {
-        Outfit& target = this->getOutfit(name);
+        Outfit& target = getOutfit(name);
         for (auto it = add.begin(); it != add.end(); ++it) {
             auto armor = *it;
             if (armor)
-                target.armors.insert(armor);
+                target.m_armors.insert(armor);
         }
         for (auto it = remove.begin(); it != remove.end(); ++it) {
             auto armor = *it;
             if (armor)
-                target.armors.erase(armor);
+                target.m_armors.erase(armor);
         }
     } catch (std::out_of_range) {
         if (createIfMissing) {
-            this->addOutfit(name);
-            this->modifyOutfit(name, add, remove);
+            addOutfit(name);
+            modifyOutfit(name, add, remove);
         }
     }
 }
 void ArmorAddonOverrideService::renameOutfit(const char* oldName, const char* newName) {
     _validateNameOrThrow(newName);
-    try {
-        static_cast<void>(this->outfits.at(newName));
-        throw name_conflict("");
-    } catch (std::out_of_range) {
-        Outfit& renamed = (this->outfits[newName] = this->outfits
-                                                        .at(oldName));// don't try-catch this "at" call; let the caller catch the exception
-        renamed.name = newName;
-        this->outfits.erase(oldName);
-        for (auto& assn : actorOutfitAssignments) {
-            if (assn.second.currentOutfitName == oldName)
-                assn.second.currentOutfitName = newName;
-            // If the outfit is assigned as a location outfit, remove it there as well.
-            for (auto& locationOutfit : assn.second.locationOutfits) {
-                if (locationOutfit.second == oldName) {
-                    assn.second.locationOutfits[locationOutfit.first] = newName;
-                    break;
-                }
+    if (outfits.contains(newName)) throw name_conflict("");
+    auto outfitNode = outfits.extract(oldName);
+    if (outfitNode.empty()) throw std::out_of_range("");
+    outfitNode.key() = newName;
+    outfitNode.mapped().m_name = newName;
+    outfits.insert(std::move(outfitNode));
+    for (auto& assignment : actorOutfitAssignments) {
+        if (assignment.second.currentOutfitName == oldName)
+            assignment.second.currentOutfitName = newName;
+        // If the outfit is assigned as a location outfit, remove it there as well.
+        for (auto& locationOutfit : assignment.second.locationOutfits) {
+            if (locationOutfit.second == oldName) {
+                assignment.second.locationOutfits[locationOutfit.first] = newName;
+                break;
             }
         }
     }
 }
 void ArmorAddonOverrideService::setOutfit(const char* name, RE::RawActorHandle target) {
-    if (this->actorOutfitAssignments.count(target) == 0)
-        return;
+    if (!actorOutfitAssignments.contains(target)) return;
     if (strcmp(name, g_noOutfitName) == 0) {
-        this->actorOutfitAssignments.at(target).currentOutfitName = g_noOutfitName;
+        actorOutfitAssignments.at(target).currentOutfitName = g_noOutfitName;
         return;
     }
     try {
-        this->getOutfit(name);
-        this->actorOutfitAssignments.at(target).currentOutfitName = name;
+        getOutfit(name);
+        actorOutfitAssignments.at(target).currentOutfitName = name;
     } catch (std::out_of_range) {
         LOG(info,
             "ArmorAddonOverrideService: Tried to set non-existent outfit %s as active. Switching the system off for now.",
             name);
-        this->actorOutfitAssignments.at(target).currentOutfitName = g_noOutfitName;
+        actorOutfitAssignments.at(target).currentOutfitName = g_noOutfitName;
     }
 }
 
@@ -357,34 +348,34 @@ void ArmorAddonOverrideService::setLocationBasedAutoSwitchEnabled(bool newValue)
 }
 
 void ArmorAddonOverrideService::setOutfitUsingLocation(LocationType location, RE::RawActorHandle target) {
-    if (this->actorOutfitAssignments.count(target) == 0)
+    if (actorOutfitAssignments.count(target) == 0)
         return;
-    auto it = this->actorOutfitAssignments.at(target).locationOutfits.find(location);
-    if (it != this->actorOutfitAssignments.at(target).locationOutfits.end()) {
-        this->setOutfit(it->second.c_str(), target);
+    auto it = actorOutfitAssignments.at(target).locationOutfits.find(location);
+    if (it != actorOutfitAssignments.at(target).locationOutfits.end()) {
+        setOutfit(it->second.c_str(), target);
     }
 }
 
 void ArmorAddonOverrideService::setLocationOutfit(LocationType location, const char* name, RE::RawActorHandle target) {
-    if (this->actorOutfitAssignments.count(target) == 0)
+    if (actorOutfitAssignments.count(target) == 0)
         return;
     if (!std::string(name).empty()) {// Can never set outfit to the "" outfit. Use unsetLocationOutfit instead.
-        this->actorOutfitAssignments.at(target).locationOutfits[location] = name;
+        actorOutfitAssignments.at(target).locationOutfits[location] = name;
     }
 }
 
 void ArmorAddonOverrideService::unsetLocationOutfit(LocationType location, RE::RawActorHandle target) {
-    if (this->actorOutfitAssignments.count(target) == 0)
+    if (actorOutfitAssignments.count(target) == 0)
         return;
-    this->actorOutfitAssignments.at(target).locationOutfits.erase(location);
+    actorOutfitAssignments.at(target).locationOutfits.erase(location);
 }
 
 std::optional<cobb::istring> ArmorAddonOverrideService::getLocationOutfit(LocationType location, RE::RawActorHandle target) {
-    if (this->actorOutfitAssignments.count(target) == 0)
+    if (actorOutfitAssignments.count(target) == 0)
         return std::optional<cobb::istring>();
     ;
-    auto it = this->actorOutfitAssignments.at(target).locationOutfits.find(location);
-    if (it != this->actorOutfitAssignments.at(target).locationOutfits.end()) {
+    auto it = actorOutfitAssignments.at(target).locationOutfits.find(location);
+    if (it != actorOutfitAssignments.at(target).locationOutfits.end()) {
         return std::optional<cobb::istring>(it->second);
     } else {
         return std::optional<cobb::istring>();
@@ -392,13 +383,13 @@ std::optional<cobb::istring> ArmorAddonOverrideService::getLocationOutfit(Locati
 }
 
 #define CHECK_LOCATION(TYPE, CHECK_CODE)                                                                   \
-    if (this->actorOutfitAssignments.at(target).locationOutfits.count(LocationType::TYPE) && (CHECK_CODE)) \
+    if (actorOutfitAssignments.at(target).locationOutfits.count(LocationType::TYPE) && (CHECK_CODE)) \
         return std::optional<LocationType>(LocationType::TYPE);
 
 std::optional<LocationType> ArmorAddonOverrideService::checkLocationType(const std::unordered_set<std::string>& keywords,
                                                                          const WeatherFlags& weather_flags,
                                                                          RE::RawActorHandle target) {
-    if (this->actorOutfitAssignments.count(target) == 0)
+    if (actorOutfitAssignments.count(target) == 0)
         return std::optional<LocationType>();
 
     CHECK_LOCATION(CitySnowy, keywords.count("LocTypeCity") && weather_flags.snowy);
@@ -422,141 +413,30 @@ std::optional<LocationType> ArmorAddonOverrideService::checkLocationType(const s
 }
 
 bool ArmorAddonOverrideService::shouldOverride(RE::RawActorHandle target) const noexcept {
-    if (!this->enabled)
+    if (!enabled)
         return false;
-    if (this->actorOutfitAssignments.count(target) == 0)
+    if (actorOutfitAssignments.count(target) == 0)
         return false;
-    if (this->actorOutfitAssignments.at(target).currentOutfitName == g_noOutfitName)
+    if (actorOutfitAssignments.at(target).currentOutfitName == g_noOutfitName)
         return false;
     return true;
 }
 void ArmorAddonOverrideService::getOutfitNames(std::vector<std::string>& out, bool favoritesOnly) const {
     out.clear();
-    auto& list = this->outfits;
+    auto& list = outfits;
     out.reserve(list.size());
     for (auto it = list.cbegin(); it != list.cend(); ++it)
-        if (!favoritesOnly || it->second.isFavorite)
-            out.push_back(it->second.name);
+        if (!favoritesOnly || it->second.m_favorited)
+            out.push_back(it->second.m_name);
 }
+
 void ArmorAddonOverrideService::setEnabled(bool flag) noexcept {
-    this->enabled = flag;
-}
-//
-void ArmorAddonOverrideService::reset() {
-    this->enabled = true;
-    this->actorOutfitAssignments.clear();
-    this->actorOutfitAssignments[RE::PlayerCharacter::GetSingleton()->GetHandle().native_handle()] = ActorOutfitAssignments();
-    this->outfits.clear();
-    this->locationBasedAutoSwitchEnabled = false;
-}
-
-void ArmorAddonOverrideService::load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version) {
-    this->reset();
-    //
-    std::string selectedOutfitName;
-    _assertWrite(intfc->ReadRecordData(this->enabled), "Failed to read the enable state.");
-    {// current outfit name
-        //
-        // we can't call WriteData directly on this->currentOutfitName because it's
-        // a cobb::istring, and SKSE only templated WriteData for std::string in
-        // specific; other basic_string classes break it.
-        //
-        std::uint32_t size = 0;
-        char buf[257];
-        memset(buf, '\0', sizeof(buf));
-        _assertRead(intfc->ReadRecordData(size), "Failed to read the selected outfit name.");
-        _assertRead(size < 257, "The selected outfit name is too long.");
-        if (size) {
-            _assertRead(intfc->ReadRecordData(buf, size), "Failed to read the selected outfit name.");
-        }
-        selectedOutfitName = buf;
-    }
-    std::uint32_t size;
-    _assertRead(intfc->ReadRecordData(size), "Failed to read the outfit count.");
-    for (std::uint32_t i = 0; i < size; i++) {
-        std::string name;
-        _assertRead(intfc->ReadRecordData(name), "Failed to read an outfit's name.");
-        auto& outfit = this->getOrCreateOutfit(name.c_str());
-        outfit.load_legacy(intfc, version);
-    }
-    this->setOutfit(selectedOutfitName.c_str(), RE::PlayerCharacter::GetSingleton()->GetHandle().native_handle());
-    if (version >= ArmorAddonOverrideService::kSaveVersionV3) {
-        _assertWrite(intfc->ReadRecordData(this->locationBasedAutoSwitchEnabled),
-                     "Failed to read the autoswitch enable state.");
-        std::uint32_t autoswitchSize =
-            static_cast<std::uint32_t>(this->actorOutfitAssignments.at(RE::PlayerCharacter::GetSingleton()->GetHandle().native_handle())
-                                           .locationOutfits.size());
-        _assertRead(intfc->ReadRecordData(autoswitchSize), "Failed to read the number of autoswitch slots.");
-        for (std::uint32_t i = 0; i < autoswitchSize; i++) {
-            // get location outfit
-            //
-            // we can't call WriteData directly on this->currentOutfitName because it's
-            // a cobb::istring, and SKSE only templated WriteData for std::string in
-            // specific; other basic_string classes break it.
-            //
-            LocationType autoswitchSlot;
-            _assertRead(intfc->ReadRecordData(autoswitchSlot), "Failed to read the an autoswitch slot ID.");
-            std::uint32_t locationOutfitNameSize = 0;
-            char locationOutfitName[257];
-            memset(locationOutfitName, '\0', sizeof(locationOutfitName));
-            _assertRead(intfc->ReadRecordData(locationOutfitNameSize), "Failed to read the an autoswitch outfit name.");
-            _assertRead(locationOutfitNameSize < 257, "The autoswitch outfit name is too long.");
-            if (locationOutfitNameSize) {
-                _assertRead(intfc->ReadRecordData(locationOutfitName, locationOutfitNameSize),
-                            "Failed to read the selected outfit name.");
-                this->actorOutfitAssignments.at(RE::PlayerCharacter::GetSingleton()->GetHandle().native_handle()).locationOutfits.emplace(autoswitchSlot, locationOutfitName);
-            }
-        }
-    } else {
-        this->actorOutfitAssignments.at(RE::PlayerCharacter::GetSingleton()->GetHandle().native_handle()).locationOutfits =
-            std::map<LocationType, cobb::istring>();
-    }
-}
-
-void ArmorAddonOverrideService::load(const SKSE::SerializationInterface* intfc, const proto::OutfitSystem& data) {
-    this->reset();
-    // Extract data from the protobuf struct.
-    this->enabled = data.enabled();
-    std::map<RE::RawActorHandle, ActorOutfitAssignments> actorOutfitAssignmentsLocal;
-    for (const auto& actorAssn : data.actor_outfit_assignments()) {
-        // Lookup the actor
-        std::uint64_t handle;
-        RE::NiPointer<RE::Actor> actor;
-        if (!intfc->ResolveHandle(actorAssn.first, handle))
-            continue;
-
-        ActorOutfitAssignments assignments;
-        assignments.currentOutfitName =
-            cobb::istring(actorAssn.second.current_outfit_name().data(), actorAssn.second.current_outfit_name().size());
-        for (const auto& locOutfitData : actorAssn.second.location_based_outfits()) {
-            assignments.locationOutfits.emplace(LocationType(locOutfitData.first),
-                                                cobb::istring(locOutfitData.second.data(),
-                                                              locOutfitData.second.size()));
-        }
-        actorOutfitAssignmentsLocal[static_cast<RE::RawActorHandle>(handle)] = assignments;
-    }
-    this->actorOutfitAssignments = actorOutfitAssignmentsLocal;
-    for (const auto& outfitData : data.outfits()) {
-        Outfit outfit;
-        outfit.load(outfitData, intfc);
-        this->outfits.emplace(cobb::istring(outfitData.name().data(), outfitData.name().size()), outfit);
-    }
-    this->locationBasedAutoSwitchEnabled = data.location_based_auto_switch_enabled();
-
-    // If the loaded actor assignments are empty, then we know we loaded the old format... convert from that instead.
-    if (actorOutfitAssignmentsLocal.empty()) {
-        this->actorOutfitAssignments[RE::PlayerCharacter::GetSingleton()->GetHandle().native_handle()].currentOutfitName =
-            cobb::istring(data.obsolete_current_outfit_name().data(), data.obsolete_current_outfit_name().size());
-        for (const auto& locOutfitData : data.obsolete_location_based_outfits()) {
-            this->actorOutfitAssignments[RE::PlayerCharacter::GetSingleton()->GetHandle().native_handle()].locationOutfits.emplace(LocationType(locOutfitData.first),
-                                                                                                                                   cobb::istring(locOutfitData.second.data(), locOutfitData.second.size()));
-        }
-    }
+    enabled = flag;
 }
 
 proto::OutfitSystem ArmorAddonOverrideService::save() {
     proto::OutfitSystem out;
-    out.set_enabled(this->enabled);
+    out.set_enabled(enabled);
     for (const auto& actorAssn : actorOutfitAssignments) {
         // Store a reference to the actor
         std::uint64_t handle;
@@ -571,23 +451,23 @@ proto::OutfitSystem ArmorAddonOverrideService::save() {
         }
         out.mutable_actor_outfit_assignments()->insert({handle, assnOut});
     }
-    for (const auto& outfit : this->outfits) {
+    for (const auto& outfit : outfits) {
         auto newOutfit = out.add_outfits();
         *newOutfit = outfit.second.save();
     }
-    out.set_location_based_auto_switch_enabled(this->locationBasedAutoSwitchEnabled);
+    out.set_location_based_auto_switch_enabled(locationBasedAutoSwitchEnabled);
     return out;
 }
 //
 void ArmorAddonOverrideService::dump() const {
     LOG(info, "Dumping all state for ArmorAddonOverrideService...");
-    LOG(info, "Enabled: %d", this->enabled);
-    LOG(info, "We have %d outfits. Enumerating...", this->outfits.size());
-    for (auto it = this->outfits.begin(); it != this->outfits.end(); ++it) {
+    LOG(info, "Enabled: %d", enabled);
+    LOG(info, "We have %d outfits. Enumerating...", outfits.size());
+    for (auto it = outfits.begin(); it != outfits.end(); ++it) {
         LOG(info, " - Key: %s", it->first.c_str());
-        LOG(info, "    - Name: %s", it->second.name.c_str());
+        LOG(info, "    - Name: %s", it->second.m_name.c_str());
         LOG(info, "    - Armors:");
-        auto& list = it->second.armors;
+        auto& list = it->second.m_armors;
         for (auto jt = list.begin(); jt != list.end(); ++jt) {
             auto ptr = *jt;
             if (ptr) {
@@ -598,4 +478,47 @@ void ArmorAddonOverrideService::dump() const {
         }
     }
     LOG(info, "All state has been dumped.");
+}
+
+namespace SlotPolicy {
+    // Negative values mean "advanced option"
+    std::array<Metadata, kNumModes> g_policiesMetadata = {
+        Metadata{"XXXX", 100, true},   // Never show anything
+        Metadata{"XXXE", 101, true},   // If outfit and equipped, show equipped
+        Metadata{"XXXO", 2, false},    // If outfit and equipped, show outfit (require equipped, no passthrough)
+        Metadata{"XXOX", 102, true},   // If only outfit, show outfit
+        Metadata{"XXOE", 103, true},   // If only outfit, show outfit. If both, show equipped
+        Metadata{"XXOO", 1, false},    // If outfit, show outfit (always show outfit, no passthough)
+        Metadata{"XEXX", 104, true},   // If only equipped, show equipped
+        Metadata{"XEXE", 105, true},   // If equipped, show equipped
+        Metadata{"XEXO", 3, false},    // If only equipped, show equipped. If both, show outfit
+        Metadata{"XEOX", 106, true},   // If only equipped, show equipped. If only outfit, show outfit
+        Metadata{"XEOE", 107, true},   // If only equipped, show equipped. If only outfit, show outfit. If both, show equipped
+        Metadata{"XEOO", 108, true}    // If only equipped, show equipped. If only outfit, show outfit. If both, show outfit
+    };
+
+    Selection select(Mode policy, bool hasEquipped, bool hasOutfit) {
+        if (policy >= Mode::kNumModes) {
+            LOG(err, "Invalid slot preference {}", policy);
+            policy = Mode::XXXX;
+        }
+        char out;
+        if (!hasEquipped && !hasOutfit) {
+            out = g_policiesMetadata[policy].code[0];
+        } else if (hasEquipped && !hasOutfit) {
+            out = g_policiesMetadata[policy].code[1];
+        } else if (!hasEquipped && hasOutfit) {
+            out = g_policiesMetadata[policy].code[2];
+        } else if (hasEquipped && hasOutfit) {
+            out = g_policiesMetadata[policy].code[3];
+        }
+        switch (out) {
+        case 'E':
+            return Selection::EQUIPPED;
+        case 'O':
+            return Selection::OUTFIT;
+        default:
+            return Selection::EMPTY;
+        }
+    }
 }

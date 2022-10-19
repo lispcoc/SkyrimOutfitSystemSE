@@ -17,6 +17,9 @@ String[] _sOutfitSlotArmors
 Armor[]  _kOutfitSlotArmors
 Armor[]  _kOutfitContents
 
+Bool     _sOutfitShowingSlotEditor = False
+String[] _kOutfitSlotPolicyNames
+
 String[] _sOutfitEditor_AddCandidates
 Armor[]  _kOutfitEditor_AddCandidates
 
@@ -88,6 +91,7 @@ Function ResetOutfitBrowser()
    _sEditingOutfit       = ""
    _sOutfitShowingContextMenu = ""
    _sOutfitNames = new String[1]
+   _sOutfitShowingSlotEditor = False
 EndFunction
 Function ResetOutfitEditor()
    _sOutfitSlotNames  = new String[1]
@@ -184,6 +188,16 @@ EndFunction
          SetMenuDialogDefaultIndex(0)
          Return
       EndIf
+      If StringUtil.Substring(sState, 0, 28) == "OutfitEditor_BodySlotPolicy_"
+         Int iEntryIndex = (StringUtil.Substring(sState, 28) as Int)
+         String[] sMenuOptions = SkyrimOutfitSystemNativeFuncs.GetAvailablePolicyNames()
+         String[] sMenu = PrependStringToArray(sMenuOptions, "$SkyOutSys_Desc_PolicyName_INHERIT")
+         sMenu = PrependStringToArray(sMenu, "$SkyOutSys_AutoswitchEdit_Cancel")
+         SetMenuDialogOptions(sMenu)
+         SetMenuDialogStartIndex(0)
+         SetMenuDialogDefaultIndex(0)
+         Return
+      EndIf
    EndEvent
    Event OnMenuAcceptST(Int aiIndex)
       String sState = GetState()
@@ -201,6 +215,21 @@ EndFunction
             SkyrimOutfitSystemNativeFuncs.SetLocationOutfit(_aCurrentActor, iAutoswitchIndex, sOutfitName)
             SetMenuOptionValueST(SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(_aCurrentActor, iAutoswitchIndex))
          EndIf
+         Return
+      EndIf
+      If StringUtil.Substring(sState, 0, 28) == "OutfitEditor_BodySlotPolicy_"
+         Int iEntryIndex = (StringUtil.Substring(sState, 28) as Int)
+         aiIndex = aiIndex - 2
+         If aiIndex == -2 ; user canceled
+            Return
+         EndIf
+         String[] sCodes = SkyrimOutfitSystemNativeFuncs.GetAvailablePolicyCodes()
+         If aiIndex != -1
+            SkyrimOutfitSystemNativeFuncs.SetBodySlotPoliciesForOutfit(_sEditingOutfit, iEntryIndex, sCodes[aiIndex])
+         Else
+            SkyrimOutfitSystemNativeFuncs.SetBodySlotPoliciesForOutfit(_sEditingOutfit, iEntryIndex, "")
+         EndIf
+         ForcePageReset()
          Return
       EndIf
    EndEvent
@@ -424,6 +453,7 @@ EndFunction
       _sEditingOutfit = asOutfitName
       SetupSlotDataForOutfit(_sEditingOutfit)
       _iOutfitEditorBodySlotPage = 0
+      _sOutfitShowingSlotEditor = False
       ForcePageReset()
    EndFunction
    Function StopEditingOutfit()
@@ -664,16 +694,22 @@ EndFunction
             AddMenuOptionST ("OutfitEditor_AddFromCarried", "$SkyOutSys_OEdit_AddFromCarried", "")
             AddMenuOptionST ("OutfitEditor_AddFromWorn",    "$SkyOutSys_OEdit_AddFromWorn", "")
             AddInputOptionST("OutfitEditor_AddByID",        "$SkyOutSys_OEdit_AddByID", "")
-            AddEmptyOption()
+            ; AddEmptyOption()
             AddHeaderOption  ("$SkyOutSys_OEdit_AddFromList_Header")
             AddMenuOptionST  ("OutfitEditor_AddFromList_Menu",     "$SkyOutSys_OEdit_AddFromList_Search", "")
             AddInputOptionST ("OutfitEditor_AddFromList_Filter",   "$SkyOutSys_OEdit_AddFromList_Filter_Name", _sOutfitEditor_AddFromList_Filter)
             AddToggleOptionST("OutfitEditor_AddFromList_Playable", "$SkyOutSys_OEdit_AddFromList_Filter_Playable", _bOutfitEditor_AddFromList_Playable)
-            AddEmptyOption()
+            ; AddEmptyOption()
             AddHeaderOption  ("$SkyOutSys_OEdit_OutfitSettings_Header")
-            AddToggleOptionST("OutfitEditor_ToggleAllowPassthrough", "$SkyOutSys_OEdit_ToggleAllowPassthrough", SkyrimOutfitSystemNativeFuncs.GetOutfitPassthroughStatus(_sEditingOutfit))
-            AddToggleOptionST("OutfitEditor_ToggleRequireEquipped", "$SkyOutSys_OEdit_ToggleRequireEquipped", SkyrimOutfitSystemNativeFuncs.GetOutfitEquipRequiredStatus(_sEditingOutfit))
+            AddMenuOptionST  ("OutfitEditor_EditAllSlotPolicy", "$SkyOutSys_OEdit_EditAllSlotPolicy", SkyrimOutfitSystemNativeFuncs.BodySlotPolicyNamesForOutfit(_sEditingOutfit)[32])
+            AddToggleOptionST("OutfitEditor_ToggleEditSlotPolicy", "$SkyOutSys_OEdit_ToggleSlotPolicyEditor", _sOutfitShowingSlotEditor)
+            AddTextOptionST ("OutfitEditor_SlotPolicyHelp", "$SkyOutSys_OEdit_SlotPolicyHelp", "")
 
+            If !_sOutfitShowingSlotEditor
+               ShowOutfitSlots()
+            Else
+               ShowOutfitSlotsPolicies()
+            EndIf
             ;
             ; All add functions must fail if the armor already exists 
             ; in the item (though that shouldn't cause problems on the 
@@ -681,87 +717,128 @@ EndFunction
             ; so redundant entries are impossible anyway).
             ;
          ;/EndBlock/;
+      EndFunction
+      Function ShowOutfitSlots()
          ;/Block/; ; Right column
-            SetCursorPosition(1)
-            AddHeaderOption("$SkyOutSys_MCMHeader_OutfitSlots")
-            ;
-            ; The goal here:
-            ;
-            ;  - Show only the body slots that the outfit uses
-            ;
-            ;  - If a body slot is covered by multiple different armors 
-            ;    in the outfit (i.e. the user has chosen to enable the 
-            ;    use of conflicting armors), then show the slot multiple 
-            ;    times, once for each armor.
-            ;
-            ;     - As of this writing, conflicting armors don't actually 
-            ;       work in our patch; the last armor for a slot "wins." 
-            ;       However, there are no real engine limitations on how 
-            ;       many ArmorAddons can cover a given body part; if we 
-            ;       were to reconfigure our patch, then we could allow 
-            ;       users to enable conflicts on a per-armor basis. As 
-            ;       such, this approach is prep work for that.
-            ;
-            ;       (During early development, it wasn't immediately 
-            ;       clear whether our patch supported conflicting slots; 
-            ;       random tinkering in the R&D stage proved that the 
-            ;       innermost bits of the armor system allow conflicts, 
-            ;       but I didn't know whether my patch was low-level 
-            ;       enough to take advantage of that. This approach to 
-            ;       listing the outfit contents was designed at that 
-            ;       stage of development.)
-            ;
-            Int iSlotCount = _sOutfitSlotNames.Length
-            If iSlotCount > 11
-               Int iPageCount = iSlotCount / 8
-               If iPageCount * 8 < iSlotCount
-                  iPageCount = iPageCount + 1
-               EndIf
-               If _iOutfitEditorBodySlotPage >= iPageCount
-                  _iOutfitEditorBodySlotPage = iPageCount - 1
-               EndIf
-               Int iOffset    = _iOutfitEditorBodySlotPage * 8
-               Int iIterator  = 0
-               Int iMax       = iSlotCount - iOffset
-               If iMax > 8 ; (visible - 3) -- make room for page separator and buttons
-                  iMax = 8
-               EndIf
-               While iIterator < iMax
-                  String sSlot  = _sOutfitSlotNames [iIterator + iOffset]
-                  String sArmor = _sOutfitSlotArmors[iIterator + iOffset]
-                  If !sArmor
-                     sArmor = "$SkyOutSys_NamelessArmor"
-                  EndIf
-                  AddTextOptionST("OutfitEditor_BodySlot_" + iIterator, sSlot, sArmor)
-                  iIterator = iIterator + 1
-               EndWhile
-               Int iFlagsPrev = OPTION_FLAG_NONE
-               Int iFlagsNext = OPTION_FLAG_NONE
-               If _iOutfitEditorBodySlotPage < 1
-                  iFlagsPrev = OPTION_FLAG_DISABLED
-               EndIf
-               If _iOutfitEditorBodySlotPage == iPageCount - 1
-                  iFlagsNext = OPTION_FLAG_DISABLED
-               EndIf
-               SetCursorPosition(19)
-               AddHeaderOption("")
-               AddTextOptionST("OutfitEditor_BodySlotsPrev", "$SkyOutSys_MCMText_OutfitSlotsPageNumber{" + (_iOutfitEditorBodySlotPage + 1) + "}{" + iPageCount + "}", "$SkyOutSys_MCMText_OutfitSlotsButtonPagePrev", iFlagsPrev)
-               AddTextOptionST("OutfitEditor_BodySlotsNext", "", "$SkyOutSys_MCMText_OutfitSlotsButtonPageNext", iFlagsNext)
-            ElseIf iSlotCount
-               Int iIterator = 0
-               While iIterator < iSlotCount
-                  String sSlot  = _sOutfitSlotNames[iIterator]
-                  String sArmor = _sOutfitSlotArmors[iIterator]
-                  If !sArmor
-                     sArmor = "$SkyOutSys_NamelessArmor"
-                  EndIf
-                  AddTextOptionST("OutfitEditor_BodySlot_" + iIterator, sSlot, sArmor)
-                  iIterator = iIterator + 1
-               EndWhile
-            Else
-               AddTextOption("$SkyOutSys_OutfitEditor_OutfitIsEmpty", "")
+         SetCursorPosition(1)
+         AddHeaderOption("$SkyOutSys_MCMHeader_OutfitSlots")
+         ;
+         ; The goal here:
+         ;
+         ;  - Show only the body slots that the outfit uses
+         ;
+         ;  - If a body slot is covered by multiple different armors 
+         ;    in the outfit (i.e. the user has chosen to enable the 
+         ;    use of conflicting armors), then show the slot multiple 
+         ;    times, once for each armor.
+         ;
+         ;     - As of this writing, conflicting armors don't actually 
+         ;       work in our patch; the last armor for a slot "wins." 
+         ;       However, there are no real engine limitations on how 
+         ;       many ArmorAddons can cover a given body part; if we 
+         ;       were to reconfigure our patch, then we could allow 
+         ;       users to enable conflicts on a per-armor basis. As 
+         ;       such, this approach is prep work for that.
+         ;
+         ;       (During early development, it wasn't immediately 
+         ;       clear whether our patch supported conflicting slots; 
+         ;       random tinkering in the R&D stage proved that the 
+         ;       innermost bits of the armor system allow conflicts, 
+         ;       but I didn't know whether my patch was low-level 
+         ;       enough to take advantage of that. This approach to 
+         ;       listing the outfit contents was designed at that 
+         ;       stage of development.)
+         ;
+         Int iSlotCount = _sOutfitSlotNames.Length
+         If iSlotCount > 11
+            Int iPageCount = iSlotCount / 8
+            If iPageCount * 8 < iSlotCount
+               iPageCount = iPageCount + 1
             EndIf
-         ;/EndBlock/;
+            If _iOutfitEditorBodySlotPage >= iPageCount
+               _iOutfitEditorBodySlotPage = iPageCount - 1
+            EndIf
+            Int iOffset    = _iOutfitEditorBodySlotPage * 8
+            Int iIterator  = 0
+            Int iMax       = iSlotCount - iOffset
+            If iMax > 8 ; (visible - 3) -- make room for page separator and buttons
+               iMax = 8
+            EndIf
+            While iIterator < iMax
+               String sSlot  = _sOutfitSlotNames [iIterator + iOffset]
+               String sArmor = _sOutfitSlotArmors[iIterator + iOffset]
+               If !sArmor
+                  sArmor = "$SkyOutSys_NamelessArmor"
+               EndIf
+               AddTextOptionST("OutfitEditor_BodySlot_" + iIterator, sSlot, sArmor)
+               iIterator = iIterator + 1
+            EndWhile
+            Int iFlagsPrev = OPTION_FLAG_NONE
+            Int iFlagsNext = OPTION_FLAG_NONE
+            If _iOutfitEditorBodySlotPage < 1
+               iFlagsPrev = OPTION_FLAG_DISABLED
+            EndIf
+            If _iOutfitEditorBodySlotPage == iPageCount - 1
+               iFlagsNext = OPTION_FLAG_DISABLED
+            EndIf
+            SetCursorPosition(19)
+            AddHeaderOption("")
+            AddTextOptionST("OutfitEditor_BodySlotsPrev", "$SkyOutSys_MCMText_OutfitSlotsPageNumber{" + (_iOutfitEditorBodySlotPage + 1) + "}{" + iPageCount + "}", "$SkyOutSys_MCMText_OutfitSlotsButtonPagePrev", iFlagsPrev)
+            AddTextOptionST("OutfitEditor_BodySlotsNext", "", "$SkyOutSys_MCMText_OutfitSlotsButtonPageNext", iFlagsNext)
+         ElseIf iSlotCount
+            Int iIterator = 0
+            While iIterator < iSlotCount
+               String sSlot  = _sOutfitSlotNames[iIterator]
+               String sArmor = _sOutfitSlotArmors[iIterator]
+               If !sArmor
+                  sArmor = "$SkyOutSys_NamelessArmor"
+               EndIf
+               AddTextOptionST("OutfitEditor_BodySlot_" + iIterator, sSlot, sArmor)
+               iIterator = iIterator + 1
+            EndWhile
+         Else
+            AddTextOption("$SkyOutSys_OutfitEditor_OutfitIsEmpty", "")
+         EndIf
+      ;/EndBlock/;
+      EndFunction
+      Function ShowOutfitSlotsPolicies()
+         ;/Block/; ; Right column
+         SetCursorPosition(1)
+         AddHeaderOption("$SkyOutSys_MCMHeader_OutfitSlots")
+         String[] sSlotPolicies = SkyrimOutfitSystemNativeFuncs.BodySlotPolicyNamesForOutfit(_sEditingOutfit)
+         Int iSlotCount = 32
+         Int iPageCount = iSlotCount / 8
+         If iPageCount * 8 < iSlotCount
+            iPageCount = iPageCount + 1
+         EndIf
+         If _iOutfitEditorBodySlotPage >= iPageCount
+            _iOutfitEditorBodySlotPage = iPageCount - 1
+         EndIf
+         Int iOffset    = _iOutfitEditorBodySlotPage * 8
+         Int iIterator  = 0
+         Int iMax       = iSlotCount - iOffset
+         If iMax > 8 ; (visible - 3) -- make room for page separator and buttons
+            iMax = 8
+         EndIf
+         While iIterator < iMax
+            String sPolicyName = sSlotPolicies[iIterator + iOffset]
+            Int SlotIndex = iIterator + iOffset
+            AddMenuOptionST("OutfitEditor_BodySlotPolicy_" + SlotIndex, BodySlotName(iIterator + iOffset + 30), sPolicyName)
+            iIterator = iIterator + 1
+         EndWhile
+         Int iFlagsPrev = OPTION_FLAG_NONE
+         Int iFlagsNext = OPTION_FLAG_NONE
+         If _iOutfitEditorBodySlotPage < 1
+            iFlagsPrev = OPTION_FLAG_DISABLED
+         EndIf
+         If _iOutfitEditorBodySlotPage == iPageCount - 1
+            iFlagsNext = OPTION_FLAG_DISABLED
+         EndIf
+         SetCursorPosition(19)
+         AddHeaderOption("")
+         AddTextOptionST("OutfitEditor_BodySlotsPrev", "$SkyOutSys_MCMText_OutfitSlotsPageNumber{" + (_iOutfitEditorBodySlotPage + 1) + "}{" + iPageCount + "}", "$SkyOutSys_MCMText_OutfitSlotsButtonPagePrev", iFlagsPrev)
+         AddTextOptionST("OutfitEditor_BodySlotsNext", "", "$SkyOutSys_MCMText_OutfitSlotsButtonPageNext", iFlagsNext)
+      ;/EndBlock/;
       EndFunction
       Function AddArmorToOutfit(Armor kAdd)
          If !kAdd || !_sEditingOutfit
@@ -979,23 +1056,43 @@ EndFunction
                SetToggleOptionValueST(_bOutfitEditor_AddFromList_Playable)
             EndEvent
          EndState
-         State OutfitEditor_ToggleAllowPassthrough
+         State OutfitEditor_ToggleEditSlotPolicy
             Event OnSelectST()
-               SkyrimOutfitSystemNativeFuncs.SetOutfitPassthroughStatus(_sEditingOutfit, !SkyrimOutfitSystemNativeFuncs.GetOutfitPassthroughStatus(_sEditingOutfit))
-               SetToggleOptionValueST(SkyrimOutfitSystemNativeFuncs.GetOutfitPassthroughStatus(_sEditingOutfit))
+               _sOutfitShowingSlotEditor = !_sOutfitShowingSlotEditor
+               _iOutfitEditorBodySlotPage = 0
+               ForcePageReset()
             EndEvent
             Event OnHighlightST()
-               SetInfoText("$SkyOutSys_OEdit_ToggleAllowPassthrough_Desc")
+               SetInfoText("$SkyOutSys_OEdit_ToggleEditSlotPolicy_Desc")
             EndEvent
          EndState
-         State OutfitEditor_ToggleRequireEquipped
+         State OutfitEditor_SlotPolicyHelp
             Event OnSelectST()
-               SkyrimOutfitSystemNativeFuncs.SetOutfitEquipRequiredStatus(_sEditingOutfit, !SkyrimOutfitSystemNativeFuncs.GetOutfitEquipRequiredStatus(_sEditingOutfit))
-               SetToggleOptionValueST(SkyrimOutfitSystemNativeFuncs.GetOutfitEquipRequiredStatus(_sEditingOutfit))
+               ShowMessage("$SkyOutSys_OEdit_SlotPolicy_HelpText1", false)
+               ShowMessage("$SkyOutSys_OEdit_SlotPolicy_HelpText2", false)
+               ShowMessage("$SkyOutSys_OEdit_SlotPolicy_HelpText3", false)
+            EndEvent
+         EndState
+         State OutfitEditor_EditAllSlotPolicy
+            Event OnMenuOpenST()
+               String[] sMenuOptions = SkyrimOutfitSystemNativeFuncs.GetAvailablePolicyNames()
+               String[] sMenu = PrependStringToArray(sMenuOptions, "$SkyOutSys_AutoswitchEdit_Cancel")
+               SetMenuDialogOptions(sMenu)
+               SetMenuDialogStartIndex(0)
+               SetMenuDialogDefaultIndex(0)
+            EndEvent
+            Event OnMenuAcceptST(Int aiIndex)
+               aiIndex = aiIndex - 1
+               If aiIndex == -1 ; user canceled
+                  Return
+               EndIf
+               String[] sCodes = SkyrimOutfitSystemNativeFuncs.GetAvailablePolicyCodes()
+               SkyrimOutfitSystemNativeFuncs.SetAllBodySlotPoliciesForOutfit(_sEditingOutfit, sCodes[aiIndex])
+               ForcePageReset()
             EndEvent
             Event OnHighlightST()
-               SetInfoText("$SkyOutSys_OEdit_ToggleRequireEquipped_Desc")
-            EndEvent      
+               SetInfoText("$SkyOutSys_OEdit_EditAllSlotPolicy_Desc")
+            EndEvent
          EndState
       ;/EndBlock/;
    ;/EndBlock/;

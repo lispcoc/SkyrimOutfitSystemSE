@@ -4,7 +4,6 @@
 #include <unordered_map>
 #include <vector>
 
-//#include "skse64/PluginAPI.h"
 #include "cobb/strings.h"
 #include "outfit.pb.h"
 
@@ -34,25 +33,65 @@ struct WeatherFlags {
     bool rainy = false;
 };
 
+namespace SlotPolicy {
+    enum Mode : std::uint8_t {
+        XXXX,
+        XXXE,
+        XXXO,
+        XXOX,
+        XXOE,
+        XXOO,
+        XEXX,
+        XEXE,
+        XEXO,
+        XEOX,
+        XEOE,
+        XEOO,
+        kNumModes
+    };
+
+    struct Metadata {
+        std::string code;
+        std::int32_t sortOrder;
+        bool advanced;
+        std::string translationKey() const {
+            return "$SkyOutSys_Desc_EasyPolicyName_" + code;
+        }
+    };
+
+    extern std::array<Metadata, kNumModes> g_policiesMetadata;
+
+    enum class Selection {
+        EMPTY,
+        EQUIPPED,
+        OUTFIT
+    };
+
+    Selection select(Mode policy, bool hasEquipped, bool hasOutfit);
+}// namespace SlotPolicy
+
 struct Outfit {
-    Outfit(){};// we shouldn't need this, really, but std::unordered_map is a brat
-    Outfit(const char* n) : name(n), isFavorite(false), allowsPassthrough(false), requiresEquipped(false){};
+    Outfit(const proto::Outfit& proto, const SKSE::SerializationInterface* intfc);
+    Outfit(const char* n) : m_name(n), m_favorited(false), m_blanketSlotPolicy(SlotPolicy::Mode::XXOO){};
     Outfit(const Outfit& other) = default;
-    Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false), allowsPassthrough(false), requiresEquipped(false) {
-        this->armors = other.armors;
+    Outfit(const char* n, const Outfit& other) : m_name(n), m_favorited(false) {
+        m_armors = other.m_armors;
+        m_slotPolicies = other.m_slotPolicies;
+        m_blanketSlotPolicy = other.m_blanketSlotPolicy;
     }
-    std::string name;// can't be const; prevents assigning to Outfit vars
-    std::unordered_set<RE::TESObjectARMO*> armors;
-    bool isFavorite;
-    bool allowsPassthrough;
-    bool requiresEquipped;
+    std::string m_name;// can't be const; prevents assigning to Outfit vars
+    std::unordered_set<RE::TESObjectARMO*> m_armors;
+    bool m_favorited;
+    std::map<RE::BIPED_OBJECT, SlotPolicy::Mode> m_slotPolicies;
+    SlotPolicy::Mode m_blanketSlotPolicy;
 
     bool conflictsWith(RE::TESObjectARMO*) const;
     bool hasShield() const;
-    std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equipped);
+    std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet);
 
-    void load(const proto::Outfit& proto, const SKSE::SerializationInterface*);
-    void load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version);// can throw ArmorAddonOverrideService::load_error
+    void setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Mode> policy);
+    void setBlanketSlotPolicy(SlotPolicy::Mode policy);
+    void setDefaultSlotPolicy();
     proto::Outfit save() const;                                                        // can throw ArmorAddonOverrideService::save_error
 };
 const constexpr char* g_noOutfitName = "";
@@ -60,13 +99,16 @@ static Outfit g_noOutfit(g_noOutfitName);// can't be const; prevents us from ass
 
 class ArmorAddonOverrideService {
 public:
+    ArmorAddonOverrideService() {};
+    ArmorAddonOverrideService(const proto::OutfitSystem& data, const SKSE::SerializationInterface* intfc);// can throw load_error
     typedef Outfit Outfit;
     static constexpr std::uint32_t signature = 'AAOS';
     enum {
-        kSaveVersionV1 = 1,
-        kSaveVersionV2 = 2,
-        kSaveVersionV3 = 3,
-        kSaveVersionV4 = 4// First version with protobuf
+        kSaveVersionV1 = 1,// Unsupported handwritten binary format
+        kSaveVersionV2 = 2,// Unsupported handwritten binary format
+        kSaveVersionV3 = 3,// Unsupported handwritten binary format
+        kSaveVersionV4 = 4,// First version with protobuf
+        kSaveVersionV5 = 5,// First version with Slot Control System
     };
     //
     static constexpr std::uint32_t ce_outfitNameMaxLength = 256;// SKSE caps serialized std::strings and const char*s to 256 bytes.
@@ -122,8 +164,6 @@ public:
     bool hasOutfit(const char* name) const;
     void deleteOutfit(const char* name);
     void setFavorite(const char* name, bool favorite);
-    void setOutfitPassthrough(const char* name, bool allowPassthrough);
-    void setOutfitEquipRequired(const char* name, bool requiresEquipped);
     void modifyOutfit(const char* name, std::vector<RE::TESObjectARMO*>& add, std::vector<RE::TESObjectARMO*>& remove, bool createIfMissing = false);// can throw bad_name if (createIfMissing)
     void renameOutfit(const char* oldName, const char* newName);                                                                                     // throws name_conflict if the new name is already taken; can throw bad_name; throws std::out_of_range if the oldName doesn't exist
     void setOutfit(const char* name, RE::RawActorHandle target);
@@ -142,12 +182,7 @@ public:
     void getOutfitNames(std::vector<std::string>& out, bool favoritesOnly = false) const;
     void setEnabled(bool) noexcept;
     //
-    void refreshCurrentIfChanged(const char* testName);
-    //
-    void reset();
-    void load(const SKSE::SerializationInterface* intfc, const proto::OutfitSystem& data);// can throw load_error
-    void load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version);   // can throw load_error
-    proto::OutfitSystem save();                                                           // can throw save_error
+    proto::OutfitSystem save();// can throw save_error
     //
     void dump() const;
 };
