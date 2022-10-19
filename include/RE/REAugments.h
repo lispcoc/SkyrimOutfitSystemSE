@@ -53,8 +53,8 @@ namespace RE {
     }// namespace TESObjectARMOAugments
 
     namespace BIPED_OBJECTS_META {
-        inline constexpr std::uint32_t firstSlot = RE::BIPED_OBJECTS::kHead;
-        inline constexpr std::uint32_t numSlots = RE::BIPED_OBJECTS::kEditorTotal;
+        inline constexpr std::uint32_t kFirstSlot = RE::BIPED_OBJECTS::kHead;
+        inline constexpr std::uint32_t kNumSlots = RE::BIPED_OBJECTS::kEditorTotal;
     }// namespace BIPED_OBJECTS_META
 }// namespace RE
 

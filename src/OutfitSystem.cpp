@@ -372,7 +372,7 @@ namespace OutfitSystem {
             std::vector<RE::BSFixedString> result;
             auto& service = ArmorAddonOverrideService::GetInstance();
             auto& outfit = service.getOutfit(name.data());
-            for (auto slot = RE::BIPED_OBJECTS_META::firstSlot; slot < RE::BIPED_OBJECTS_META::numSlots; slot++) {
+            for (auto slot = RE::BIPED_OBJECTS_META::kFirstSlot; slot < RE::BIPED_OBJECTS_META::kNumSlots; slot++) {
                 auto slotSpecificPolicy = outfit.slotPolicies.find(static_cast<RE::BIPED_OBJECT>(slot));
                 if (slotSpecificPolicy != outfit.slotPolicies.end()) {
                     result.emplace_back(SlotPolicy::g_policiesMetadata.at(static_cast<char>(slotSpecificPolicy->second)).translationKey());
@@ -393,7 +393,7 @@ namespace OutfitSystem {
             LogExit exitPrint("BodySlotPolicy.SetBodySlotPoliciesForOutfit"sv);
             auto& service = ArmorAddonOverrideService::GetInstance();
             auto& outfit = service.getOutfit(name.data());
-            if (slot >= RE::BIPED_OBJECTS_META::numSlots) {
+            if (slot >= RE::BIPED_OBJECTS_META::kNumSlots) {
                 LOG(err, "Invalid slot {}.", static_cast<std::uint32_t>(slot));
                 return;
             }
@@ -421,7 +421,7 @@ namespace OutfitSystem {
                 return first.code == codeString;
             });
             if (found == SlotPolicy::g_policiesMetadata.end()) return;
-            outfit.setAllSlotPolicy(static_cast<SlotPolicy::Mode>(found - SlotPolicy::g_policiesMetadata.begin()));
+            outfit.setBlanketSlotPolicy(static_cast<SlotPolicy::Mode>(found - SlotPolicy::g_policiesMetadata.begin()));
         }
         void SetBodySlotPolicyToDefaultForOutfit(RE::BSScript::IVirtualMachine* registry,
                                           std::uint32_t stackId,

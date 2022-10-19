@@ -75,10 +75,9 @@ struct Outfit {
     bool hasShield() const;
     std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet);
 
-    SlotPolicy::Mode effectivePolicyForSlot(RE::BIPED_OBJECT slot);
     void setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Mode> policy);
+    void setBlanketSlotPolicy(SlotPolicy::Mode policy);
     void setDefaultSlotPolicy();
-    void setAllSlotPolicy(SlotPolicy::Mode policy);
 
     void load(const proto::Outfit& proto, const SKSE::SerializationInterface*);
     void load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version);// can throw ArmorAddonOverrideService::load_error
