@@ -34,7 +34,7 @@ struct WeatherFlags {
 };
 
 namespace SlotPolicy {
-    enum class Preference: std::uint8_t {
+    enum Mode: std::uint8_t {
         XXXX, XXXE, XXXO, XXOX, XXOE, XXOO, XEXX, XEXE, XEXO, XEOX, XEOE, XEOO, MAX
     };
 
@@ -51,17 +51,17 @@ namespace SlotPolicy {
         }
     };
 
-    extern std::array<Metadata, static_cast<std::uint8_t>(Preference::MAX)> g_policiesMetadata;
+    extern std::array<Metadata, MAX> g_policiesMetadata;
 
     inline constexpr std::uint32_t firstSlot = RE::BIPED_OBJECTS::kHead;
     inline constexpr std::uint32_t numSlots = RE::BIPED_OBJECTS::kEditorTotal;
 
-    Selection select(Preference policy, bool hasEquipped, bool hasOutfit);
+    Selection select(Mode policy, bool hasEquipped, bool hasOutfit);
 }
 
 struct Outfit {
     Outfit() {};// we shouldn't need this, really, but std::unordered_map is a brat
-    Outfit(const char* n) : name(n), isFavorite(false), slotPolicy(SlotPolicy::Preference::XXOO) {};
+    Outfit(const char* n) : name(n), isFavorite(false), slotPolicy(SlotPolicy::Mode::XXOO) {};
     Outfit(const Outfit& other) = default;
     Outfit(const char* n, const Outfit& other) : name(n), isFavorite(false) {
         this->armors = other.armors;
@@ -71,17 +71,17 @@ struct Outfit {
     std::string name;// can't be const; prevents assigning to Outfit vars
     std::unordered_set<RE::TESObjectARMO*> armors;
     bool isFavorite;
-    std::map<RE::BIPED_OBJECT, SlotPolicy::Preference> slotPolicies;
-    SlotPolicy::Preference slotPolicy;
+    std::map<RE::BIPED_OBJECT, SlotPolicy::Mode> slotPolicies;
+    SlotPolicy::Mode slotPolicy;
 
     bool conflictsWith(RE::TESObjectARMO*) const;
     bool hasShield() const;
     std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet);
 
-    SlotPolicy::Preference effectivePolicyForSlot(RE::BIPED_OBJECT slot);
-    void setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Preference> policy);
+    SlotPolicy::Mode effectivePolicyForSlot(RE::BIPED_OBJECT slot);
+    void setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Mode> policy);
     void setDefaultSlotPolicy();
-    void setAllSlotPolicy(SlotPolicy::Preference policy);
+    void setAllSlotPolicy(SlotPolicy::Mode policy);
 
     void load(const proto::Outfit& proto, const SKSE::SerializationInterface*);
     void load_legacy(const SKSE::SerializationInterface* intfc, std::uint32_t version);// can throw ArmorAddonOverrideService::load_error

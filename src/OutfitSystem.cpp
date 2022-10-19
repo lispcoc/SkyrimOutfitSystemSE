@@ -405,7 +405,7 @@ namespace OutfitSystem {
                     return first.code == codeString;
                 });
                 if (found == SlotPolicy::g_policiesMetadata.end()) return;
-                outfit.setSlotPolicy(static_cast<RE::BIPED_OBJECT>(slot), static_cast<SlotPolicy::Preference>(found - SlotPolicy::g_policiesMetadata.begin()));
+                outfit.setSlotPolicy(static_cast<RE::BIPED_OBJECT>(slot), static_cast<SlotPolicy::Mode>(found - SlotPolicy::g_policiesMetadata.begin()));
             }
         }
         void SetAllBodySlotPoliciesForOutfit(RE::BSScript::IVirtualMachine* registry,
@@ -421,7 +421,7 @@ namespace OutfitSystem {
                 return first.code == codeString;
             });
             if (found == SlotPolicy::g_policiesMetadata.end()) return;
-            outfit.setAllSlotPolicy(static_cast<SlotPolicy::Preference>(found - SlotPolicy::g_policiesMetadata.begin()));
+            outfit.setAllSlotPolicy(static_cast<SlotPolicy::Mode>(found - SlotPolicy::g_policiesMetadata.begin()));
         }
         void SetBodySlotPolicyToDefaultForOutfit(RE::BSScript::IVirtualMachine* registry,
                                           std::uint32_t stackId,

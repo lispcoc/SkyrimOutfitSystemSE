@@ -34,7 +34,7 @@ bool Outfit::hasShield() const {
     return false;
 };
 
-SlotPolicy::Preference Outfit::effectivePolicyForSlot(RE::BIPED_OBJECT slot) {
+SlotPolicy::Mode Outfit::effectivePolicyForSlot(RE::BIPED_OBJECT slot) {
     auto policy = slotPolicies.find(slot);
     if (policy != slotPolicies.end()) return policy->second;
     return slotPolicy;
@@ -42,26 +42,26 @@ SlotPolicy::Preference Outfit::effectivePolicyForSlot(RE::BIPED_OBJECT slot) {
 
 void Outfit::setDefaultSlotPolicy() {
     slotPolicies.clear();
-    slotPolicies[RE::BIPED_OBJECTS::kShield] = SlotPolicy::Preference::XEXO;
-    slotPolicy = SlotPolicy::Preference::XXOO;
+    slotPolicies[RE::BIPED_OBJECTS::kShield] = SlotPolicy::Mode::XEXO;
+    slotPolicy = SlotPolicy::Mode::XXOO;
 }
 
-void Outfit::setAllSlotPolicy(SlotPolicy::Preference preference) {
-    if (preference >= SlotPolicy::Preference::MAX) {
-        LOG(err, "Invalid slot preference {}.", static_cast<std::uint8_t>(preference));
+void Outfit::setAllSlotPolicy(SlotPolicy::Mode preference) {
+    if (preference >= SlotPolicy::Mode::MAX) {
+        LOG(err, "Invalid slot preference {}.", preference);
         return;
     }
     slotPolicy = preference;
 }
 
-void Outfit::setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Preference> policy) {
+void Outfit::setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Mode> policy) {
     if (slot >= SlotPolicy::numSlots) {
         LOG(err, "Invalid slot {}.", static_cast<std::uint32_t>(slot));
         return;
     }
     if (policy.has_value()) {
-        if (policy.value() >= SlotPolicy::Preference::MAX) {
-            LOG(err, "Invalid slot preference {}.", static_cast<std::uint8_t>(policy.value()));
+        if (policy.value() >= SlotPolicy::Mode::MAX) {
+            LOG(err, "Invalid slot preference {}.", policy.value());
             return;
         }
         slotPolicies[slot] = policy.value();
@@ -97,7 +97,7 @@ std::unordered_set<RE::TESObjectARMO*> Outfit::computeDisplaySet(const std::unor
         // Someone before us already got this slot.
         if (occupiedMask & (1 << slot)) continue;
         // Select the slot's policy, falling back to the outfit's policy if none.
-        SlotPolicy::Preference preference = slotPolicy;
+        SlotPolicy::Mode preference = slotPolicy;
         auto slotSpecificPolicy = slotPolicies.find(static_cast<RE::BIPED_OBJECT>(slot));
         if (slotSpecificPolicy != slotPolicies.end()) preference = slotSpecificPolicy->second;
         auto selection = SlotPolicy::select(preference, equipped[slot], outfit[slot]);
@@ -154,18 +154,18 @@ void Outfit::load(const proto::Outfit& proto, const SKSE::SerializationInterface
     this->isFavorite = proto.is_favorite();
     for (const auto& pair : proto.slot_policies()) {
         auto slot = static_cast<RE::BIPED_OBJECT>(pair.first);
-        auto policy = static_cast<SlotPolicy::Preference>(pair.second);
+        auto policy = static_cast<SlotPolicy::Mode>(pair.second);
         if (slot >= SlotPolicy::numSlots) {
             LOG(err, "Invalid slot {}.", static_cast<std::uint32_t>(slot));
             continue;
         }
-        if (policy >= SlotPolicy::Preference::MAX) {
-            LOG(err, "Invalid slot preference {}", static_cast<std::uint8_t>(policy));
+        if (policy >= SlotPolicy::Mode::MAX) {
+            LOG(err, "Invalid slot preference {}", policy);
             continue;
         }
         slotPolicies[slot] = policy;
     }
-    slotPolicy = static_cast<SlotPolicy::Preference>(proto.slot_policy());
+    slotPolicy = static_cast<SlotPolicy::Mode>(proto.slot_policy());
 }
 
 proto::Outfit Outfit::save() const {
@@ -587,7 +587,7 @@ void ArmorAddonOverrideService::dump() const {
 }
 
 // Negative values mean "advanced option"
-std::array<SlotPolicy::Metadata, static_cast<std::uint8_t>(SlotPolicy::Preference::MAX)> SlotPolicy::g_policiesMetadata = {
+std::array<SlotPolicy::Metadata, SlotPolicy::MAX> SlotPolicy::g_policiesMetadata = {
     SlotPolicy::Metadata{"XXXX", 100, true},   // Never show anything
     SlotPolicy::Metadata{"XXXE", 101, true},   // If outfit and equipped, show equipped
     SlotPolicy::Metadata{"XXXO", 2, false},    // If outfit and equipped, show outfit (require equipped, no passthrough)
@@ -602,20 +602,20 @@ std::array<SlotPolicy::Metadata, static_cast<std::uint8_t>(SlotPolicy::Preferenc
     SlotPolicy::Metadata{"XEOO", 108, true}    // If only equipped, show equipped. If only outfit, show outfit. If both, show outfit
 };
 
-SlotPolicy::Selection SlotPolicy::select(SlotPolicy::Preference policy, bool hasEquipped, bool hasOutfit) {
-    if (policy < Preference::XXXX || policy >= Preference::MAX) {
-        LOG(err, "Invalid slot preference {}", static_cast<std::uint8_t>(policy));
-        policy = Preference::XXXX;
+SlotPolicy::Selection SlotPolicy::select(SlotPolicy::Mode policy, bool hasEquipped, bool hasOutfit) {
+    if (policy >= Mode::MAX) {
+        LOG(err, "Invalid slot preference {}", policy);
+        policy = Mode::XXXX;
     }
     char out = 'X';
     if (!hasEquipped && !hasOutfit) {
-        out = g_policiesMetadata[static_cast<std::uint8_t>(policy)].code[0];
+        out = g_policiesMetadata[policy].code[0];
     } else if (hasEquipped && !hasOutfit) {
-        out = g_policiesMetadata[static_cast<std::uint8_t>(policy)].code[1];
+        out = g_policiesMetadata[policy].code[1];
     } else if (!hasEquipped && hasOutfit) {
-        out = g_policiesMetadata[static_cast<std::uint8_t>(policy)].code[2];
+        out = g_policiesMetadata[policy].code[2];
     } else if (hasEquipped && hasOutfit) {
-        out = g_policiesMetadata[static_cast<std::uint8_t>(policy)].code[3];
+        out = g_policiesMetadata[policy].code[3];
     }
     if (out == 'X') {
         return SlotPolicy::Selection::EMPTY;
