@@ -89,11 +89,13 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Corrosion)
 
 corrosion_import_crate(MANIFEST_PATH src/sos-rs/Cargo.toml)
+
 get_target_property(RE_INCLUDE CommonLibSSE::CommonLibSSE INTERFACE_INCLUDE_DIRECTORIES)
 get_target_property(RE_OPTIONS CommonLibSSE::CommonLibSSE INTERFACE_COMPILE_OPTIONS)
 get_target_property(RE_DEFINITIONS CommonLibSSE::CommonLibSSE INTERFACE_COMPILE_DEFINITIONS)
-
-corrosion_set_env_vars(sos-rs INCLUDE_PATHS="${RE_INCLUDE}" OPTIONS="${RE_OPTIONS}" DEFINITIONS="${RE_DEFINITIONS}")
+set(RUST_HEADER_PATH ${CMAKE_CURRENT_BINARY_DIR}/rust-include/)
+corrosion_set_env_vars(sos-rs INCLUDE_PATHS="${RE_INCLUDE}" OPTIONS="${RE_OPTIONS}" DEFINITIONS="${RE_DEFINITIONS}" HEADER_GEN="${RUST_HEADER_PATH}")
+target_include_directories(sos-rs INTERFACE ${RUST_HEADER_PATH})
 
 ################################################################################
 # Target
@@ -117,7 +119,8 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/hooking/Hooks_PRE_AE.cpp
     src/hooking/Patches.cpp
     src/Utility.cpp
-        include/RE/REAugments.h src/RE/REAugments.cpp)
+    include/RE/REAugments.h
+    src/RE/REAugments.cpp)
 
 set(ROOT_NAMESPACE SkyrimOutfitSystemSE)
 
@@ -201,6 +204,7 @@ target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     ${INIH_LIBRARY}
     ProtocolBuffers
     xbyak::xbyak
+    sos-rs
 )
 
 target_include_directories(SkyrimOutfitSystemSE PRIVATE

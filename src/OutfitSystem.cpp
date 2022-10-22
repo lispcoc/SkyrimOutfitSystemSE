@@ -8,6 +8,7 @@
 #include "cobb/strings.h"
 #include "cobb/utf8naturalsort.h"
 #include "cobb/utf8string.h"
+#include "bindings.h"
 
 #include <algorithm>
 
@@ -146,6 +147,7 @@ namespace OutfitSystem {
                                             std::uint32_t stackId,
                                             RE::StaticFunctionTag*) {
         LogExit exitPrint("RefreshArmorForAllConfiguredActors"sv);
+
         auto& service = ArmorAddonOverrideService::GetInstance();
         auto actors = service.listActors();
         for (auto& actorRef : actors) {
