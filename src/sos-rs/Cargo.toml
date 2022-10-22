@@ -13,4 +13,4 @@ cpp_build = "0.5"
 cbindgen = "0.20.0"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["staticlib", "cdylib"]

@@ -95,7 +95,14 @@ get_target_property(RE_OPTIONS CommonLibSSE::CommonLibSSE INTERFACE_COMPILE_OPTI
 get_target_property(RE_DEFINITIONS CommonLibSSE::CommonLibSSE INTERFACE_COMPILE_DEFINITIONS)
 set(RUST_HEADER_PATH ${CMAKE_CURRENT_BINARY_DIR}/rust-include/)
 corrosion_set_env_vars(sos-rs INCLUDE_PATHS="${RE_INCLUDE}" OPTIONS="${RE_OPTIONS}" DEFINITIONS="${RE_DEFINITIONS}" HEADER_GEN="${RUST_HEADER_PATH}")
-target_include_directories(sos-rs INTERFACE ${RUST_HEADER_PATH})
+
+add_library(sos-rs-proxy STATIC ${RUST_HEADER_PATH}/bindings.h src/sos-rs/dummy.cpp)
+add_custom_command(OUTPUT ${RUST_HEADER_PATH}/bindings.h COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RUST_HEADER_PATH}/bindings.h.tmp ${RUST_HEADER_PATH}/bindings.h DEPENDS sos-rs-static)
+target_link_libraries(sos-rs-proxy PUBLIC sos-rs-static)
+target_include_directories(sos-rs-proxy INTERFACE ${RUST_HEADER_PATH})
+
+get_target_property(OUTPUT_THING sos-rs-static LINK_INTERFACE_LIBRARIES)
+message(${OUTPUT_THING})
 
 ################################################################################
 # Target
@@ -204,7 +211,7 @@ target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     ${INIH_LIBRARY}
     ProtocolBuffers
     xbyak::xbyak
-    sos-rs
+    sos-rs-proxy
 )
 
 target_include_directories(SkyrimOutfitSystemSE PRIVATE
