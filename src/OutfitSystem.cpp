@@ -147,7 +147,7 @@ namespace OutfitSystem {
                                             std::uint32_t stackId,
                                             RE::StaticFunctionTag*) {
         LogExit exitPrint("RefreshArmorForAllConfiguredActors"sv);
-
+        bbbb();
         auto& service = ArmorAddonOverrideService::GetInstance();
         auto actors = service.listActors();
         for (auto& actorRef : actors) {

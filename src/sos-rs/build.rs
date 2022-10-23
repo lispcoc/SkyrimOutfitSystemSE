@@ -21,7 +21,11 @@ fn main() {
         config.define(pair.0, Some(pair.1));
     }
 
-    config.build("src/lib.rs");
+    let profile = std::env::var("PROFILE").unwrap();
+
+    config
+        .flag(if profile == "debug" { "-MTd" } else { "-MT" })
+        .build("src/lib.rs");
 
     let crate_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
 
