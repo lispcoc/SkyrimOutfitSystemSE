@@ -10,6 +10,7 @@ commonlibsse = { path = "../commonlibsse" }
 protos = { path = "../protos" }
 uncased = "0.9.7"
 cxx = "1.0"
+protobuf = "3.2.0"
 
 [build-dependencies]
 cbindgen = "0.20.0"

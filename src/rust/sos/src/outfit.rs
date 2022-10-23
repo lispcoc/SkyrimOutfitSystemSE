@@ -21,6 +21,23 @@ impl Outfit {
             slot_policies: slot_policy::Policies::standard()
         }
     }
+
+    fn save(&self) -> protos::outfit::Outfit {
+        let mut out = protos::outfit::Outfit::default();
+        out.name = self.name.to_string();
+        for armor in &self.armors {
+            if !armor.is_null() {
+                let form_id = unsafe { (**armor).GetFormID() };
+                out.armors.push(form_id);
+            }
+        }
+        out.is_favorite = self.favorite;
+        for (slot, policy) in &self.slot_policies.slot_policies {
+            out.slot_policies.insert(slot.repr, policy.repr as u32);
+        }
+        out.slot_policy = self.slot_policies.blanket_slot_policy.repr as u32;
+        out
+    }
 }
 
 pub struct ActorAssignments {
@@ -197,29 +214,37 @@ impl OutfitService {
     pub fn set_enabled(&mut self, option: bool) {
         self.enabled = option
     }
+
+    pub fn save(&self) -> Option<Vec<u8>> {
+        use protobuf::Message;
+        let mut out = protos::outfit::OutfitSystem::default();
+        out.enabled = self.enabled;
+        for (actor_handle, assn) in &self.actor_assignments {
+            let mut out_assn = protos::outfit::ActorOutfitAssignment::default();
+            out_assn.current_outfit_name = assn.current
+                .as_ref()
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| String::new());
+            out_assn.location_based_outfits = assn.location_based.iter()
+                .map(|(loc, name)| {
+                    (loc.repr, name.to_string())
+                })
+                .collect();
+            out.actor_outfit_assignments.insert(*actor_handle as u64, out_assn);
+        }
+        for (_, outfit) in &self.outfits {
+            out.outfits.push(outfit.save());
+        }
+        out.location_based_auto_switch_enabled = self.location_switching_enabled;
+        Some(out.write_to_bytes().ok()?)
+    }
 }
 
 
 pub mod slot_policy {
     use std::collections::BTreeMap;
     use commonlibsse::BIPED_OBJECT;
-
-    #[repr(u8)]
-    #[derive(Ord, PartialOrd, Eq, PartialEq)]
-    pub enum Policy {
-        XXXX,
-        XXXE,
-        XXXO,
-        XXOX,
-        XXOE,
-        XXOO,
-        XEXX,
-        XEXE,
-        XEXO,
-        XEOX,
-        XEOE,
-        XEOO,
-    }
+    use crate::ffi::Policy;
 
     pub struct Policies {
         pub slot_policies: BTreeMap<BIPED_OBJECT, Policy>,

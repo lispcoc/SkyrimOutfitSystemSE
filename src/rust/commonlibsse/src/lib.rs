@@ -93,10 +93,10 @@ pub mod ffi {
         include!("commonlibsse/include/customize.h");
         pub type TESObjectARMO;
         pub fn GetSlotMask(self: &TESObjectARMO) -> BipedObjectSlot;
+        pub fn GetFormID(self: &TESObjectARMO) -> u32;
         pub type BipedObjectSlot;
         pub type BIPED_OBJECT;
         pub type PlayerCharacter;
-
         pub fn PlayerCharacter_GetSingleton() -> *mut PlayerCharacter;
     }
 }

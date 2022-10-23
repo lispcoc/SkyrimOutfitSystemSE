@@ -18,8 +18,8 @@ mod ffi {
     }
 
     #[cxx_name = "RustLocationType"]
-    #[repr(u32)]
     #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+    #[repr(u32)]
     pub enum LocationType {
         World = 0,
         Town = 1,
@@ -35,6 +35,24 @@ mod ffi {
         TownRainy = 7,
         DungeonRainy = 8,
         CityRainy = 11
+    }
+
+    #[cxx_name = "RustPolicy"]
+    #[derive(Ord, PartialOrd, Eq, PartialEq)]
+    #[repr(u8)]
+    pub enum Policy {
+        XXXX,
+        XXXE,
+        XXXO,
+        XXOX,
+        XXOE,
+        XXOO,
+        XEXX,
+        XEXE,
+        XEXO,
+        XEOX,
+        XEOE,
+        XEOO,
     }
 
     #[namespace = "RE"]
