@@ -1,17 +1,19 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
+use uncased::{Uncased, UncasedStr};
 use commonlibsse::{Armor};
+use crate::{UncasedString};
 
 pub struct Outfit {
-    pub name: String,
-    pub armors: HashSet<*mut Armor>,
+    pub name: UncasedString,
+    pub armors: HashSet<Armor>,
     pub favorite: bool,
     pub slot_policies: slot_policy::Policies,
 }
 
 impl Outfit {
-    fn new(name: String) -> Self {
+    fn new(name: &str) -> Self {
         Outfit {
-            name,
+            name: Uncased::new(name).into_owned(),
             armors: Default::default(),
             favorite: false,
             slot_policies: slot_policy::Policies::standard()
@@ -20,57 +22,54 @@ impl Outfit {
 }
 
 pub struct ActorAssignments {
-    pub current: String,
-    pub location_based: BTreeMap<LocationType, String>
+    pub current: UncasedString,
+    pub location_based: BTreeMap<LocationType, UncasedString>
 }
 
 
 pub struct OutfitService {
     pub enabled: bool,
-    pub outfits: HashMap<String, Outfit>,
+    pub outfits: HashMap<UncasedString, Outfit>,
     pub actor_assignments: BTreeMap<RawActorHandle, ActorAssignments>,
     pub location_switching_enabled: bool,
 }
 
 impl OutfitService {
-    fn get_outfit(&self, name: &str) -> Option<&Outfit> {
-        self.outfits.get(name)
+    fn get_outfit<'a, 'b>(&'a self, name: &'b str) -> Option<&'a Outfit> {
+        let value = self.outfits.get(UncasedStr::new(name));
+        value
     }
     fn get_mut_outfit(&mut self, name: &str) -> Option<&mut Outfit> {
-        self.outfits.get_mut(name)
+        self.outfits.get_mut(UncasedStr::new(name))
     }
     fn get_or_create_outfit(&mut self, name: &str) -> &Outfit {
-        self.outfits.entry(name.to_string()).or_insert_with(|| Outfit::new(name.to_string()))
+        self.outfits.entry(Uncased::from(name).into_owned()).or_insert_with(|| Outfit::new(name))
     }
     fn get_or_create_mut_outfit(&mut self, name: &str) -> &mut Outfit {
-        self.outfits.entry(name.to_string()).or_insert_with(|| Outfit::new(name.to_string()))
+        self.outfits.entry(Uncased::from(name).into_owned()).or_insert_with(|| Outfit::new(name))
     }
     fn add_outfit(&mut self, name: &str) -> &Outfit {
-        if !self.outfits.contains_key(name) {
-            self.outfits.insert(name.to_string(), Outfit::new(name.to_string()));
+        if !self.outfits.contains_key(UncasedStr::new(name)) {
+            self.outfits.insert(Uncased::from(name).into_owned(), Outfit::new(name));
         }
-        self.outfits.get(name).unwrap()
+        self.outfits.get(UncasedStr::new(name)).unwrap()
     }
     fn add_mut_outfit(&mut self, name: &str) -> &mut Outfit {
-        if !self.outfits.contains_key(name) {
-            self.outfits.insert(name.to_string(), Outfit::new(name.to_string()));
+        if !self.outfits.contains_key(UncasedStr::new(name)) {
+            self.outfits.insert(Uncased::from(name).into_owned(), Outfit::new(name));
         }
-        self.outfits.get_mut(name).unwrap()
+        self.outfits.get_mut(UncasedStr::new(name)).unwrap()
     }
     fn current_outfit(&self, target: RawActorHandle) -> Option<&Outfit> {
-        let outfit_name = self.actor_assignments.get(&target).and_then(|assn| Some(assn.current.as_str()))?;
-        self.get_outfit(outfit_name)
+        let outfit_name = self.actor_assignments.get(&target).and_then(|assn| Some(assn.current.clone()))?;
+        self.get_outfit(outfit_name.as_str())
     }
     fn current_mut_outfit(&mut self, target: RawActorHandle) -> Option<&mut Outfit> {
-        let outfit_name = self.actor_assignments.get(&target).and_then(|assn| Some(assn.current.as_str()))?.to_string();
-        self.get_mut_outfit(&outfit_name)
+        let outfit_name = self.actor_assignments.get(&target).and_then(|assn| Some(assn.current.clone()))?;
+        self.get_mut_outfit(outfit_name.as_str())
     }
     fn has_outfit(&self, name: &str) -> bool {
-        self.outfits.contains_key(name)
-    }
-    unsafe fn x(&mut self) {
-        let first = self.outfits.iter().nth(0).unwrap().1.armors.iter().nth(0).unwrap().clone();
-        let mut a = (*first).get_slot_mask();
+        self.outfits.contains_key(&Uncased::from_borrowed(name))
     }
 }
 
