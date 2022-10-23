@@ -148,8 +148,8 @@ namespace OutfitSystem {
                                             RE::StaticFunctionTag*) {
         LogExit exitPrint("RefreshArmorForAllConfiguredActors"sv);
         auto boxed = create();
-        RE::PlayerCharacter* charPtr = boxed->bbbb();
-        LOG(info, "Got pointer from Rust: {:}. Expected {:}.", (void*)charPtr, (void*)RE::PlayerCharacter::GetSingleton());
+        boxed->delete_outfit("asdf");
+//        LOG(info, "Got pointer from Rust: {:}. Expected {:}.", (void*)charPtr, (void*)RE::PlayerCharacter::GetSingleton());
         auto& service = ArmorAddonOverrideService::GetInstance();
         auto actors = service.listActors();
         for (auto& actorRef : actors) {

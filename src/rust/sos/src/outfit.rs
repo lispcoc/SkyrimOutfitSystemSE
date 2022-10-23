@@ -1,7 +1,10 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::ptr::null_mut;
+use cxx::t;
 use uncased::{Uncased, UncasedStr};
 use commonlibsse::{TESObjectARMO};
 use crate::{UncasedString};
+use crate::ffi::{WeatherFlags, LocationType};
 
 pub struct Outfit {
     pub name: UncasedString,
@@ -22,7 +25,7 @@ impl Outfit {
 }
 
 pub struct ActorAssignments {
-    pub current: UncasedString,
+    pub current: Option<UncasedString>,
     pub location_based: BTreeMap<LocationType, UncasedString>
 }
 
@@ -35,42 +38,124 @@ pub struct OutfitService {
 }
 
 impl OutfitService {
-    fn get_outfit<'a, 'b>(&'a self, name: &'b str) -> Option<&'a Outfit> {
+    pub fn new() -> Self {
+        OutfitService {
+            enabled: false,
+            outfits: Default::default(),
+            actor_assignments: Default::default(),
+            location_switching_enabled: false
+        }
+    }
+    pub fn get_outfit_ptr(&mut self, name: &str) -> *mut Outfit {
+        if let Some(reference) = self.get_mut_outfit(name) {
+            reference
+        } else {
+            null_mut()
+        }
+    }
+    pub fn get_outfit(&self, name: &str) -> Option<&Outfit> {
         let value = self.outfits.get(UncasedStr::new(name));
         value
     }
-    fn get_mut_outfit(&mut self, name: &str) -> Option<&mut Outfit> {
+    pub fn get_mut_outfit(&mut self, name: &str) -> Option<&mut Outfit> {
         self.outfits.get_mut(UncasedStr::new(name))
     }
-    fn get_or_create_outfit(&mut self, name: &str) -> &Outfit {
+    pub fn get_or_create_outfit(&mut self, name: &str) -> &Outfit {
         self.outfits.entry(Uncased::from(name).into_owned()).or_insert_with(|| Outfit::new(name))
     }
-    fn get_or_create_mut_outfit(&mut self, name: &str) -> &mut Outfit {
+    pub fn get_or_create_mut_outfit_ptr(&mut self, name: &str) -> *mut Outfit {
+        self.get_or_create_mut_outfit(name)
+    }
+    pub fn get_or_create_mut_outfit(&mut self, name: &str) -> &mut Outfit {
         self.outfits.entry(Uncased::from(name).into_owned()).or_insert_with(|| Outfit::new(name))
     }
-    fn add_outfit(&mut self, name: &str) -> &Outfit {
+    pub fn add_outfit(&mut self, name: &str) -> &Outfit {
         if !self.outfits.contains_key(UncasedStr::new(name)) {
             self.outfits.insert(Uncased::from(name).into_owned(), Outfit::new(name));
         }
         self.outfits.get(UncasedStr::new(name)).unwrap()
     }
-    fn add_mut_outfit(&mut self, name: &str) -> &mut Outfit {
+    pub fn add_mut_outfit(&mut self, name: &str) -> &mut Outfit {
         if !self.outfits.contains_key(UncasedStr::new(name)) {
             self.outfits.insert(Uncased::from(name).into_owned(), Outfit::new(name));
         }
         self.outfits.get_mut(UncasedStr::new(name)).unwrap()
     }
-    fn current_outfit(&self, target: RawActorHandle) -> Option<&Outfit> {
-        let outfit_name = self.actor_assignments.get(&target).and_then(|assn| Some(assn.current.clone()))?;
+    pub fn current_outfit(&self, target: RawActorHandle) -> Option<&Outfit> {
+        let outfit_name = self.actor_assignments.get(&target).and_then(|assn| assn.current.clone())?;
         self.get_outfit(outfit_name.as_str())
     }
-    fn current_mut_outfit(&mut self, target: RawActorHandle) -> Option<&mut Outfit> {
-        let outfit_name = self.actor_assignments.get(&target).and_then(|assn| Some(assn.current.clone()))?;
+    pub fn current_mut_outfit(&mut self, target: RawActorHandle) -> Option<&mut Outfit> {
+        let outfit_name = self.actor_assignments.get(&target).and_then(|assn| assn.current.clone())?;
         self.get_mut_outfit(outfit_name.as_str())
     }
-    fn has_outfit(&self, name: &str) -> bool {
+    pub fn has_outfit(&self, name: &str) -> bool {
         self.outfits.contains_key(&Uncased::from_borrowed(name))
     }
+    pub fn delete_outfit(&mut self, name: &str) {
+        self.outfits.remove(UncasedStr::new(name));
+    }
+    pub fn set_outfit(&mut self, mut name: Option<&str>, target: RawActorHandle) {
+        if name.map_or(false, |name| name.is_empty()) {
+            name = None;
+        }
+        self.actor_assignments.get_mut(&target).map(|assn| {
+            assn.current = name.map(|name| Uncased::from(name).into_owned());
+        });
+    }
+    pub fn add_actor(&mut self, target: RawActorHandle) {
+        self.actor_assignments.entry(target).or_insert_with(|| ActorAssignments {
+            current: None,
+            location_based: Default::default()
+        });
+    }
+    pub fn remove_actor(&mut self, target: RawActorHandle) {
+        self.actor_assignments.remove(&target);
+    }
+    pub fn list_actors(&self) -> Vec<RawActorHandle> {
+        self.actor_assignments.keys().cloned().collect()
+    }
+    pub fn set_location_based_switching_enabled(&mut self, setting: bool) {
+        self.location_switching_enabled = setting
+    }
+    pub fn set_outfit_using_location(&mut self, location: LocationType, target: RawActorHandle) {
+        self
+            .actor_assignments
+            .get_mut(&target)
+            .and_then(|assn| assn.location_based.get(&location))
+            .map(|sel| sel.to_string())
+            .map(|selected| {
+                self.set_outfit(Some(selected.as_str()), target)
+            });
+    }
+    pub fn set_location_outfit(&mut self, location: LocationType, target: RawActorHandle, name: &str) {
+        if name.is_empty() {
+            self.unset_location_outfit(location, target);
+            return
+        }
+        self
+            .actor_assignments
+            .get_mut(&target)
+            .map(|assn| assn.location_based.insert(location, Uncased::from(name).into_owned()));
+    }
+    pub fn unset_location_outfit(&mut self, location: LocationType, target: RawActorHandle) {
+        self
+            .actor_assignments
+            .get_mut(&target)
+            .map(|assn| assn.location_based.remove(&location));
+    }
+    pub fn get_location_outfit_name(&self, location: LocationType, target: RawActorHandle) -> Option<String> {
+        self
+            .actor_assignments
+            .get(&target)
+            .and_then(|assn| assn.location_based.get(&location))
+            .map(|name| name.to_string())
+    }
+    // pub fn check_location_type(keywords: Vec<String>, weather_flags: WeatherFlags, target: RawActorHandle) -> Option<LocationType> {
+    //     let kw_map: HashSet<_> = keywords.into_iter().collect();
+    //
+    // }
+
 }
 
 
@@ -79,6 +164,7 @@ pub mod slot_policy {
     use commonlibsse::BIPED_OBJECT;
 
     #[repr(u8)]
+    #[derive(Ord, PartialOrd, Eq, PartialEq)]
     pub enum Policy {
         XXXX,
         XXXE,
@@ -111,22 +197,4 @@ pub mod slot_policy {
     }
 }
 
-#[repr(u32)]
-pub enum LocationType {
-    World = 0,
-    Town = 1,
-    Dungeon = 2,
-    City = 9,
-
-    WorldSnowy = 3,
-    TownSnowy = 4,
-    DungeonSnowy = 5,
-    CitySnowy = 10,
-
-    WorldRainy = 6,
-    TownRainy = 7,
-    DungeonRainy = 8,
-    CityRainy = 11
-}
-
-type RawActorHandle = u32;
+pub type RawActorHandle = u32;

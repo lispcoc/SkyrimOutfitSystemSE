@@ -6,7 +6,6 @@ fn main() {
     let mut cxx = cxx_build::bridge("src/lib.rs");
 
     cxx
-        .static_crt(true)
         .no_default_flags(true);
 
     cxx
