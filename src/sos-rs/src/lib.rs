@@ -20,3 +20,4 @@ pub extern fn bbbb() -> *mut c_void {
 }
 
 pub struct Armor;
+pub struct Actor;
