@@ -1,5 +1,10 @@
+mod outfit;
+mod protos;
+
 use std::ffi::c_void;
 use cpp::cpp;
+use crate::protos::outfit as ProtoOutfit;
+
 cpp!{{
     #include "RE/Skyrim.h"
 }}
@@ -14,3 +19,4 @@ pub extern fn bbbb() -> *mut c_void {
     ptr
 }
 
+pub struct Armor;
