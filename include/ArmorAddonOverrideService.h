@@ -86,7 +86,6 @@ struct Outfit {
     SlotPolicy::Mode m_blanketSlotPolicy;
 
     bool conflictsWith(RE::TESObjectARMO*) const;
-    bool hasShield() const;
     std::unordered_set<RE::TESObjectARMO*> computeDisplaySet(const std::unordered_set<RE::TESObjectARMO*>& equippedSet);
 
     void setSlotPolicy(RE::BIPED_OBJECT slot, std::optional<SlotPolicy::Mode> policy);

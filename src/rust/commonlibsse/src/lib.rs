@@ -100,3 +100,18 @@ pub mod ffi {
         pub fn PlayerCharacter_GetSingleton() -> *mut PlayerCharacter;
     }
 }
+
+impl BIPED_OBJECT {
+    pub const MAX_IN_GAME: usize = BIPED_OBJECT::kHandToHandMelee.repr as usize;
+}
+
+impl TESObjectARMO {
+    pub fn assign_using_mask(&mut self, dest: &mut [*mut TESObjectARMO; BIPED_OBJECT::MAX_IN_GAME]) {
+        let mask = self.GetSlotMask().repr;
+        for slot in 0..BIPED_OBJECT::MAX_IN_GAME {
+            if mask & (1 << slot) != 0 {
+                dest[slot] = self;
+            }
+        }
+    }
+}

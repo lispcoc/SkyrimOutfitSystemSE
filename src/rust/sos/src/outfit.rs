@@ -1,9 +1,10 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ptr::null_mut;
 use uncased::{Uncased, UncasedStr};
-use commonlibsse::{TESObjectARMO};
-use crate::{UncasedString};
-use crate::ffi::{WeatherFlags, LocationType};
+use commonlibsse::{BIPED_OBJECT, TESObjectARMO};
+use crate::{PolicySelection, UncasedString};
+use crate::ffi::{WeatherFlags, LocationType, Policy};
+use crate::outfit::slot_policy::Policies;
 
 pub struct Outfit {
     pub name: UncasedString,
@@ -20,6 +21,72 @@ impl Outfit {
             favorite: false,
             slot_policies: slot_policy::Policies::standard()
         }
+    }
+
+    unsafe fn conflicts_with(&self, armor: *mut TESObjectARMO) -> bool {
+        if armor.is_null() { return false }
+        let mask = (*armor).GetSlotMask();
+        for armor in &self.armors {
+            if !armor.is_null() && (mask.repr & (**armor).GetSlotMask().repr) != 0 {
+                return true;
+            }
+        }
+        false
+    }
+
+    unsafe fn compute_display_set(&self, equipped: Vec<*mut TESObjectARMO>) -> Vec<*mut TESObjectARMO> {
+        let equipped = {
+            let mut slots = [null_mut(); BIPED_OBJECT::MAX_IN_GAME];
+            for armor in equipped {
+                (*armor).assign_using_mask(&mut slots);
+            }
+            slots
+        };
+        let outfit = {
+            let mut slots = [null_mut(); BIPED_OBJECT::MAX_IN_GAME];
+            for armor in &self.armors {
+                (**armor).assign_using_mask(&mut slots);
+            }
+            slots
+        };
+        let mut mask = 0;
+        let mut results = HashSet::new();
+        for slot in 0..BIPED_OBJECT::MAX_IN_GAME {
+            if mask & (1 << slot) != 0 { continue }
+            let policy = self.slot_policies
+                .slot_policies.get(&BIPED_OBJECT { repr: slot as u32 })
+                .unwrap_or_else(|| &self.slot_policies.blanket_slot_policy)
+                .clone();
+            let selection = policy.select(!equipped[slot].is_null(), !outfit[slot].is_null());
+            let selected_armor = match selection {
+                None => None,
+                Some(PolicySelection::Equipped) => Some(equipped[slot]),
+                Some(PolicySelection::Outfit) => Some(outfit[slot]),
+            };
+            if let Some(selected_armor) = selected_armor {
+                mask |= (*selected_armor).GetSlotMask().repr;
+                results.insert(selected_armor);
+            } else {
+                continue
+            }
+        }
+        results.into_iter().collect()
+    }
+
+    fn set_slot_policy(&mut self, slot: BIPED_OBJECT, policy: Option<Policy>) {
+        if let Some(policy) = policy {
+            self.slot_policies.slot_policies.insert(slot, policy);
+        } else {
+            self.slot_policies.slot_policies.remove(&slot);
+        };
+    }
+
+    fn set_blanket_slot_policy(&mut self, policy: Policy) {
+        self.slot_policies.blanket_slot_policy = policy;
+    }
+
+    fn reset_to_default_slot_policy(&mut self) {
+        self.slot_policies = Policies::standard();
     }
 
     fn save(&self) -> protos::outfit::Outfit {
@@ -239,7 +306,6 @@ impl OutfitService {
         Some(out.write_to_bytes().ok()?)
     }
 }
-
 
 pub mod slot_policy {
     use std::collections::BTreeMap;

@@ -51,17 +51,6 @@ bool Outfit::conflictsWith(RE::TESObjectARMO* test) const {
     }
     return false;
 }
-bool Outfit::hasShield() const {
-    auto& list = m_armors;
-    for (auto it = list.cbegin(); it != list.cend(); ++it) {
-        RE::TESObjectARMO* armor = *it;
-        if (armor) {
-            if ((armor->formFlags & RE::TESObjectARMO::RecordFlags::kShield) != 0)
-                return true;
-        }
-    }
-    return false;
-};
 
 void Outfit::setDefaultSlotPolicy() {
     m_slotPolicies.clear();
