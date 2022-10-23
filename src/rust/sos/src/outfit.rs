@@ -1,6 +1,5 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ptr::null_mut;
-use cxx::t;
 use uncased::{Uncased, UncasedStr};
 use commonlibsse::{TESObjectARMO};
 use crate::{UncasedString};
@@ -151,11 +150,53 @@ impl OutfitService {
             .and_then(|assn| assn.location_based.get(&location))
             .map(|name| name.to_string())
     }
-    // pub fn check_location_type(keywords: Vec<String>, weather_flags: WeatherFlags, target: RawActorHandle) -> Option<LocationType> {
-    //     let kw_map: HashSet<_> = keywords.into_iter().collect();
-    //
-    // }
+    pub fn check_location_type(&self, keywords: Vec<String>, weather_flags: WeatherFlags, target: RawActorHandle) -> Option<LocationType> {
+        let kw_map: HashSet<_> = keywords.into_iter().collect();
+        let actor_assn = &self.actor_assignments.get(&target)?.location_based;
+        macro_rules! check_location {
+            ($variant:expr, $check_code:expr) => {
+                if actor_assn.contains_key(&$variant) && ($check_code) {
+                    return Some($variant)
+                };
+            }
+        }
 
+        check_location!(LocationType::CitySnowy, kw_map.contains("LocTypeCity") && weather_flags.snowy);
+        check_location!(LocationType::CityRainy, kw_map.contains("LocTypeCity") && weather_flags.rainy);
+        check_location!(LocationType::City, kw_map.contains("LocTypeCity"));
+
+        // A city is considered a town, so it will use the town outfit unless a city one is selected.
+        check_location!(LocationType::TownSnowy, kw_map.contains("LocTypeTown") && kw_map.contains("LocTypeCity") && weather_flags.snowy);
+        check_location!(LocationType::TownRainy, kw_map.contains("LocTypeTown") && kw_map.contains("LocTypeCity") && weather_flags.rainy);
+        check_location!(LocationType::Town, kw_map.contains("LocTypeTown") && kw_map.contains("LocTypeCity"));
+
+        check_location!(LocationType::DungeonSnowy, kw_map.contains("LocTypeDungeon") && weather_flags.snowy);
+        check_location!(LocationType::DungeonRainy, kw_map.contains("LocTypeDungeon") && weather_flags.rainy);
+        check_location!(LocationType::Dungeon, kw_map.contains("LocTypeDungeon"));
+
+        check_location!(LocationType::WorldSnowy, weather_flags.snowy);
+        check_location!(LocationType::WorldRainy, weather_flags.rainy);
+        check_location!(LocationType::World, true);
+
+        None
+    }
+
+    pub fn should_override(&self, target: RawActorHandle) -> bool {
+        if !self.enabled || self.actor_assignments.get(&target).and_then(|assn| assn.current.as_ref()) == None {
+            false
+        } else {
+            true
+        }
+    }
+    pub fn get_outfit_names(&self, favorites_only: bool) -> Vec<String> {
+        self.outfits.values()
+            .filter(|outfit| !favorites_only || outfit.favorite)
+            .map(|outfit| outfit.name.to_string())
+            .collect()
+    }
+    pub fn set_enabled(&mut self, option: bool) {
+        self.enabled = option
+    }
 }
 
 

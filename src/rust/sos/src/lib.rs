@@ -5,7 +5,6 @@ mod outfit;
 use uncased::{Uncased};
 #[allow(unused_imports)]
 use protos::outfit as ProtoOutfit;
-use commonlibsse::PlayerCharacter;
 use crate::outfit::{OutfitService, Outfit};
 
 type UncasedString = Uncased<'static>;
