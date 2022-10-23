@@ -68,6 +68,10 @@ impl OutfitService {
     fn has_outfit(&self, name: &str) -> bool {
         self.outfits.contains_key(name)
     }
+    unsafe fn x(&mut self) {
+        let first = self.outfits.iter().nth(0).unwrap().1.armors.iter().nth(0).unwrap().clone();
+        let mut a = (*first).get_slot_mask();
+    }
 }
 
 #[repr(u32)]

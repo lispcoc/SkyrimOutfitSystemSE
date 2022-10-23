@@ -1,4 +1,5 @@
 use cpp::cpp;
+use std::pin::Pin;
 
 cpp!{{
     #include "RE/Skyrim.h"
@@ -25,9 +26,9 @@ pub struct Armor {
 }
 
 impl Armor {
-    pub fn get_slot_mask(&mut self) -> u32 {
+    pub fn get_slot_mask(&self) -> u32 {
         unsafe {
-            cpp!([self as "RE::TESObjectARMO*"] -> u32 as "std::uint32_t" {
+            cpp!([self as "RE::TESObjectARMO const *"] -> u32 as "std::uint32_t" {
                 return static_cast<std::uint32_t>(self->GetSlotMask());
             })
         }
