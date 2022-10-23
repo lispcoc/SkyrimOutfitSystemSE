@@ -9,9 +9,11 @@ edition = "2021"
 commonlibsse = { path = "../commonlibsse" }
 protos = { path = "../protos" }
 uncased = "0.9.7"
+cxx = "1.0"
 
 [build-dependencies]
 cbindgen = "0.20.0"
+cxx-build = "1.0"
 
 [lib]
 crate-type = ["staticlib"]
