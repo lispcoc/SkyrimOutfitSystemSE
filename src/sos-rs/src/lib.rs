@@ -19,5 +19,14 @@ pub extern fn bbbb() -> *mut c_void {
     ptr
 }
 
-pub struct Armor;
-pub struct Actor;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Actor {
+    _unused: [u8; 0],
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Armor {
+    _unused: [u8; 0],
+}
