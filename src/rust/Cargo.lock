@@ -102,6 +102,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "commonlibsse"
+version = "0.1.0"
+dependencies = [
+ "cpp",
+ "cpp_build",
+]
+
+[[package]]
 name = "cpp"
 version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -309,6 +317,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "protos"
+version = "0.1.0"
+dependencies = [
+ "protobuf",
+ "protobuf-codegen",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -390,14 +406,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "sos-rs"
+name = "sos"
 version = "0.1.0"
 dependencies = [
  "cbindgen",
- "cpp",
- "cpp_build",
- "protobuf",
- "protobuf-codegen",
+ "commonlibsse",
+ "protos",
 ]
 
 [[package]]

@@ -3,7 +3,6 @@ fn main() {
     let includes = std::env::var("INCLUDE_PATHS").expect("No value for INCLUDE_PATHS");
     let defines = std::env::var("DEFINITIONS").expect("No value for DEFINITIONS");
     let options = std::env::var("OPTIONS").expect("No value for OPTIONS");
-    let header_out = std::env::var("HEADER_GEN").expect("No value for HEADER_GEN");
 
     let mut config = cpp_build::Config::new();
 
@@ -26,22 +25,4 @@ fn main() {
     config
         .flag(if profile == "debug" { "-MTd" } else { "-MT" })
         .build("src/lib.rs");
-
-    let crate_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-
-    cbindgen::Builder::new()
-        .with_crate(crate_dir)
-        .generate()
-        .expect("Unable to generate bindings")
-        .write_to_file(header_out + "bindings.h.tmp");
-
-    protobuf_codegen::Codegen::new()
-        .pure()
-        // All inputs and imports from the inputs must reside in `includes` directories.
-        .includes(&["../protos"])
-        // Inputs must reside in some of include paths.
-        .input("../protos/outfit.proto")
-        // Specify output directory relative to Cargo output directory.
-        .cargo_out_dir("protos")
-        .run_from_script();
 }

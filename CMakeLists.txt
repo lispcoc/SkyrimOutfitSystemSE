@@ -88,20 +88,20 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Corrosion)
 
-corrosion_import_crate(MANIFEST_PATH src/sos-rs/Cargo.toml)
+corrosion_import_crate(MANIFEST_PATH src/rust/Cargo.toml)
 
 get_target_property(RE_INCLUDE CommonLibSSE::CommonLibSSE INTERFACE_INCLUDE_DIRECTORIES)
 get_target_property(RE_OPTIONS CommonLibSSE::CommonLibSSE INTERFACE_COMPILE_OPTIONS)
 get_target_property(RE_DEFINITIONS CommonLibSSE::CommonLibSSE INTERFACE_COMPILE_DEFINITIONS)
 set(RUST_HEADER_PATH ${CMAKE_CURRENT_BINARY_DIR}/rust-include/)
-corrosion_set_env_vars(sos-rs INCLUDE_PATHS="${RE_INCLUDE}" OPTIONS="${RE_OPTIONS}" DEFINITIONS="${RE_DEFINITIONS}" HEADER_GEN="${RUST_HEADER_PATH}")
+corrosion_set_env_vars(sos INCLUDE_PATHS="${RE_INCLUDE}" OPTIONS="${RE_OPTIONS}" DEFINITIONS="${RE_DEFINITIONS}" HEADER_GEN="${RUST_HEADER_PATH}")
 
-add_library(sos-rs-proxy STATIC ${RUST_HEADER_PATH}/bindings.h src/sos-rs/dummy.cpp)
-add_custom_command(OUTPUT ${RUST_HEADER_PATH}/bindings.h COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RUST_HEADER_PATH}/bindings.h.tmp ${RUST_HEADER_PATH}/bindings.h DEPENDS sos-rs-static)
-target_link_libraries(sos-rs-proxy PUBLIC sos-rs-static)
-target_include_directories(sos-rs-proxy INTERFACE ${RUST_HEADER_PATH})
+add_library(sos-proxy STATIC ${RUST_HEADER_PATH}/bindings.h src/rust/dummy.cpp)
+add_custom_command(OUTPUT ${RUST_HEADER_PATH}/bindings.h COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RUST_HEADER_PATH}/bindings.h.tmp ${RUST_HEADER_PATH}/bindings.h DEPENDS sos-static)
+target_link_libraries(sos-proxy PUBLIC sos-static)
+target_include_directories(sos-proxy INTERFACE ${RUST_HEADER_PATH})
 
-get_target_property(OUTPUT_THING sos-rs-static LINK_INTERFACE_LIBRARIES)
+get_target_property(OUTPUT_THING sos-static LINK_INTERFACE_LIBRARIES)
 message(${OUTPUT_THING})
 
 ################################################################################
@@ -211,7 +211,7 @@ target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     ${INIH_LIBRARY}
     ProtocolBuffers
     xbyak::xbyak
-    sos-rs-proxy
+    sos-proxy
 )
 
 target_include_directories(SkyrimOutfitSystemSE PRIVATE

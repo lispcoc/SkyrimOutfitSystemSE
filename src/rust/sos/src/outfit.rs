@@ -1,5 +1,5 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
-use crate::{Actor, Armor};
+use commonlibsse::{Actor, Armor};
 
 pub struct Outfit {
     pub name: String,
