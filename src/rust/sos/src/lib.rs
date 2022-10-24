@@ -59,8 +59,6 @@ mod ffi {
     #[namespace = "RE"]
     extern "C++" {
         include!("sos/include/customize.h");
-        type PlayerCharacter = commonlibsse::ffi::PlayerCharacter;
-
     }
     extern "Rust" {
         type OutfitService;
@@ -114,6 +112,8 @@ impl ffi::Policy {
             _ => None
         }
     }
+
+    pub const MAX: u8 = (Self::XEOO.repr + 1);
 }
 
 pub enum PolicySelection {

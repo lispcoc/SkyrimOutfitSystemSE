@@ -92,25 +92,28 @@ pub mod ffi {
     unsafe extern "C++" {
         include!("commonlibsse/include/customize.h");
         pub type TESObjectARMO;
+        pub fn ResolveARMOFormID(id: u32) -> *mut TESObjectARMO;
         pub fn GetSlotMask(self: &TESObjectARMO) -> BipedObjectSlot;
         pub fn GetFormID(self: &TESObjectARMO) -> u32;
         pub type BipedObjectSlot;
         pub type BIPED_OBJECT;
-        pub type PlayerCharacter;
-        pub fn PlayerCharacter_GetSingleton() -> *mut PlayerCharacter;
+        #[namespace = "SKSE"]
+        pub type SerializationInterface;
+        pub fn ResolveFormID(self: &SerializationInterface, old_form: u32, new_form: &mut u32) -> bool;
+        pub fn ResolveHandle(self: &SerializationInterface, old_handle: u64, new_handle: &mut u64) -> bool;
     }
 }
 
 impl BIPED_OBJECT {
-    pub const MAX_IN_GAME: usize = BIPED_OBJECT::kHandToHandMelee.repr as usize;
+    pub const MAX_IN_GAME: u32 = BIPED_OBJECT::kHandToHandMelee.repr;
 }
 
 impl TESObjectARMO {
-    pub fn assign_using_mask(&mut self, dest: &mut [*mut TESObjectARMO; BIPED_OBJECT::MAX_IN_GAME]) {
+    pub fn assign_using_mask(&mut self, dest: &mut [*mut TESObjectARMO; BIPED_OBJECT::MAX_IN_GAME as usize]) {
         let mask = self.GetSlotMask().repr;
         for slot in 0..BIPED_OBJECT::MAX_IN_GAME {
             if mask & (1 << slot) != 0 {
-                dest[slot] = self;
+                dest[slot as usize] = self;
             }
         }
     }

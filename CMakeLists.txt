@@ -133,7 +133,8 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/hooking/Patches.cpp
     src/Utility.cpp
     include/RE/REAugments.h
-    src/RE/REAugments.cpp)
+    src/RE/REAugments.cpp
+    src/RustSymbols.cpp)
 
 set(ROOT_NAMESPACE SkyrimOutfitSystemSE)
 

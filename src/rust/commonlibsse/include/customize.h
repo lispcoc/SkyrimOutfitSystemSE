@@ -6,11 +6,11 @@
 #define SKYRIMOUTFITSYSTEMSE_SRC_RUST_COMMONLIBSSE_SRC_CUSTOMIZE_H
 
 #include <RE/Skyrim.h>
+#include <SKSE/SKSE.h>
+
 namespace RE {
     using BipedObjectSlot = BIPED_MODEL::BipedObjectSlot;
-    PlayerCharacter* PlayerCharacter_GetSingleton() {
-        return RE::PlayerCharacter::GetSingleton();
-    }
+    TESObjectARMO* ResolveARMOFormID(FormID id);
 }
 
 #endif //SKYRIMOUTFITSYSTEMSE_SRC_RUST_COMMONLIBSSE_SRC_CUSTOMIZE_H

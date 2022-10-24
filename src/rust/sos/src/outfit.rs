@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ptr::null_mut;
 use uncased::{Uncased, UncasedStr};
-use commonlibsse::{BIPED_OBJECT, TESObjectARMO};
+use commonlibsse::{BIPED_OBJECT, SerializationInterface, TESObjectARMO, ResolveARMOFormID};
 use crate::{PolicySelection, UncasedString};
 use crate::ffi::{WeatherFlags, LocationType, Policy};
 use crate::outfit::slot_policy::Policies;
@@ -23,6 +23,40 @@ impl Outfit {
         }
     }
 
+    fn from_proto_data(input: &protos::outfit::Outfit, infc: &SerializationInterface) -> Self {
+        let mut outfit = Outfit {
+            name: Uncased::new(input.name.as_str()).into_owned(),
+            armors: Default::default(),
+            favorite: input.is_favorite,
+            slot_policies: Policies {
+                slot_policies: Default::default(),
+                blanket_slot_policy: Policy::XXXX
+            }
+        };
+        for armor in &input.armors {
+            let mut form_id = 0;
+            if (*infc).ResolveFormID(*armor, &mut form_id) {
+                let armor = ResolveARMOFormID(form_id);
+                if !armor.is_null() {
+                    outfit.armors.insert(armor);
+                }
+            }
+        }
+        for (slot, policy) in &input.slot_policies {
+            let policy = *policy as u8;
+            if *slot >= BIPED_OBJECT::MAX_IN_GAME || policy >= Policy::MAX {
+                continue
+            }
+            let slot = BIPED_OBJECT { repr: *slot };
+            let policy = Policy { repr: policy };
+            outfit.slot_policies.slot_policies.insert(slot, policy);
+        }
+        if (input.slot_policy as u8) < Policy::MAX {
+            outfit.slot_policies.blanket_slot_policy = Policy { repr: input.slot_policy as u8 };
+        }
+        outfit
+    }
+
     unsafe fn conflicts_with(&self, armor: *mut TESObjectARMO) -> bool {
         if armor.is_null() { return false }
         let mask = (*armor).GetSlotMask();
@@ -36,14 +70,14 @@ impl Outfit {
 
     unsafe fn compute_display_set(&self, equipped: Vec<*mut TESObjectARMO>) -> Vec<*mut TESObjectARMO> {
         let equipped = {
-            let mut slots = [null_mut(); BIPED_OBJECT::MAX_IN_GAME];
+            let mut slots = [null_mut(); BIPED_OBJECT::MAX_IN_GAME as usize];
             for armor in equipped {
                 (*armor).assign_using_mask(&mut slots);
             }
             slots
         };
         let outfit = {
-            let mut slots = [null_mut(); BIPED_OBJECT::MAX_IN_GAME];
+            let mut slots = [null_mut(); BIPED_OBJECT::MAX_IN_GAME as usize];
             for armor in &self.armors {
                 (**armor).assign_using_mask(&mut slots);
             }
@@ -57,11 +91,13 @@ impl Outfit {
                 .slot_policies.get(&BIPED_OBJECT { repr: slot as u32 })
                 .unwrap_or_else(|| &self.slot_policies.blanket_slot_policy)
                 .clone();
-            let selection = policy.select(!equipped[slot].is_null(), !outfit[slot].is_null());
+            let selection = policy.select(
+                !equipped[slot as usize].is_null(),
+                !outfit[slot as usize].is_null());
             let selected_armor = match selection {
                 None => None,
-                Some(PolicySelection::Equipped) => Some(equipped[slot]),
-                Some(PolicySelection::Outfit) => Some(outfit[slot]),
+                Some(PolicySelection::Equipped) => Some(equipped[slot as usize]),
+                Some(PolicySelection::Outfit) => Some(outfit[slot as usize]),
             };
             if let Some(selected_armor) = selected_armor {
                 mask |= (*selected_armor).GetSlotMask().repr;
@@ -129,6 +165,47 @@ impl OutfitService {
             location_switching_enabled: false
         }
     }
+
+    pub fn from_proto_data(data: Vec<u8>, infc: &SerializationInterface) -> Option<Self> {
+        use protobuf::Message;
+        let mut new = OutfitService::new();
+        let input = protos::outfit::OutfitSystem::parse_from_bytes(&data).ok()?;
+        new.enabled = input.enabled;
+        let mut actor_assignments = BTreeMap::new();
+        for (actor_handle, assignments) in &input.actor_outfit_assignments {
+            let mut new_handle = *actor_handle;
+            if !(*infc).ResolveHandle(*actor_handle, &mut new_handle) {
+                continue
+            }
+            let mut assignments_out = ActorAssignments {
+                current: None,
+                location_based: Default::default()
+            };
+            assignments_out.current = if assignments.current_outfit_name.is_empty() {
+                None
+            } else {
+                Some(Uncased::from(assignments.current_outfit_name.as_str()).into_owned())
+            };
+            for (location, assignment) in assignments.location_based_outfits.iter() {
+                let value = if assignment.is_empty() {
+                    continue
+                } else {
+                    Uncased::from(assignment.as_str()).into_owned()
+                };
+                let location = LocationType { repr: *location };
+                assignments_out.location_based.insert(location, value);
+            }
+            actor_assignments.insert(new_handle as u32, assignments_out);
+        }
+        new.actor_assignments = actor_assignments;
+        for outfit in input.outfits {
+            new.outfits.insert(Uncased::from(outfit.name.as_str()).into_owned(),
+                               Outfit::from_proto_data(&outfit, infc));
+        }
+        new.location_switching_enabled = input.location_based_auto_switch_enabled;
+        unimplemented!()
+    }
+
     pub fn get_outfit_ptr(&mut self, name: &str) -> *mut Outfit {
         if let Some(reference) = self.get_mut_outfit(name) {
             reference
