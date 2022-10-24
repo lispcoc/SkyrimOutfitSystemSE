@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "cobb/strings.h"
-#include "outfit.pb.h"
 
 #include "bindings.h"
 

@@ -5,6 +5,7 @@
 #include "hooking/Patches.hpp"
 
 #include <bit>
+#include <unordered_set>
 
 #include "ArmorAddonOverrideService.h"
 #include "Utility.h"

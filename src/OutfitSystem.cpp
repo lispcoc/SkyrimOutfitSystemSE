@@ -12,8 +12,6 @@
 
 #include <algorithm>
 
-#include "google/protobuf/util/json_util.h"
-
 #define ERROR_AND_RETURN_EXPR_IF(condition, message, valueExpr, registry, stackId)               \
     if (condition) {                                                                             \
         registry->TraceStack(message, stackId, RE::BSScript::IVirtualMachine::Severity::kError); \

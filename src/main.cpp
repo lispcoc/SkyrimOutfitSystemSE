@@ -199,11 +199,6 @@ void Callback_Serialization_Load(SKSE::SerializationInterface* intfc) {
                     buf.insert(buf.begin(), length, 0);
                     _assertRead(intfc->ReadRecordData(buf.data(), length) == length, "Failed to load protobuf.");
 
-                    // Parse data in protobuf.
-                    proto::OutfitSystem data;
-                    _assertRead(data.ParseFromArray(buf.data(), static_cast<int>(buf.size())),
-                                "Failed to parse protobuf.");
-
                     // Initialize the Rust AAOS
                     rust::Slice<const uint8_t> slice {buf.data(), buf.size()};
                     if (!service.replace_with_proto_data_ptr(slice, intfc)) {

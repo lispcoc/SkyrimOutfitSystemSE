@@ -16,12 +16,6 @@ if(NOT "${VCPKG_TARGET_TRIPLET}" STREQUAL "x64-windows-static")
 endif()
 
 ################################################################################
-# Find and configure Google Protocol Buffers
-################################################################################
-find_package(Protobuf REQUIRED)
-message(STATUS "Found protoc at ${Protobuf_PROTOC_EXECUTABLE}")
-
-################################################################################
 # Global configuration types
 ################################################################################
 set(CMAKE_CONFIGURATION_TYPES
@@ -52,28 +46,11 @@ set(SKSE_SUPPORT_XBYAK 1)
 find_package(CommonLibSSE REQUIRED)
 
 ################################################################################
-# Build Protocol Buffers
-################################################################################
-protobuf_generate_cpp(
-    PROTO_SRC PROTO_HDR
-    src/protos/outfit.proto
-)
-
-add_library(ProtocolBuffers STATIC ${PROTO_SRC} ${PROTO_HDR})
-
-target_link_libraries(ProtocolBuffers PUBLIC protobuf::libprotobuf)
-
-target_include_directories(ProtocolBuffers PUBLIC ${CMAKE_CURRENT_BINARY_DIR}) # The headers are generated right into the output dir.
-
-################################################################################
 # MSVC runtime library
 ################################################################################
 string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
         $<$<CONFIG:Debug>:MultiThreadedDebug>
         $<$<CONFIG:Release>:MultiThreaded>)
-
-# Also force it on Protobuf
-set_target_properties(ProtocolBuffers PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
 
 ################################################################################
 # Rust Stuff
@@ -216,7 +193,6 @@ target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     nonstd::span-lite
     spdlog::spdlog
     ${INIH_LIBRARY}
-    ProtocolBuffers
     xbyak::xbyak
     sos-proxy
 )
