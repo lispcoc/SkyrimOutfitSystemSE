@@ -166,6 +166,17 @@ impl OutfitService {
         }
     }
 
+    pub fn replace_with_proto(self: &mut OutfitService,
+                                         data: Vec<u8>,
+                                         intfc: &SerializationInterface) -> bool {
+        if let Some(proto_version) = Self::from_proto_data(data, intfc) {
+            *self = proto_version;
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn from_proto_data(data: Vec<u8>, infc: &SerializationInterface) -> Option<Self> {
         use protobuf::Message;
         let mut new = OutfitService::new();

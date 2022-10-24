@@ -147,9 +147,6 @@ namespace OutfitSystem {
                                             std::uint32_t stackId,
                                             RE::StaticFunctionTag*) {
         LogExit exitPrint("RefreshArmorForAllConfiguredActors"sv);
-        auto boxed = create();
-        boxed->delete_outfit("asdf");
-//        LOG(info, "Got pointer from Rust: {:}. Expected {:}.", (void*)charPtr, (void*)RE::PlayerCharacter::GetSingleton());
         auto& service = ArmorAddonOverrideService::GetInstance();
         auto actors = service.listActors();
         for (auto& actorRef : actors) {

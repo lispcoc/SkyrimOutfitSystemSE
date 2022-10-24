@@ -59,10 +59,13 @@ mod ffi {
     #[namespace = "RE"]
     extern "C++" {
         include!("sos/include/customize.h");
+        #[namespace = "SKSE"]
+        type SerializationInterface = commonlibsse::SerializationInterface;
     }
     extern "Rust" {
         type OutfitService;
-        fn create() -> Box<OutfitService>;
+        fn outfit_service_create() -> Box<OutfitService>;
+        fn replace_with_proto(self: &mut OutfitService, data: Vec<u8>, intfc: &SerializationInterface) -> bool;
         fn delete_outfit(self: &mut OutfitService, name: &str);
         fn get_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
         fn get_or_create_mut_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
@@ -75,9 +78,10 @@ mod ffi {
 fn make_rust_string() -> *mut String {
     Box::leak(Box::new(String::from("asdf")))
 }
-fn create() -> Box<OutfitService> {
+fn outfit_service_create() -> Box<OutfitService> {
     Box::new(OutfitService::new())
 }
+
 
 impl ffi::Policy {
     fn policy_str(&self) -> Option<&'static str> {
