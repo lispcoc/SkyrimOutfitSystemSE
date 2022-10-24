@@ -9,4 +9,8 @@ namespace SKSE {
     class SerializationInterface;
 }
 
+namespace RE {
+    class TESObjectARMO;
+}
+
 #endif //SKYRIMOUTFITSYSTEMSE_SRC_RUST_COMMONLIBSSE_SRC_CUSTOMIZE_H

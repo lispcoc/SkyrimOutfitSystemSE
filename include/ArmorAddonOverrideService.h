@@ -160,7 +160,6 @@ public:
     Outfit& getOrCreateOutfit(const char* name);// can throw bad_name
     //
     void addOutfit(const char* name);                                        // can throw bad_name
-    void addOutfit(const char* name, std::vector<RE::TESObjectARMO*> armors);// can throw bad_name
     Outfit& currentOutfit(RE::RawActorHandle target);
     bool hasOutfit(const char* name) const;
     void deleteOutfit(const char* name);

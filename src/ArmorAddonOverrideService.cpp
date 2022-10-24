@@ -212,16 +212,6 @@ void ArmorAddonOverrideService::addOutfit(const char* name) {
     auto created = outfits.emplace(name, name);
     if (created.second) created.first->second.setDefaultSlotPolicy();
 }
-void ArmorAddonOverrideService::addOutfit(const char* name, std::vector<RE::TESObjectARMO*> armors) {
-    _validateNameOrThrow(name);
-    auto& created = outfits.emplace(name, name).first->second;
-    for (auto it = armors.begin(); it != armors.end(); ++it) {
-        auto armor = *it;
-        if (armor)
-            created.m_armors.insert(armor);
-    }
-    created.setDefaultSlotPolicy();
-}
 Outfit& ArmorAddonOverrideService::currentOutfit(RE::RawActorHandle target) {
     if (!actorOutfitAssignments.contains(target)) return g_noOutfit;
     if (actorOutfitAssignments.at(target).currentOutfitName == g_noOutfitName) return g_noOutfit;

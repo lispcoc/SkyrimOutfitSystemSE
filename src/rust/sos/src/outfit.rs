@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ptr::null_mut;
 use uncased::{Uncased, UncasedStr};
 use commonlibsse::{BIPED_OBJECT, SerializationInterface, TESObjectARMO, ResolveARMOFormID};
-use crate::{PolicySelection, UncasedString};
-use crate::ffi::{WeatherFlags, LocationType, Policy};
+use crate::{PolicySelection, RawActorHandle, UncasedString};
+use crate::ffi::{WeatherFlags, LocationType, Policy, OptionalLocationType};
 use crate::outfit::slot_policy::Policies;
 
 pub struct Outfit {
@@ -246,17 +246,13 @@ impl OutfitService {
     pub fn get_or_create_mut_outfit(&mut self, name: &str) -> &mut Outfit {
         self.outfits.entry(Uncased::from(name).into_owned()).or_insert_with(|| Outfit::new(name))
     }
-    pub fn add_outfit(&mut self, name: &str) -> &Outfit {
+    pub fn add_outfit(&mut self, name: &str) {
         if !self.outfits.contains_key(UncasedStr::new(name)) {
             self.outfits.insert(Uncased::from(name).into_owned(), Outfit::new(name));
         }
-        self.outfits.get(UncasedStr::new(name)).unwrap()
     }
-    pub fn add_mut_outfit(&mut self, name: &str) -> &mut Outfit {
-        if !self.outfits.contains_key(UncasedStr::new(name)) {
-            self.outfits.insert(Uncased::from(name).into_owned(), Outfit::new(name));
-        }
-        self.outfits.get_mut(UncasedStr::new(name)).unwrap()
+    pub fn current_outfit_ptr(&mut self, target: u32) -> *mut Outfit {
+        if let Some(outfit) = self.current_mut_outfit(target) { outfit } else { null_mut() }
     }
     pub fn current_outfit(&self, target: RawActorHandle) -> Option<&Outfit> {
         let outfit_name = self.actor_assignments.get(&target).and_then(|assn| assn.current.clone())?;
@@ -271,6 +267,41 @@ impl OutfitService {
     }
     pub fn delete_outfit(&mut self, name: &str) {
         self.outfits.remove(UncasedStr::new(name));
+    }
+    pub fn set_favorite(&mut self, name: &str, favorite: bool) {
+        if let Some(outfit) = self.outfits.get_mut(UncasedStr::new(name)) {
+            outfit.favorite = favorite
+        }
+    }
+    pub fn modify_outfit(&mut self, name: &str, add: &[*mut TESObjectARMO], remove: &[*mut TESObjectARMO], create_if_needed: bool) {
+        let outfit = if create_if_needed {
+            Some(self.get_or_create_mut_outfit(name))
+        } else {
+            self.get_mut_outfit(name)
+        };
+        let outfit = if let Some(outfit) = outfit { outfit } else { return };
+        for added in add {
+            outfit.armors.insert(*added);
+        }
+        for removed in remove {
+            outfit.armors.remove(removed);
+        }
+    }
+    pub fn rename_outfit(&mut self, old_name: &str, new_name: &str) -> u32 {
+        // Returns 0 on success, 1 if outfit not found, 2 if name already used.
+        if self.outfits.contains_key(UncasedStr::new(new_name)) { return 1 };
+        let mut entry = if let Some(entry) = self.outfits.remove(UncasedStr::new(old_name)) { entry } else { return 1; };
+        entry.name = Uncased::from(new_name).into_owned();
+        self.outfits.insert(entry.name.clone(), entry);
+        return 0;
+    }
+    pub fn set_outfit_c(&mut self, name: &str, target: RawActorHandle) {
+        let name = if name.is_empty() {
+            None
+        } else {
+            Some(name)
+        };
+        self.set_outfit(name, target)
     }
     pub fn set_outfit(&mut self, mut name: Option<&str>, target: RawActorHandle) {
         if name.map_or(false, |name| name.is_empty()) {
@@ -321,12 +352,28 @@ impl OutfitService {
             .get_mut(&target)
             .map(|assn| assn.location_based.remove(&location));
     }
+    pub fn get_location_outfit_name_c(&self, location: LocationType, target: RawActorHandle) -> String {
+        self.get_location_outfit_name(location, target).unwrap_or_else(|| String::new())
+    }
     pub fn get_location_outfit_name(&self, location: LocationType, target: RawActorHandle) -> Option<String> {
         self
             .actor_assignments
             .get(&target)
             .and_then(|assn| assn.location_based.get(&location))
             .map(|name| name.to_string())
+    }
+    pub fn check_location_type_c(&self, keywords: Vec<String>, weather_flags: WeatherFlags, target: RawActorHandle) -> OptionalLocationType {
+        if let Some(result) = self.check_location_type(keywords, weather_flags, target) {
+            OptionalLocationType {
+                has_value: true,
+                value: result
+            }
+        } else {
+            OptionalLocationType {
+                has_value: false,
+                value: LocationType::World
+            }
+        }
     }
     pub fn check_location_type(&self, keywords: Vec<String>, weather_flags: WeatherFlags, target: RawActorHandle) -> Option<LocationType> {
         let kw_map: HashSet<_> = keywords.into_iter().collect();
@@ -376,6 +423,9 @@ impl OutfitService {
         self.enabled = option
     }
 
+    pub fn save_c(&self) -> Vec<u8> {
+        self.save().unwrap_or_else(|| Vec::new())
+    }
     pub fn save(&self) -> Option<Vec<u8>> {
         use protobuf::Message;
         let mut out = protos::outfit::OutfitSystem::default();
@@ -422,5 +472,3 @@ pub mod slot_policy {
         }
     }
 }
-
-pub type RawActorHandle = u32;
