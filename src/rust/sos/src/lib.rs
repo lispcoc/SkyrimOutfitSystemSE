@@ -57,8 +57,17 @@ mod ffi {
     }
 
     pub struct OptionalLocationType {
-        has_value: bool,
-        value: LocationType,
+        pub has_value: bool,
+        pub value: LocationType,
+    }
+
+    pub struct OptionalPolicy {
+        pub has_value: bool,
+        pub value: Policy,
+    }
+
+    pub struct TESObjectARMOPtr {
+        pub ptr: *mut TESObjectARMO
     }
 
     #[namespace = "RE"]
@@ -67,6 +76,7 @@ mod ffi {
         #[namespace = "SKSE"]
         type SerializationInterface = commonlibsse::SerializationInterface;
         type TESObjectARMO = commonlibsse::TESObjectARMO;
+        type BIPED_OBJECT = commonlibsse::BIPED_OBJECT;
     }
     extern "Rust" {
         type OutfitService;
@@ -79,7 +89,7 @@ mod ffi {
         fn has_outfit(self: &OutfitService, name: &str) -> bool;
         fn delete_outfit(self: &mut OutfitService, name: &str);
         fn set_favorite(self: &mut OutfitService, name: &str, favorite: bool);
-        fn modify_outfit(self: &mut OutfitService, name: &str, add: &[*mut TESObjectARMO], remove: &[*mut TESObjectARMO], create_if_needed: bool);
+        unsafe fn modify_outfit(self: &mut OutfitService, name: &str, add: &[*mut TESObjectARMO], remove: &[*mut TESObjectARMO], create_if_needed: bool);
         fn rename_outfit(self: &mut OutfitService, old_name: &str, new_name: &str) -> u32;
         fn set_outfit_c(self: &mut OutfitService, name: &str, target: u32);
         fn add_actor(self: &mut OutfitService, target: u32);
@@ -98,7 +108,14 @@ mod ffi {
 
         #[cxx_name = "RustOutfit"]
         type Outfit;
-        fn make_rust_string() -> *mut String;
+        unsafe fn conflicts_with(self: &Outfit, armor: *mut TESObjectARMO) -> bool;
+        unsafe fn compute_display_set_c(self: &Outfit, equipped: Vec<TESObjectARMOPtr>) -> Vec<TESObjectARMOPtr>;
+        fn set_slot_policy_c(self: &mut Outfit, slot: BIPED_OBJECT, policy: OptionalPolicy);
+        fn set_blanket_slot_policy(self: &mut Outfit, policy: Policy);
+        fn reset_to_default_slot_policy(self: &mut Outfit);
+        fn armors_c(self: &Outfit) -> Vec<TESObjectARMOPtr>;
+        unsafe fn insert_armor(self: &mut Outfit, armor: *mut TESObjectARMO);
+        fn policy_names_for_outfit(self: &Outfit) -> Vec<String>;
     }
 }
 fn make_rust_string() -> *mut String {
@@ -141,6 +158,10 @@ impl ffi::Policy {
             Some('O') => Some(PolicySelection::Outfit),
             _ => None
         }
+    }
+
+    fn translation_key(&self) -> String {
+        return "$SkyOutSys_Desc_EasyPolicyName_".to_owned() + self.policy_str().unwrap_or_else(|| "");
     }
 
     pub const MAX: u8 = (Self::XEOO.repr + 1);

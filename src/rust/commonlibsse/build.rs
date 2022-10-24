@@ -21,6 +21,7 @@ fn main() {
         let pair = define.split_once("=").expect("Failed to split at =");
         cxx.define(pair.0, Some(pair.1));
     }
+    cxx.define("RUST_DEFINES", None);
 
     cxx
         .compile("commonlibsse-rs");

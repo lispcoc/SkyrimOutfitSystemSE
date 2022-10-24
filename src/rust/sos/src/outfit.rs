@@ -3,7 +3,7 @@ use std::ptr::null_mut;
 use uncased::{Uncased, UncasedStr};
 use commonlibsse::{BIPED_OBJECT, SerializationInterface, TESObjectARMO, ResolveARMOFormID};
 use crate::{PolicySelection, RawActorHandle, UncasedString};
-use crate::ffi::{WeatherFlags, LocationType, Policy, OptionalLocationType};
+use crate::ffi::{WeatherFlags, LocationType, Policy, OptionalLocationType, TESObjectARMOPtr, OptionalPolicy};
 use crate::outfit::slot_policy::Policies;
 
 pub struct Outfit {
@@ -57,7 +57,14 @@ impl Outfit {
         outfit
     }
 
-    unsafe fn conflicts_with(&self, armor: *mut TESObjectARMO) -> bool {
+    pub fn armors_c(&self) -> Vec<TESObjectARMOPtr> {
+        self.armors.iter().cloned().map(|ptr| TESObjectARMOPtr { ptr }).collect()
+    }
+
+    pub unsafe fn insert_armor(&mut self, armor: *mut TESObjectARMO) {
+        self.armors.insert(armor);
+    }
+    pub unsafe fn conflicts_with(&self, armor: *mut TESObjectARMO) -> bool {
         if armor.is_null() { return false }
         let mask = (*armor).GetSlotMask();
         for armor in &self.armors {
@@ -67,8 +74,17 @@ impl Outfit {
         }
         false
     }
-
-    unsafe fn compute_display_set(&self, equipped: Vec<*mut TESObjectARMO>) -> Vec<*mut TESObjectARMO> {
+    pub unsafe fn compute_display_set_c(&self, equipped: Vec<TESObjectARMOPtr>) -> Vec<TESObjectARMOPtr> {
+        self.compute_display_set(
+            equipped
+                .into_iter()
+                .map(|b| b.ptr)
+                .collect())
+            .into_iter()
+            .map(|ptr| TESObjectARMOPtr { ptr })
+            .collect()
+    }
+    pub unsafe fn compute_display_set(&self, equipped: Vec<*mut TESObjectARMO>) -> Vec<*mut TESObjectARMO> {
         let equipped = {
             let mut slots = [null_mut(); BIPED_OBJECT::MAX_IN_GAME as usize];
             for armor in equipped {
@@ -109,7 +125,16 @@ impl Outfit {
         results.into_iter().collect()
     }
 
-    fn set_slot_policy(&mut self, slot: BIPED_OBJECT, policy: Option<Policy>) {
+    pub fn set_slot_policy_c(&mut self, slot: BIPED_OBJECT, policy: OptionalPolicy) {
+        let policy = if policy.has_value {
+            Some(policy.value)
+        } else {
+            None
+        };
+        self.set_slot_policy(slot, policy)
+    }
+
+    pub fn set_slot_policy(&mut self, slot: BIPED_OBJECT, policy: Option<Policy>) {
         if let Some(policy) = policy {
             self.slot_policies.slot_policies.insert(slot, policy);
         } else {
@@ -117,15 +142,27 @@ impl Outfit {
         };
     }
 
-    fn set_blanket_slot_policy(&mut self, policy: Policy) {
+    pub fn set_blanket_slot_policy(&mut self, policy: Policy) {
         self.slot_policies.blanket_slot_policy = policy;
     }
 
-    fn reset_to_default_slot_policy(&mut self) {
+    pub fn reset_to_default_slot_policy(&mut self) {
         self.slot_policies = Policies::standard();
     }
 
-    fn save(&self) -> protos::outfit::Outfit {
+    pub fn policy_names_for_outfit(&self) -> Vec<String> {
+        let mut out: Vec<_> = (0..BIPED_OBJECT::MAX_IN_GAME).map(|slot| {
+            if let Some(policy) = self.slot_policies.slot_policies.get(&BIPED_OBJECT { repr: slot }) {
+                policy.translation_key()
+            } else {
+                "$SkyOutSys_Desc_PolicyName_INHERIT".to_string()
+            }
+        }).collect();
+        out.push(self.slot_policies.blanket_slot_policy.translation_key());
+        out
+    }
+
+    pub fn save(&self) -> protos::outfit::Outfit {
         let mut out = protos::outfit::Outfit::default();
         out.name = self.name.to_string();
         for armor in &self.armors {
