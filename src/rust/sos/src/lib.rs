@@ -113,7 +113,7 @@ mod ffi {
         #[cxx_name = "RustOutfit"]
         type Outfit;
         unsafe fn conflicts_with(self: &Outfit, armor: *mut TESObjectARMO) -> bool;
-        unsafe fn compute_display_set_c(self: &Outfit, equipped: Vec<TESObjectARMOPtr>) -> Vec<TESObjectARMOPtr>;
+        unsafe fn compute_display_set_c(self: &Outfit, equipped: &[*mut TESObjectARMO]) -> Vec<TESObjectARMOPtr>;
         fn set_slot_policy_c(self: &mut Outfit, slot: BIPED_OBJECT, policy: OptionalPolicy);
         fn set_blanket_slot_policy(self: &mut Outfit, policy: Policy);
         fn reset_to_default_slot_policy(self: &mut Outfit);

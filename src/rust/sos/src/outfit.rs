@@ -92,21 +92,17 @@ impl Outfit {
         }
         false
     }
-    pub unsafe fn compute_display_set_c(&self, equipped: Vec<TESObjectARMOPtr>) -> Vec<TESObjectARMOPtr> {
-        self.compute_display_set(
-            equipped
-                .into_iter()
-                .map(|b| b.ptr)
-                .collect())
+    pub unsafe fn compute_display_set_c(&self, equipped: &[*mut TESObjectARMO]) -> Vec<TESObjectARMOPtr> {
+        self.compute_display_set(equipped)
             .into_iter()
             .map(|ptr| TESObjectARMOPtr { ptr })
             .collect()
     }
-    pub unsafe fn compute_display_set(&self, equipped: Vec<*mut TESObjectARMO>) -> Vec<*mut TESObjectARMO> {
+    pub unsafe fn compute_display_set(&self, equipped: &[*mut TESObjectARMO]) -> Vec<*mut TESObjectARMO> {
         let equipped = {
             let mut slots = [null_mut(); BIPED_OBJECT::MAX_IN_GAME as usize];
             for armor in equipped {
-                (*armor).assign_using_mask(&mut slots);
+                (**armor).assign_using_mask(&mut slots);
             }
             slots
         };

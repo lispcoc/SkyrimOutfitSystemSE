@@ -19,13 +19,13 @@ namespace Hooking {
             LOG(warn, "Target was null");
             return false;
         }
-        if (!ArmorAddonOverrideService::GetInstance().enabled) return false;
+        if (!GetRustInstance().enabled_c()) return false;
         auto actor = skyrim_cast<RE::Actor*>(target);
         if (!actor) {
             LOG(warn, "Target failed to cast to RE::Actor");
             return false;
         }
-        if (!ArmorAddonOverrideService::GetInstance().shouldOverride(actor->GetHandle().native_handle())) return false;
+        if (!GetRustInstance().should_override(actor->GetHandle().native_handle())) return false;
         return true;
     }
 
@@ -69,14 +69,15 @@ namespace Hooking {
         bool ShouldOverride(RE::TESObjectARMO* armor, RE::TESObjectREFR* target) {
             LogExit exitPrint("DontVanillaSkinPlayer.ShouldOverride"sv);
             if (!ShouldOverrideSkinning(target)) { return false; }
-            auto& svc = ArmorAddonOverrideService::GetInstance();
+            auto& svc = GetRustInstance();
             auto actor = skyrim_cast<RE::Actor*>(target);
             if (!actor) {
                 // Actor failed to cast...
                 LOG(warn, "ShouldOverride: Failed to cast target to Actor.");
                 return true;
             }
-            auto& outfit = svc.currentOutfit(actor->GetHandle().native_handle());
+            auto outfit = svc.current_outfit_ptr(actor->GetHandle().native_handle());
+            if (!outfit) return false;
             auto inventory = target->GetInventoryChanges();
             EquippedArmorVisitor visitor;
             if (inventory) {
@@ -86,7 +87,15 @@ namespace Hooking {
                 return true;
             }
             // Block the item (return true) if the item isn't in the display set.
-            return outfit.computeDisplaySet(visitor.equipped).count(armor) == 0;
+            std::vector<const RE::TESObjectARMO*> equipped;
+            for (const auto armor: visitor.equipped) {
+                equipped.push_back(armor);
+            }
+            auto displaySet = outfit->compute_display_set_c(rust::Slice{equipped.data(), equipped.size()});
+            for (const auto displayItem: displaySet) {
+                if (displayItem.ptr == armor) return false;
+            }
+            return true;
         }
     }// namespace DontVanillaSkinPlayer
 
@@ -96,13 +105,18 @@ namespace Hooking {
             std::uint32_t mask = 0;
             auto actor = skyrim_cast<RE::Actor*>(target);
             if (!actor) return mask;
-            auto& svc = ArmorAddonOverrideService::GetInstance();
-            auto& outfit = svc.currentOutfit(actor->GetHandle().native_handle());
+            auto& svc = GetRustInstance();
+            auto outfit = svc.current_outfit_ptr(actor->GetHandle().native_handle());
+            if (!outfit) return mask;
             EquippedArmorVisitor visitor;
             RE::InventoryChangesAugments::ExecuteAugmentVisitorOnWorn(inventory, &visitor);
-            auto displaySet = outfit.computeDisplaySet(visitor.equipped);
+            std::vector<const RE::TESObjectARMO*> equipped;
+            for (const auto armor: visitor.equipped) {
+                equipped.push_back(armor);
+            }
+            auto displaySet = outfit->compute_display_set_c(rust::Slice{equipped.data(), equipped.size()});
             for (auto& armor : displaySet) {
-                mask |= static_cast<std::uint32_t>(armor->GetSlotMask());
+                mask |= static_cast<std::uint32_t>(armor.ptr->GetSlotMask());
             }
             return mask;
         }
@@ -126,8 +140,9 @@ namespace Hooking {
             auto race = base->race;
             bool isFemale = base->IsFemale();
             //
-            auto& svc = ArmorAddonOverrideService::GetInstance();
-            auto& outfit = svc.currentOutfit(actor->GetHandle().native_handle());
+            auto& svc = GetRustInstance();
+            auto outfit = svc.current_outfit_ptr(actor->GetHandle().native_handle());
+            if (!outfit) return;
 
             // Get actor inventory and equipped items
             auto inventory = target->GetInventoryChanges();
@@ -140,7 +155,11 @@ namespace Hooking {
             }
 
             // Compute the display set.
-            auto displaySet = outfit.computeDisplaySet(visitor.equipped);
+            std::vector<const RE::TESObjectARMO*> equipped;
+            for (const auto armor: visitor.equipped) {
+                equipped.push_back(armor);
+            }
+            auto displaySet = outfit->compute_display_set_c(rust::Slice{equipped.data(), equipped.size()});
 
             // Compute the remaining items to be applied to the player
             // We assume that the DontVanillaSkinPlayer already passed through
@@ -149,7 +168,7 @@ namespace Hooking {
             // by the outfit.
             std::unordered_set<RE::TESObjectARMO*> applySet;
             for (const auto& item : displaySet) {
-                if (visitor.equipped.find(item) == visitor.equipped.end()) applySet.insert(item);
+                if (visitor.equipped.find(item.ptr) == visitor.equipped.end()) applySet.insert(item.ptr);
             }
 
             for (auto it = applySet.cbegin(); it != applySet.cend(); ++it) {
