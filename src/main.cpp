@@ -195,7 +195,7 @@ void Callback_Serialization_Load(SKSE::SerializationInterface* intfc) {
                 auto& service = ArmorAddonOverrideService::GetInstance();
                 if (version >= ArmorAddonOverrideService::kSaveVersionV4) {
                     // Read data from protobuf.
-                    std::vector<char> buf;
+                    std::vector<uint8_t> buf;
                     buf.insert(buf.begin(), length, 0);
                     _assertRead(intfc->ReadRecordData(buf.data(), length) == length, "Failed to load protobuf.");
 
@@ -206,6 +206,10 @@ void Callback_Serialization_Load(SKSE::SerializationInterface* intfc) {
 
                     // Load data from protobuf struct.
                     service = ArmorAddonOverrideService(data, intfc);
+
+                    // Initialize the Rust AAOS
+                    rust::Slice<const uint8_t> slice {buf.data(), buf.size()};
+                    GetRustInstance().replace_with_proto_ptr(slice, intfc);
 
                     if (version == ArmorAddonOverrideService::kSaveVersionV4) {
                         LOG(info, "Migrating outfit slot settings");

@@ -511,3 +511,8 @@ namespace SlotPolicy {
         }
     }
 }// namespace SlotPolicy
+
+OutfitService& GetRustInstance() {
+    static rust::Box<OutfitService> instance = outfit_service_create();
+    return *instance;
+}

@@ -23,7 +23,7 @@ impl Outfit {
         }
     }
 
-    fn from_proto_data(input: &protos::outfit::Outfit, infc: &SerializationInterface) -> Self {
+    fn from_proto_data(input: &protos::outfit::Outfit, infc: &mut SerializationInterface) -> Self {
         let mut outfit = Outfit {
             name: Uncased::new(input.name.as_str()).into_owned(),
             armors: Default::default(),
@@ -166,9 +166,15 @@ impl OutfitService {
         }
     }
 
-    pub fn replace_with_proto(self: &mut OutfitService,
-                                         data: Vec<u8>,
-                                         intfc: &SerializationInterface) -> bool {
+    pub unsafe fn replace_with_proto_ptr(self: &mut OutfitService,
+                              data: &[u8],
+                              intfc: *mut SerializationInterface) -> bool {
+        self.replace_with_proto(data, &mut *intfc)
+    }
+
+        pub fn replace_with_proto(self: &mut OutfitService,
+                                         data: &[u8],
+                                         intfc: &mut SerializationInterface) -> bool {
         if let Some(proto_version) = Self::from_proto_data(data, intfc) {
             *self = proto_version;
             true
@@ -177,10 +183,10 @@ impl OutfitService {
         }
     }
 
-    pub fn from_proto_data(data: Vec<u8>, infc: &SerializationInterface) -> Option<Self> {
+    pub fn from_proto_data(data: &[u8], infc: &mut SerializationInterface) -> Option<Self> {
         use protobuf::Message;
         let mut new = OutfitService::new();
-        let input = protos::outfit::OutfitSystem::parse_from_bytes(&data).ok()?;
+        let input = protos::outfit::OutfitSystem::parse_from_bytes(data).ok()?;
         new.enabled = input.enabled;
         let mut actor_assignments = BTreeMap::new();
         for (actor_handle, assignments) in &input.actor_outfit_assignments {
@@ -214,7 +220,7 @@ impl OutfitService {
                                Outfit::from_proto_data(&outfit, infc));
         }
         new.location_switching_enabled = input.location_based_auto_switch_enabled;
-        unimplemented!()
+        Some(new)
     }
 
     pub fn get_outfit_ptr(&mut self, name: &str) -> *mut Outfit {

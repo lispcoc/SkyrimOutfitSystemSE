@@ -7,6 +7,8 @@
 #include "cobb/strings.h"
 #include "outfit.pb.h"
 
+#include "bindings.h"
+
 namespace RE {
     class TESObjectARMO;
 }
@@ -185,3 +187,5 @@ public:
     //
     void dump() const;
 };
+
+OutfitService& GetRustInstance();

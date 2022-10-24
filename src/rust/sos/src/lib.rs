@@ -65,7 +65,7 @@ mod ffi {
     extern "Rust" {
         type OutfitService;
         fn outfit_service_create() -> Box<OutfitService>;
-        fn replace_with_proto(self: &mut OutfitService, data: Vec<u8>, intfc: &SerializationInterface) -> bool;
+        unsafe fn replace_with_proto_ptr(self: &mut OutfitService, data: &[u8], intfc: *mut SerializationInterface) -> bool;
         fn delete_outfit(self: &mut OutfitService, name: &str);
         fn get_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
         fn get_or_create_mut_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
