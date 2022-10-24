@@ -81,7 +81,8 @@ mod ffi {
     extern "Rust" {
         type OutfitService;
         fn outfit_service_create() -> Box<OutfitService>;
-        unsafe fn replace_with_proto_ptr(self: &mut OutfitService, data: &[u8], intfc: *mut SerializationInterface) -> bool;
+        unsafe fn replace_with_proto_data_ptr(self: &mut OutfitService, data: &[u8], intfc: *const SerializationInterface) -> bool;
+        unsafe fn replace_with_json_data(self: &mut OutfitService, data: &str, intfc: *const SerializationInterface) -> bool;
         fn get_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
         fn get_or_create_mut_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
         fn add_outfit(self: &mut OutfitService, name: &str);
@@ -98,13 +99,16 @@ mod ffi {
         fn set_location_based_switching_enabled(self: &mut OutfitService, setting: bool);
         fn set_outfit_using_location(self: &mut OutfitService, location: LocationType, target: u32);
         fn set_location_outfit(self: &mut OutfitService, location: LocationType, target: u32, name: &str);
+        fn get_location_based_switching_enabled(self: &OutfitService) -> bool;
         fn unset_location_outfit(self: &mut OutfitService, location: LocationType, target: u32);
         fn get_location_outfit_name_c(self: &OutfitService, location: LocationType, target: u32) -> String;
         fn check_location_type_c(self: &OutfitService, keywords: Vec<String>, weather_flags: WeatherFlags, target: u32) -> OptionalLocationType;
         fn should_override(self: &OutfitService, target: u32) -> bool;
         fn get_outfit_names(self: &OutfitService, favorites_only: bool) -> Vec<String>;
         fn set_enabled(self: &mut OutfitService, option: bool);
-        fn save_c(self: &mut OutfitService) -> Vec<u8>;
+        fn enabled_c(self: &OutfitService) -> bool;
+        fn save_json_c(self: &mut OutfitService) -> String;
+        fn save_proto_c(self: &mut OutfitService) -> Vec<u8>;
 
         #[cxx_name = "RustOutfit"]
         type Outfit;
@@ -114,7 +118,11 @@ mod ffi {
         fn set_blanket_slot_policy(self: &mut Outfit, policy: Policy);
         fn reset_to_default_slot_policy(self: &mut Outfit);
         fn armors_c(self: &Outfit) -> Vec<TESObjectARMOPtr>;
+        fn favorite_c(self: &Outfit) -> bool;
+        fn name_c(self: &Outfit) -> String;
         unsafe fn insert_armor(self: &mut Outfit, armor: *mut TESObjectARMO);
+        unsafe fn erase_armor(self: &mut Outfit, armor: *mut TESObjectARMO);
+        fn erase_all_armors(self: &mut Outfit);
         fn policy_names_for_outfit(self: &Outfit) -> Vec<String>;
     }
 }

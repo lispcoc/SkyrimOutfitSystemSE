@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ptr::null_mut;
+use protobuf_json_mapping::{print_to_string, parse_from_str};
 use uncased::{Uncased, UncasedStr};
 use commonlibsse::{BIPED_OBJECT, SerializationInterface, TESObjectARMO, ResolveARMOFormID};
 use crate::{PolicySelection, RawActorHandle, UncasedString};
@@ -23,7 +24,7 @@ impl Outfit {
         }
     }
 
-    fn from_proto_data(input: &protos::outfit::Outfit, infc: &mut SerializationInterface) -> Self {
+    fn from_proto_data(input: &protos::outfit::Outfit, infc: &SerializationInterface) -> Self {
         let mut outfit = Outfit {
             name: Uncased::new(input.name.as_str()).into_owned(),
             armors: Default::default(),
@@ -61,9 +62,26 @@ impl Outfit {
         self.armors.iter().cloned().map(|ptr| TESObjectARMOPtr { ptr }).collect()
     }
 
+    pub fn favorite_c(&self) -> bool {
+        self.favorite
+    }
+
+    pub fn name_c(&self) -> String {
+        self.name.clone().to_string()
+    }
+
     pub unsafe fn insert_armor(&mut self, armor: *mut TESObjectARMO) {
         self.armors.insert(armor);
     }
+
+    pub unsafe fn erase_armor(&mut self, armor: *mut TESObjectARMO) {
+        self.armors.remove(&armor);
+    }
+
+    pub fn erase_all_armors(&mut self) {
+        self.armors.clear();
+    }
+
     pub unsafe fn conflicts_with(&self, armor: *mut TESObjectARMO) -> bool {
         if armor.is_null() { return false }
         let mask = (*armor).GetSlotMask();
@@ -203,16 +221,22 @@ impl OutfitService {
         }
     }
 
-    pub unsafe fn replace_with_proto_ptr(self: &mut OutfitService,
+    pub unsafe fn replace_with_proto_data_ptr(self: &mut OutfitService,
                               data: &[u8],
-                              intfc: *mut SerializationInterface) -> bool {
-        self.replace_with_proto(data, &mut *intfc)
+                              intfc: *const SerializationInterface) -> bool {
+        self.replace_with_proto(data, &*intfc)
     }
 
-        pub fn replace_with_proto(self: &mut OutfitService,
+    pub unsafe fn replace_with_json_data(self: &mut OutfitService,
+                                              json: &str,
+                                              intfc: *const SerializationInterface) -> bool {
+        self.replace_with_json(json, &*intfc)
+    }
+
+    pub fn replace_with_proto(self: &mut OutfitService,
                                          data: &[u8],
-                                         intfc: &mut SerializationInterface) -> bool {
-        if let Some(proto_version) = Self::from_proto_data(data, intfc) {
+                                         intfc: &SerializationInterface) -> bool {
+        if let Some(proto_version) = Self::from_proto(data, intfc) {
             *self = proto_version;
             true
         } else {
@@ -220,10 +244,30 @@ impl OutfitService {
         }
     }
 
-    pub fn from_proto_data(data: &[u8], infc: &mut SerializationInterface) -> Option<Self> {
+    pub fn replace_with_json(self: &mut OutfitService,
+                              data: &str,
+                              intfc: &SerializationInterface) -> bool {
+        if let Some(proto_version) = Self::from_json(data, intfc) {
+            *self = proto_version;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn from_proto(data: &[u8], infc: &SerializationInterface) -> Option<Self> {
         use protobuf::Message;
-        let mut new = OutfitService::new();
         let input = protos::outfit::OutfitSystem::parse_from_bytes(data).ok()?;
+        Self::from_proto_struct(input, infc)
+    }
+
+    pub fn from_json(data: &str, infc: &SerializationInterface) -> Option<Self> {
+        let input = parse_from_str(data).ok()?;
+        Self::from_proto_struct(input, infc)
+    }
+
+    pub fn from_proto_struct(input: protos::outfit::OutfitSystem, infc: &SerializationInterface) -> Option<Self> {
+        let mut new = OutfitService::new();
         new.enabled = input.enabled;
         let mut actor_assignments = BTreeMap::new();
         for (actor_handle, assignments) in &input.actor_outfit_assignments {
@@ -363,6 +407,10 @@ impl OutfitService {
     pub fn set_location_based_switching_enabled(&mut self, setting: bool) {
         self.location_switching_enabled = setting
     }
+    pub fn get_location_based_switching_enabled(&self) -> bool {
+        self.location_switching_enabled
+    }
+
     pub fn set_outfit_using_location(&mut self, location: LocationType, target: RawActorHandle) {
         self
             .actor_assignments
@@ -459,12 +507,23 @@ impl OutfitService {
     pub fn set_enabled(&mut self, option: bool) {
         self.enabled = option
     }
-
-    pub fn save_c(&self) -> Vec<u8> {
-        self.save().unwrap_or_else(|| Vec::new())
+    pub fn enabled_c(self: &OutfitService) -> bool {
+        self.enabled
     }
-    pub fn save(&self) -> Option<Vec<u8>> {
+    pub fn save_json_c(&self) -> String {
+        self.save_json().unwrap_or_else(|| String::new())
+    }
+    pub fn save_json(&self) -> Option<String> {
+        Some(print_to_string(&self.save()).ok()?)
+    }
+    pub fn save_proto_c(&self) -> Vec<u8> {
+        self.save_proto().unwrap_or_else(|| Vec::new())
+    }
+    pub fn save_proto(&self) -> Option<Vec<u8>> {
         use protobuf::Message;
+        Some(self.save().write_to_bytes().ok()?)
+    }
+    pub fn save(&self) -> protos::outfit::OutfitSystem {
         let mut out = protos::outfit::OutfitSystem::default();
         out.enabled = self.enabled;
         for (actor_handle, assn) in &self.actor_assignments {
@@ -484,7 +543,7 @@ impl OutfitService {
             out.outfits.push(outfit.save());
         }
         out.location_based_auto_switch_enabled = self.location_switching_enabled;
-        Some(out.write_to_bytes().ok()?)
+        out
     }
 }
 

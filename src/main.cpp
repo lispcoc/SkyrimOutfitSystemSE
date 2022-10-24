@@ -209,7 +209,7 @@ void Callback_Serialization_Load(SKSE::SerializationInterface* intfc) {
 
                     // Initialize the Rust AAOS
                     rust::Slice<const uint8_t> slice {buf.data(), buf.size()};
-                    GetRustInstance().replace_with_proto_ptr(slice, intfc);
+                    GetRustInstance().replace_with_proto_data_ptr(slice, intfc);
 
                     if (version == ArmorAddonOverrideService::kSaveVersionV4) {
                         LOG(info, "Migrating outfit slot settings");
