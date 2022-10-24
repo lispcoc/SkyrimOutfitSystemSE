@@ -31,7 +31,7 @@ namespace OutfitSystem {
                                         std::uint32_t stackId,
                                         RE::StaticFunctionTag*) {
         LogExit exitPrint("GetOutfitNameMaxLength"sv);
-        return ArmorAddonOverrideService::ce_outfitNameMaxLength;
+        return GetRustInstance().max_outfit_name_len();
     }
     std::vector<RE::TESObjectARMO*> GetCarriedArmor(RE::BSScript::IVirtualMachine* registry,
                                                     std::uint32_t stackId,
@@ -618,7 +618,7 @@ namespace OutfitSystem {
         auto& service = GetRustInstance();
         try {
             service.add_outfit(name.data());
-        } catch (ArmorAddonOverrideService::bad_name) {
+        } catch (bad_name) {
             registry->TraceStack("Invalid outfit name specified.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);
             return;
         }
@@ -808,7 +808,7 @@ namespace OutfitSystem {
                 if (ptr)
                     outfit->insert_armor(ptr);
             }
-        } catch (ArmorAddonOverrideService::bad_name) {
+        } catch (bad_name) {
             registry->TraceStack("Invalid outfit name specified.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);
             return;
         }

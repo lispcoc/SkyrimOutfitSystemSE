@@ -81,8 +81,10 @@ mod ffi {
     extern "Rust" {
         type OutfitService;
         fn outfit_service_create() -> Box<OutfitService>;
+        fn replace_with_new(self: &mut OutfitService);
         unsafe fn replace_with_proto_data_ptr(self: &mut OutfitService, data: &[u8], intfc: *const SerializationInterface) -> bool;
         unsafe fn replace_with_json_data(self: &mut OutfitService, data: &str, intfc: *const SerializationInterface) -> bool;
+        fn max_outfit_name_len(self: &OutfitService) -> u32;
         fn get_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
         fn get_or_create_mut_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
         fn add_outfit(self: &mut OutfitService, name: &str);
@@ -107,6 +109,7 @@ mod ffi {
         fn get_outfit_names(self: &OutfitService, favorites_only: bool) -> Vec<String>;
         fn set_enabled(self: &mut OutfitService, option: bool);
         fn enabled_c(self: &OutfitService) -> bool;
+        fn reset_all_outfits_to_default_slot_policy(self: &mut OutfitService);
         fn save_json_c(self: &mut OutfitService) -> String;
         fn save_proto_c(self: &mut OutfitService) -> Vec<u8>;
 

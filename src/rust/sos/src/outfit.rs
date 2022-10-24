@@ -217,6 +217,13 @@ impl OutfitService {
         }
     }
 
+    pub fn max_outfit_name_len(&self) -> u32 {
+        256
+    }
+    pub fn replace_with_new(&mut self) {
+        *self = Self::new();
+    }
+
     pub unsafe fn replace_with_proto_data_ptr(self: &mut OutfitService,
                               data: &[u8],
                               intfc: *const SerializationInterface) -> bool {
@@ -540,6 +547,12 @@ impl OutfitService {
         }
         out.location_based_auto_switch_enabled = self.location_switching_enabled;
         out
+    }
+
+    pub fn reset_all_outfits_to_default_slot_policy(&mut self) {
+        for outfit in self.outfits.values_mut() {
+            outfit.reset_to_default_slot_policy();
+        }
     }
 }
 

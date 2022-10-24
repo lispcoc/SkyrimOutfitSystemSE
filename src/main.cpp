@@ -150,10 +150,10 @@ void Callback_Messaging_SKSE(SKSE::MessagingInterface::Message* message) {
     } else if (message->type == SKSE::MessagingInterface::kPostPostLoad) {
     } else if (message->type == SKSE::MessagingInterface::kDataLoaded) {
     } else if (message->type == SKSE::MessagingInterface::kNewGame) {
-        ArmorAddonOverrideService::GetInstance() = ArmorAddonOverrideService();
+        GetRustInstance().replace_with_new();
     } else if (message->type == SKSE::MessagingInterface::kPreLoadGame) {
         // AAOS::load resets as well, but this is needed in case the save we're about to load doesn't have any AAOS data.
-        ArmorAddonOverrideService::GetInstance() = ArmorAddonOverrideService();
+        GetRustInstance().replace_with_new();
     }
 }
 
@@ -163,14 +163,14 @@ void _assertRead(bool result, const char* err);
 void Callback_Serialization_Save(SKSE::SerializationInterface* intfc) {
     LOG(info, "Writing savedata...");
     //
-    if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV5)) {
+    if (intfc->OpenRecord(Peristence::signature, Peristence::kSaveVersionV5)) {
         try {
-            auto& service = ArmorAddonOverrideService::GetInstance();
-            const auto& data = service.save();
-            const auto& data_ser = data.SerializeAsString();
-            _assertWrite(intfc->WriteRecordData(data_ser.data(), static_cast<std::uint32_t>(data_ser.size())),
+            auto& service = GetRustInstance();
+            const auto data = service.save_proto_c();
+            if (data.empty()) throw save_error("Proto was zero size");
+            _assertWrite(intfc->WriteRecordData(data.data(), static_cast<std::uint32_t>(data.size())),
                          "Failed to write proto into SKSE record.");
-        } catch (const ArmorAddonOverrideService::save_error& exception) {
+        } catch (const save_error& exception) {
             LOG(info, "Save FAILED for ArmorAddonOverrideService.");
             LOG(info, " - Exception string: %s", exception.what());
         }
@@ -190,10 +190,10 @@ void Callback_Serialization_Load(SKSE::SerializationInterface* intfc) {
     //
     while (!error && intfc->GetNextRecordInfo(type, version, length)) {
         switch (type) {
-        case ArmorAddonOverrideService::signature:
+        case Peristence::signature:
             try {
-                auto& service = ArmorAddonOverrideService::GetInstance();
-                if (version >= ArmorAddonOverrideService::kSaveVersionV4) {
+                auto& service = GetRustInstance();
+                if (version >= Peristence::kSaveVersionV4) {
                     // Read data from protobuf.
                     std::vector<uint8_t> buf;
                     buf.insert(buf.begin(), length, 0);
@@ -204,23 +204,20 @@ void Callback_Serialization_Load(SKSE::SerializationInterface* intfc) {
                     _assertRead(data.ParseFromArray(buf.data(), static_cast<int>(buf.size())),
                                 "Failed to parse protobuf.");
 
-                    // Load data from protobuf struct.
-                    service = ArmorAddonOverrideService(data, intfc);
-
                     // Initialize the Rust AAOS
                     rust::Slice<const uint8_t> slice {buf.data(), buf.size()};
-                    GetRustInstance().replace_with_proto_data_ptr(slice, intfc);
+                    if (!service.replace_with_proto_data_ptr(slice, intfc)) {
+                        throw load_error("failed to load from proto");
+                    };
 
-                    if (version == ArmorAddonOverrideService::kSaveVersionV4) {
+                    if (version == Peristence::kSaveVersionV4) {
                         LOG(info, "Migrating outfit slot settings");
-                        for (auto& outfit : service.outfits) {
-                            outfit.second.setDefaultSlotPolicy();
-                        }
+                        service.reset_all_outfits_to_default_slot_policy();
                     }
                 } else {
                     LOG(err, "Legacy format not supported. Try upgrading through v0.4.0 first.");
                 }
-            } catch (const ArmorAddonOverrideService::load_error& exception) {
+            } catch (const load_error& exception) {
                 LOG(info, "Load FAILED for ArmorAddonOverrideService.");
                 LOG(info, " - Exception string: %s", exception.what());
             }
