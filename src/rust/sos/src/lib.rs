@@ -129,6 +129,8 @@ mod ffi {
         unsafe fn erase_armor(self: &mut Outfit, armor: *mut TESObjectARMO);
         fn erase_all_armors(self: &mut Outfit);
         fn policy_names_for_outfit(self: &Outfit) -> Vec<String>;
+
+        fn is_form_id_permitted(form: u32) -> bool;
     }
 }
 fn make_rust_string() -> *mut String {
@@ -186,3 +188,6 @@ pub enum PolicySelection {
 }
 
 pub type FormID = u32;
+fn is_form_id_permitted(form: FormID) -> bool {
+    form < 0xFF000000
+}

@@ -3,7 +3,7 @@ use std::ptr::null_mut;
 use protobuf_json_mapping::{print_to_string, parse_from_str};
 use uncased::{Uncased, UncasedStr};
 use commonlibsse::{BIPED_OBJECT, SerializationInterface, TESObjectARMO, ResolveARMOFormID, RE_PlayerCharacter_GetSingleton};
-use crate::{PolicySelection, FormID, UncasedString};
+use crate::{PolicySelection, FormID, UncasedString, is_form_id_permitted};
 use crate::ffi::{WeatherFlags, LocationType, Policy, OptionalLocationType, TESObjectARMOPtr, OptionalPolicy};
 use crate::outfit::slot_policy::Policies;
 
@@ -565,6 +565,7 @@ impl OutfitService {
         if !self.actor_assignments.contains_key(&unsafe { (*RE_PlayerCharacter_GetSingleton()).GetFormID() }) {
             self.actor_assignments.insert(unsafe { (*RE_PlayerCharacter_GetSingleton()).GetFormID() }, ActorAssignments::default());
         }
+        self.actor_assignments.retain(|item, _| is_form_id_permitted(*item));
     }
 }
 

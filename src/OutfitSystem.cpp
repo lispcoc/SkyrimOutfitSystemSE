@@ -179,8 +179,9 @@ namespace OutfitSystem {
         for (const auto& ref : pcCell->GetRuntimeData().references) {
             RE::TESObjectREFR* objectRefPtr = ref.get();
             auto actorCastedPtr = skyrim_cast<RE::Actor*>(objectRefPtr);
-            if (actorCastedPtr)
-                result.push_back(actorCastedPtr);
+            if (!actorCastedPtr) continue;
+            if (!is_form_id_permitted(actorCastedPtr->GetFormID())) continue;
+            result.push_back(actorCastedPtr);
         }
         result.shrink_to_fit();
         return result;
