@@ -13,7 +13,11 @@
 namespace RE {
     using BipedObjectSlot = BIPED_MODEL::BipedObjectSlot;
     TESObjectARMO* ResolveARMOFormID(FormID id);
+    Actor* RE_PlayerCharacter_GetSingleton() {
+         return PlayerCharacter::GetSingleton();
+    }
 }
+
 #endif
 
 #endif //SKYRIMOUTFITSYSTEMSE_SRC_RUST_COMMONLIBSSE_SRC_CUSTOMIZE_H

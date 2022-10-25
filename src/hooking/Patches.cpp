@@ -26,7 +26,7 @@ namespace Hooking {
             LOG(warn, "Target failed to cast to RE::Actor");
             return false;
         }
-        if (!GetRustInstance().should_override(actor->GetHandle().native_handle())) return false;
+        if (!GetRustInstance().should_override(actor->GetFormID())) return false;
         return true;
     }
 
@@ -77,7 +77,7 @@ namespace Hooking {
                 LOG(warn, "ShouldOverride: Failed to cast target to Actor.");
                 return true;
             }
-            auto outfit = svc.current_outfit_ptr(actor->GetHandle().native_handle());
+            auto outfit = svc.current_outfit_ptr(actor->GetFormID());
             if (!outfit) return false;
             auto inventory = target->GetInventoryChanges();
             EquippedArmorVisitor visitor;
@@ -107,7 +107,7 @@ namespace Hooking {
             auto actor = skyrim_cast<RE::Actor*>(target);
             if (!actor) return mask;
             auto& svc = GetRustInstance();
-            auto outfit = svc.current_outfit_ptr(actor->GetHandle().native_handle());
+            auto outfit = svc.current_outfit_ptr(actor->GetFormID());
             if (!outfit) return mask;
             EquippedArmorVisitor visitor;
             RE::InventoryChangesAugments::ExecuteAugmentVisitorOnWorn(inventory, &visitor);
@@ -142,7 +142,7 @@ namespace Hooking {
             bool isFemale = base->IsFemale();
             //
             auto& svc = GetRustInstance();
-            auto outfit = svc.current_outfit_ptr(actor->GetHandle().native_handle());
+            auto outfit = svc.current_outfit_ptr(actor->GetFormID());
             if (!outfit) return;
 
             // Get actor inventory and equipped items

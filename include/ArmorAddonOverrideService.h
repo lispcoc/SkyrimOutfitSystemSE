@@ -94,5 +94,6 @@ namespace Peristence {
         kSaveVersionV3 = 3,// Unsupported handwritten binary format
         kSaveVersionV4 = 4,// First version with protobuf
         kSaveVersionV5 = 5,// First version with Slot Control System
+        kSaveVersionV6 = 6,// Switch to FormID for Actor (instead of Handle)
     };
 }

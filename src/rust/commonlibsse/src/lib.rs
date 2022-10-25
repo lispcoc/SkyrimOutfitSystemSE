@@ -95,12 +95,14 @@ pub mod ffi {
         pub fn ResolveARMOFormID(id: u32) -> *mut TESObjectARMO;
         pub fn GetSlotMask(self: &TESObjectARMO) -> BipedObjectSlot;
         pub fn GetFormID(self: &TESObjectARMO) -> u32;
+        pub type Actor;
+        pub fn RE_PlayerCharacter_GetSingleton() -> *mut Actor;
+        pub fn GetFormID(self: &Actor) -> u32;
         pub type BipedObjectSlot;
         pub type BIPED_OBJECT;
         #[namespace = "SKSE"]
         pub type SerializationInterface;
         pub fn ResolveFormID(self: &SerializationInterface, old_form: u32, new_form: &mut u32) -> bool;
-        pub fn ResolveHandle(self: &SerializationInterface, old_handle: u64, new_handle: &mut u64) -> bool;
     }
 }
 

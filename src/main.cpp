@@ -151,9 +151,11 @@ void Callback_Messaging_SKSE(SKSE::MessagingInterface::Message* message) {
     } else if (message->type == SKSE::MessagingInterface::kDataLoaded) {
     } else if (message->type == SKSE::MessagingInterface::kNewGame) {
         GetRustInstance().replace_with_new();
+        GetRustInstance().check_consistency();
     } else if (message->type == SKSE::MessagingInterface::kPreLoadGame) {
         // AAOS::load resets as well, but this is needed in case the save we're about to load doesn't have any AAOS data.
         GetRustInstance().replace_with_new();
+        GetRustInstance().check_consistency();
     }
 }
 
@@ -163,7 +165,7 @@ void _assertRead(bool result, const char* err);
 void Callback_Serialization_Save(SKSE::SerializationInterface* intfc) {
     LOG(info, "Writing savedata...");
     //
-    if (intfc->OpenRecord(Peristence::signature, Peristence::kSaveVersionV5)) {
+    if (intfc->OpenRecord(Peristence::signature, Peristence::kSaveVersionV6)) {
         try {
             auto& service = GetRustInstance();
             const auto data = service.save_proto_c();
@@ -207,10 +209,14 @@ void Callback_Serialization_Load(SKSE::SerializationInterface* intfc) {
 
                     if (version == Peristence::kSaveVersionV4) {
                         LOG(info, "Migrating outfit slot settings");
-                        service.reset_all_outfits_to_default_slot_policy();
+                        service.migration_save_v5();
                     }
+                    if (version < Peristence::kSaveVersionV6) {
+                        service.migration_save_v6();
+                    }
+                    service.check_consistency();
                 } else {
-                    LOG(err, "Legacy format not supported. Try upgrading through v0.4.0 first.");
+                    LOG(err, "Legacy format not supported. Will use default config. Try upgrading using v0.4.0 first.");
                 }
             } catch (const load_error& exception) {
                 LOG(info, "Load FAILED for ArmorAddonOverrideService.");

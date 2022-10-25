@@ -147,10 +147,9 @@ namespace OutfitSystem {
         LogExit exitPrint("RefreshArmorForAllConfiguredActors"sv);
         auto& service = GetRustInstance();
         auto actors = service.list_actors();
-        for (auto& actorRef : actors) {
-            auto actor = RE::Actor::LookupByHandle(actorRef);
-            if (!actor)
-                continue;
+        for (auto& actor_form : actors) {
+            auto actor = RE::Actor::LookupByID<RE::Actor>(actor_form);
+            if (!actor) continue;
             auto pm = actor->GetActorRuntimeData().currentProcess;
             if (pm) {
                 //
@@ -162,7 +161,7 @@ namespace OutfitSystem {
                 //
                 // NOTE: AIProcess is also called as RE::ActorProcessManager
                 RE::AIProcessAugments::SetEquipFlag(pm, RE::AIProcessAugments::Flag::kUnk01);
-                RE::AIProcessAugments::UpdateEquipment(pm, actor.get());
+                RE::AIProcessAugments::UpdateEquipment(pm, actor);
             }
         }
     }
@@ -678,7 +677,7 @@ namespace OutfitSystem {
         if (!actor)
             return RE::BSFixedString("");
         auto& service = GetRustInstance();
-        auto outfit = service.current_outfit_ptr(actor->GetHandle().native_handle());
+        auto outfit = service.current_outfit_ptr(actor->GetFormID());
         if (!outfit) return "";
         return outfit->name_c().c_str();
     }
@@ -828,7 +827,7 @@ namespace OutfitSystem {
         if (!actor)
             return;
         auto& service = GetRustInstance();
-        service.set_outfit_c(name.data(), actor->GetHandle().native_handle());
+        service.set_outfit_c(name.data(), actor->GetFormID());
     }
     void AddActor(RE::BSScript::IVirtualMachine* registry,
                   std::uint32_t stackId,
@@ -836,7 +835,7 @@ namespace OutfitSystem {
                   RE::Actor* target) {
         LogExit exitPrint("AddActor"sv);
         auto& service = GetRustInstance();
-        service.add_actor(target->GetHandle().native_handle());
+        service.add_actor(target->GetFormID());
     }
     void RemoveActor(RE::BSScript::IVirtualMachine* registry,
                      std::uint32_t stackId,
@@ -844,7 +843,7 @@ namespace OutfitSystem {
                      RE::Actor* target) {
         LogExit exitPrint("RemoveActor"sv);
         auto& service = GetRustInstance();
-        service.remove_actor(target->GetHandle().native_handle());
+        service.remove_actor(target->GetFormID());
     }
     std::vector<RE::Actor*> ListActors(RE::BSScript::IVirtualMachine* registry,
                                        std::uint32_t stackId,
@@ -853,8 +852,8 @@ namespace OutfitSystem {
         auto& service = GetRustInstance();
         auto actors = service.list_actors();
         std::vector<RE::Actor*> actorVec;
-        for (auto& actorRef : actors) {
-            auto actor = RE::Actor::LookupByHandle(actorRef);
+        for (auto& actor_form : actors) {
+            auto actor = RE::Actor::LookupByID<RE::Actor>(actor_form);
             if (!actor) continue;
 #if _DEBUG
             LOG(debug, "INNER: Actor {} has refcount {}", actor->GetDisplayFullName(), actor->QRefCount());
@@ -862,7 +861,7 @@ namespace OutfitSystem {
             if (actor->QRefCount() == 1) {
                 LOG(warn, "ListActors will return an actor {} with refcount of 1. This may crash.", actor->GetDisplayFullName());
             }
-            actorVec.push_back(actor.get());
+            actorVec.push_back(actor);
         }
         std::sort(
             actorVec.begin(),
@@ -943,7 +942,7 @@ namespace OutfitSystem {
             }
             location = location->parentLoc;
         }
-        auto result = service.check_location_type_c(keywords, RustWeatherFlags {weather_flags.rainy, weather_flags.snowy}, RE::PlayerCharacter::GetSingleton()->CreateRefHandle().native_handle());
+        auto result = service.check_location_type_c(keywords, RustWeatherFlags {weather_flags.rainy, weather_flags.snowy}, RE::PlayerCharacter::GetSingleton()->GetFormID());
         if (result.has_value) {
             return result.value;
         } else {
@@ -982,7 +981,7 @@ namespace OutfitSystem {
             RE::DebugNotification(message, nullptr, false);
             */
             if (location.has_value()) {
-                service.set_outfit_using_location(location.value(), actor->GetHandle().native_handle());
+                service.set_outfit_using_location(location.value(), actor->GetFormID());
             }
         }
     }
@@ -997,7 +996,7 @@ namespace OutfitSystem {
             // Location outfit assignment is never allowed to be empty string. Use unset instead.
             return;
         }
-        GetRustInstance().set_location_outfit(RustLocationType(location), actor->GetHandle().native_handle(), name.data());
+        GetRustInstance().set_location_outfit(RustLocationType(location), actor->GetFormID(), name.data());
     }
     void UnsetLocationOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                              RE::Actor* actor,
@@ -1005,7 +1004,7 @@ namespace OutfitSystem {
         LogExit exitPrint("UnsetLocationOutfit"sv);
         if (!actor)
             return;
-        return GetRustInstance().unset_location_outfit(RustLocationType(location), actor->GetHandle().native_handle());
+        return GetRustInstance().unset_location_outfit(RustLocationType(location), actor->GetFormID());
     }
     RE::BSFixedString GetLocationOutfit(RE::BSScript::IVirtualMachine* registry,
                                         std::uint32_t stackId,
@@ -1015,7 +1014,7 @@ namespace OutfitSystem {
         LogExit exitPrint("GetLocationOutfit"sv);
         if (!actor)
             return RE::BSFixedString("");
-        auto outfit = GetRustInstance().get_location_outfit_name_c(RustLocationType(location), actor->GetHandle().native_handle());
+        auto outfit = GetRustInstance().get_location_outfit_name_c(RustLocationType(location), actor->GetFormID());
         if (!outfit.empty()) {
             return RE::BSFixedString(outfit.c_str());
         } else {

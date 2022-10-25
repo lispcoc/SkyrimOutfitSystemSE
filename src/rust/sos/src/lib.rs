@@ -109,7 +109,9 @@ mod ffi {
         fn get_outfit_names(self: &OutfitService, favorites_only: bool) -> Vec<String>;
         fn set_enabled(self: &mut OutfitService, option: bool);
         fn enabled_c(self: &OutfitService) -> bool;
-        fn reset_all_outfits_to_default_slot_policy(self: &mut OutfitService);
+        fn migration_save_v5(self: &mut OutfitService);
+        fn migration_save_v6(self: &mut OutfitService);
+        fn check_consistency(self: &mut OutfitService);
         fn save_json_c(self: &mut OutfitService) -> String;
         fn save_proto_c(self: &mut OutfitService) -> Vec<u8>;
 
@@ -183,4 +185,4 @@ pub enum PolicySelection {
     Equipped,
 }
 
-pub type RawActorHandle = u32;
+pub type FormID = u32;

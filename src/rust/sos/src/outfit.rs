@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ptr::null_mut;
 use protobuf_json_mapping::{print_to_string, parse_from_str};
 use uncased::{Uncased, UncasedStr};
-use commonlibsse::{BIPED_OBJECT, SerializationInterface, TESObjectARMO, ResolveARMOFormID};
-use crate::{PolicySelection, RawActorHandle, UncasedString};
+use commonlibsse::{BIPED_OBJECT, SerializationInterface, TESObjectARMO, ResolveARMOFormID, RE_PlayerCharacter_GetSingleton};
+use crate::{PolicySelection, FormID, UncasedString};
 use crate::ffi::{WeatherFlags, LocationType, Policy, OptionalLocationType, TESObjectARMOPtr, OptionalPolicy};
 use crate::outfit::slot_policy::Policies;
 
@@ -199,11 +199,19 @@ pub struct ActorAssignments {
     pub location_based: BTreeMap<LocationType, UncasedString>
 }
 
+impl Default for ActorAssignments {
+    fn default() -> Self {
+        ActorAssignments {
+            current: None,
+            location_based: Default::default()
+        }
+    }
+}
 
 pub struct OutfitService {
     pub enabled: bool,
     pub outfits: HashMap<UncasedString, Outfit>,
-    pub actor_assignments: BTreeMap<RawActorHandle, ActorAssignments>,
+    pub actor_assignments: BTreeMap<FormID, ActorAssignments>,
     pub location_switching_enabled: bool,
 }
 
@@ -273,15 +281,10 @@ impl OutfitService {
         let mut new = OutfitService::new();
         new.enabled = input.enabled;
         let mut actor_assignments = BTreeMap::new();
-        for (actor_handle, assignments) in &input.actor_outfit_assignments {
-            let mut new_handle = *actor_handle;
-            if !(*infc).ResolveHandle(*actor_handle, &mut new_handle) {
-                continue
-            }
-            let mut assignments_out = ActorAssignments {
-                current: None,
-                location_based: Default::default()
-            };
+        for (old_form_id, assignments) in &input.actor_outfit_assignments {
+            let mut form_id = 0;
+            if !(*infc).ResolveFormID(*old_form_id, &mut form_id) || form_id == 0 { continue }
+            let mut assignments_out = ActorAssignments::default();
             assignments_out.current = if assignments.current_outfit_name.is_empty() {
                 None
             } else {
@@ -296,7 +299,7 @@ impl OutfitService {
                 let location = LocationType { repr: *location };
                 assignments_out.location_based.insert(location, value);
             }
-            actor_assignments.insert(new_handle as u32, assignments_out);
+            actor_assignments.insert(form_id as u32, assignments_out);
         }
         new.actor_assignments = actor_assignments;
         for outfit in input.outfits {
@@ -338,11 +341,11 @@ impl OutfitService {
     pub fn current_outfit_ptr(&mut self, target: u32) -> *mut Outfit {
         if let Some(outfit) = self.current_mut_outfit(target) { outfit } else { null_mut() }
     }
-    pub fn current_outfit(&self, target: RawActorHandle) -> Option<&Outfit> {
+    pub fn current_outfit(&self, target: FormID) -> Option<&Outfit> {
         let outfit_name = self.actor_assignments.get(&target).and_then(|assn| assn.current.clone())?;
         self.get_outfit(outfit_name.as_str())
     }
-    pub fn current_mut_outfit(&mut self, target: RawActorHandle) -> Option<&mut Outfit> {
+    pub fn current_mut_outfit(&mut self, target: FormID) -> Option<&mut Outfit> {
         let outfit_name = self.actor_assignments.get(&target).and_then(|assn| assn.current.clone())?;
         self.get_mut_outfit(outfit_name.as_str())
     }
@@ -379,7 +382,7 @@ impl OutfitService {
         self.outfits.insert(entry.name.clone(), entry);
         return 0;
     }
-    pub fn set_outfit_c(&mut self, name: &str, target: RawActorHandle) {
+    pub fn set_outfit_c(&mut self, name: &str, target: FormID) {
         let name = if name.is_empty() {
             None
         } else {
@@ -387,7 +390,7 @@ impl OutfitService {
         };
         self.set_outfit(name, target)
     }
-    pub fn set_outfit(&mut self, mut name: Option<&str>, target: RawActorHandle) {
+    pub fn set_outfit(&mut self, mut name: Option<&str>, target: FormID) {
         if name.map_or(false, |name| name.is_empty()) {
             name = None;
         }
@@ -395,16 +398,14 @@ impl OutfitService {
             assn.current = name.map(|name| Uncased::from(name).into_owned());
         });
     }
-    pub fn add_actor(&mut self, target: RawActorHandle) {
-        self.actor_assignments.entry(target).or_insert_with(|| ActorAssignments {
-            current: None,
-            location_based: Default::default()
-        });
+    pub fn add_actor(&mut self, target: FormID) {
+        self.actor_assignments.entry(target).or_insert_with(|| ActorAssignments::default());
     }
-    pub fn remove_actor(&mut self, target: RawActorHandle) {
+    pub fn remove_actor(&mut self, target: FormID) {
+        if unsafe { (*RE_PlayerCharacter_GetSingleton()).GetFormID() } == target { return }
         self.actor_assignments.remove(&target);
     }
-    pub fn list_actors(&self) -> Vec<RawActorHandle> {
+    pub fn list_actors(&self) -> Vec<FormID> {
         self.actor_assignments.keys().cloned().collect()
     }
     pub fn set_location_based_switching_enabled(&mut self, setting: bool) {
@@ -414,7 +415,7 @@ impl OutfitService {
         self.location_switching_enabled
     }
 
-    pub fn set_outfit_using_location(&mut self, location: LocationType, target: RawActorHandle) {
+    pub fn set_outfit_using_location(&mut self, location: LocationType, target: FormID) {
         self
             .actor_assignments
             .get_mut(&target)
@@ -424,7 +425,7 @@ impl OutfitService {
                 self.set_outfit(Some(selected.as_str()), target)
             });
     }
-    pub fn set_location_outfit(&mut self, location: LocationType, target: RawActorHandle, name: &str) {
+    pub fn set_location_outfit(&mut self, location: LocationType, target: FormID, name: &str) {
         if name.is_empty() {
             self.unset_location_outfit(location, target);
             return
@@ -434,23 +435,23 @@ impl OutfitService {
             .get_mut(&target)
             .map(|assn| assn.location_based.insert(location, Uncased::from(name).into_owned()));
     }
-    pub fn unset_location_outfit(&mut self, location: LocationType, target: RawActorHandle) {
+    pub fn unset_location_outfit(&mut self, location: LocationType, target: FormID) {
         self
             .actor_assignments
             .get_mut(&target)
             .map(|assn| assn.location_based.remove(&location));
     }
-    pub fn get_location_outfit_name_c(&self, location: LocationType, target: RawActorHandle) -> String {
+    pub fn get_location_outfit_name_c(&self, location: LocationType, target: FormID) -> String {
         self.get_location_outfit_name(location, target).unwrap_or_else(|| String::new())
     }
-    pub fn get_location_outfit_name(&self, location: LocationType, target: RawActorHandle) -> Option<String> {
+    pub fn get_location_outfit_name(&self, location: LocationType, target: FormID) -> Option<String> {
         self
             .actor_assignments
             .get(&target)
             .and_then(|assn| assn.location_based.get(&location))
             .map(|name| name.to_string())
     }
-    pub fn check_location_type_c(&self, keywords: Vec<String>, weather_flags: WeatherFlags, target: RawActorHandle) -> OptionalLocationType {
+    pub fn check_location_type_c(&self, keywords: Vec<String>, weather_flags: WeatherFlags, target: FormID) -> OptionalLocationType {
         if let Some(result) = self.check_location_type(keywords, weather_flags, target) {
             OptionalLocationType {
                 has_value: true,
@@ -463,7 +464,7 @@ impl OutfitService {
             }
         }
     }
-    pub fn check_location_type(&self, keywords: Vec<String>, weather_flags: WeatherFlags, target: RawActorHandle) -> Option<LocationType> {
+    pub fn check_location_type(&self, keywords: Vec<String>, weather_flags: WeatherFlags, target: FormID) -> Option<LocationType> {
         let kw_map: HashSet<_> = keywords.into_iter().collect();
         let actor_assn = &self.actor_assignments.get(&target)?.location_based;
         macro_rules! check_location {
@@ -494,7 +495,7 @@ impl OutfitService {
         None
     }
 
-    pub fn should_override(&self, target: RawActorHandle) -> bool {
+    pub fn should_override(&self, target: FormID) -> bool {
         if !self.enabled || self.actor_assignments.get(&target).and_then(|assn| assn.current.as_ref()) == None {
             false
         } else {
@@ -540,7 +541,7 @@ impl OutfitService {
                     (loc.repr, name.to_string())
                 })
                 .collect();
-            out.actor_outfit_assignments.insert(*actor_handle as u64, out_assn);
+            out.actor_outfit_assignments.insert(*actor_handle, out_assn);
         }
         for (_, outfit) in &self.outfits {
             out.outfits.push(outfit.save());
@@ -549,9 +550,20 @@ impl OutfitService {
         out
     }
 
-    pub fn reset_all_outfits_to_default_slot_policy(&mut self) {
+    // Migrations
+    pub fn migration_save_v5(&mut self) {
         for outfit in self.outfits.values_mut() {
             outfit.reset_to_default_slot_policy();
+        }
+    }
+
+    pub fn migration_save_v6(&mut self) {
+        self.actor_assignments.clear();
+    }
+
+    pub fn check_consistency(&mut self) {
+        if !self.actor_assignments.contains_key(&unsafe { (*RE_PlayerCharacter_GetSingleton()).GetFormID() }) {
+            self.actor_assignments.insert(unsafe { (*RE_PlayerCharacter_GetSingleton()).GetFormID() }, ActorAssignments::default());
         }
     }
 }
