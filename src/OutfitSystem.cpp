@@ -180,8 +180,9 @@ namespace OutfitSystem {
         for (const auto& ref : pcCell->GetRuntimeData().references) {
             RE::TESObjectREFR* objectRefPtr = ref.get();
             auto actorCastedPtr = skyrim_cast<RE::Actor*>(objectRefPtr);
-            if (actorCastedPtr)
-                result.push_back(actorCastedPtr);
+            if (!actorCastedPtr) continue;
+            if (!isFormIdPermitted(actorCastedPtr->GetFormID())) continue;
+            result.push_back(actorCastedPtr);
         }
         result.shrink_to_fit();
         return result;
@@ -824,6 +825,7 @@ namespace OutfitSystem {
                   RE::Actor* target) {
         LogExit exitPrint("AddActor"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
+        if (!isFormIdPermitted(target->GetFormID())) return;
         service.addActor(target->GetFormID());
     }
     void RemoveActor(RE::BSScript::IVirtualMachine* registry,

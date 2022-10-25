@@ -1,5 +1,6 @@
 #include "ArmorAddonOverrideService.h"
 
+#include "Utility.h"
 #include "RE/REAugments.h"
 
 void _assertWrite(bool result, const char* err) {
@@ -495,6 +496,9 @@ void ArmorAddonOverrideService::checkConsistency() {
     if (!actorOutfitAssignments.contains(RE::PlayerCharacter::GetSingleton()->GetFormID())) {
         actorOutfitAssignments[RE::PlayerCharacter::GetSingleton()->GetFormID()] = ActorOutfitAssignments();
     }
+    std::erase_if(actorOutfitAssignments, [](auto item) {
+        return !isFormIdPermitted(item.first);
+    });
 }
 
 namespace SlotPolicy {
