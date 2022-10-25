@@ -151,9 +151,11 @@ void Callback_Messaging_SKSE(SKSE::MessagingInterface::Message* message) {
     } else if (message->type == SKSE::MessagingInterface::kDataLoaded) {
     } else if (message->type == SKSE::MessagingInterface::kNewGame) {
         ArmorAddonOverrideService::GetInstance() = ArmorAddonOverrideService();
+        ArmorAddonOverrideService::GetInstance().checkConsistency();
     } else if (message->type == SKSE::MessagingInterface::kPreLoadGame) {
         // AAOS::load resets as well, but this is needed in case the save we're about to load doesn't have any AAOS data.
         ArmorAddonOverrideService::GetInstance() = ArmorAddonOverrideService();
+        ArmorAddonOverrideService::GetInstance().checkConsistency();
     }
 }
 
@@ -163,7 +165,7 @@ void _assertRead(bool result, const char* err);
 void Callback_Serialization_Save(SKSE::SerializationInterface* intfc) {
     LOG(info, "Writing savedata...");
     //
-    if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV5)) {
+    if (intfc->OpenRecord(ArmorAddonOverrideService::signature, ArmorAddonOverrideService::kSaveVersionV6)) {
         try {
             auto& service = ArmorAddonOverrideService::GetInstance();
             const auto& data = service.save();
@@ -206,15 +208,15 @@ void Callback_Serialization_Load(SKSE::SerializationInterface* intfc) {
 
                     // Load data from protobuf struct.
                     service = ArmorAddonOverrideService(data, intfc);
-
-                    if (version == ArmorAddonOverrideService::kSaveVersionV4) {
-                        LOG(info, "Migrating outfit slot settings");
-                        for (auto& outfit : service.outfits) {
-                            outfit.second.setDefaultSlotPolicy();
-                        }
+                    if (version < ArmorAddonOverrideService::kSaveVersionV5) {
+                        service.migrateSaveVersionV5();
                     }
+                    if (version < ArmorAddonOverrideService::kSaveVersionV6) {
+                        service.migrateSaveVersionV6();
+                    }
+                    service.checkConsistency();
                 } else {
-                    LOG(err, "Legacy format not supported. Try upgrading through v0.4.0 first.");
+                    LOG(err, "Legacy format not supported. Will use default config. Try upgrading using v0.4.0 first.");
                 }
             } catch (const ArmorAddonOverrideService::load_error& exception) {
                 LOG(info, "Load FAILED for ArmorAddonOverrideService.");
