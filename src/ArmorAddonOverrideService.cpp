@@ -167,8 +167,8 @@ ArmorAddonOverrideService::ArmorAddonOverrideService(const proto::OutfitSystem& 
     std::map<RE::FormID, ActorOutfitAssignments> actorOutfitAssignmentsLocal;
     for (const auto& actorAssn : data.actor_outfit_assignments()) {
         // Lookup the actor
-        RE::FormID handle;
-        if (!intfc->ResolveFormID(actorAssn.first, handle))
+        RE::FormID formId;
+        if (!intfc->ResolveFormID(actorAssn.first, formId))
             continue;
 
         ActorOutfitAssignments assignments;
@@ -179,7 +179,7 @@ ArmorAddonOverrideService::ArmorAddonOverrideService(const proto::OutfitSystem& 
                                                 cobb::istring(locOutfitData.second.data(),
                                                               locOutfitData.second.size()));
         }
-        actorOutfitAssignmentsLocal[handle] = assignments;
+        actorOutfitAssignmentsLocal[formId] = assignments;
     }
     actorOutfitAssignments = actorOutfitAssignmentsLocal;
     for (const auto& outfitData : data.outfits()) {
@@ -438,8 +438,8 @@ proto::OutfitSystem ArmorAddonOverrideService::save() {
     out.set_enabled(enabled);
     for (const auto& actorAssn : actorOutfitAssignments) {
         // Store a reference to the actor
-        RE::FormID handle;
-        handle = actorAssn.first;
+        RE::FormID formId;
+        formId = actorAssn.first;
 
         proto::ActorOutfitAssignment assnOut;
         assnOut.set_current_outfit_name(actorAssn.second.currentOutfitName.data(),
@@ -448,7 +448,7 @@ proto::OutfitSystem ArmorAddonOverrideService::save() {
             assnOut.mutable_location_based_outfits()
                 ->insert({static_cast<std::uint32_t>(lbo.first), std::string(lbo.second.data(), lbo.second.size())});
         }
-        out.mutable_actor_outfit_assignments()->insert({handle, assnOut});
+        out.mutable_actor_outfit_assignments()->insert({formId, assnOut});
     }
     for (const auto& outfit : outfits) {
         auto newOutfit = out.add_outfits();

@@ -931,7 +931,7 @@ namespace OutfitSystem {
             }
             location = location->parentLoc;
         }
-        return service.checkLocationType(keywords, weather_flags, RE::PlayerCharacter::GetSingleton()->CreateRefHandle().native_handle());
+        return service.checkLocationType(keywords, weather_flags, RE::PlayerCharacter::GetSingleton()->GetFormID());
     }
     std::uint32_t IdentifyLocationType(RE::BSScript::IVirtualMachine* registry,
                                        std::uint32_t stackId,
