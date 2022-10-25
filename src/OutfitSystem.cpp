@@ -148,10 +148,9 @@ namespace OutfitSystem {
         LogExit exitPrint("RefreshArmorForAllConfiguredActors"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
         auto actors = service.listActors();
-        for (auto& actorRef : actors) {
-            auto actor = RE::Actor::LookupByHandle(actorRef);
-            if (!actor)
-                continue;
+        for (auto& actor_form : actors) {
+            auto actor = RE::Actor::LookupByID<RE::Actor>(actor_form);
+            if (!actor) continue;
             auto pm = actor->GetActorRuntimeData().currentProcess;
             if (pm) {
                 //
@@ -163,7 +162,7 @@ namespace OutfitSystem {
                 //
                 // NOTE: AIProcess is also called as RE::ActorProcessManager
                 RE::AIProcessAugments::SetEquipFlag(pm, RE::AIProcessAugments::Flag::kUnk01);
-                RE::AIProcessAugments::UpdateEquipment(pm, actor.get());
+                RE::AIProcessAugments::UpdateEquipment(pm, actor);
             }
         }
     }
@@ -670,7 +669,7 @@ namespace OutfitSystem {
         if (!actor)
             return RE::BSFixedString("");
         auto& service = ArmorAddonOverrideService::GetInstance();
-        return service.currentOutfit(actor->GetHandle().native_handle()).m_name.c_str();
+        return service.currentOutfit(actor->GetFormID()).m_name.c_str();
     }
     bool IsEnabled(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*) {
         LogExit exitPrint("IsEnabled"sv);
@@ -817,7 +816,7 @@ namespace OutfitSystem {
         if (!actor)
             return;
         auto& service = ArmorAddonOverrideService::GetInstance();
-        service.setOutfit(name.data(), actor->GetHandle().native_handle());
+        service.setOutfit(name.data(), actor->GetFormID());
     }
     void AddActor(RE::BSScript::IVirtualMachine* registry,
                   std::uint32_t stackId,
@@ -825,7 +824,7 @@ namespace OutfitSystem {
                   RE::Actor* target) {
         LogExit exitPrint("AddActor"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
-        service.addActor(target->GetHandle().native_handle());
+        service.addActor(target->GetFormID());
     }
     void RemoveActor(RE::BSScript::IVirtualMachine* registry,
                      std::uint32_t stackId,
@@ -833,7 +832,7 @@ namespace OutfitSystem {
                      RE::Actor* target) {
         LogExit exitPrint("RemoveActor"sv);
         auto& service = ArmorAddonOverrideService::GetInstance();
-        service.removeActor(target->GetHandle().native_handle());
+        service.removeActor(target->GetFormID());
     }
     std::vector<RE::Actor*> ListActors(RE::BSScript::IVirtualMachine* registry,
                                        std::uint32_t stackId,
@@ -842,8 +841,8 @@ namespace OutfitSystem {
         auto& service = ArmorAddonOverrideService::GetInstance();
         auto actors = service.listActors();
         std::vector<RE::Actor*> actorVec;
-        for (auto& actorRef : actors) {
-            auto actor = RE::Actor::LookupByHandle(actorRef);
+        for (auto& actor_form : actors) {
+            auto actor = RE::Actor::LookupByID<RE::Actor>(actor_form);
             if (!actor) continue;
 #if _DEBUG
             LOG(debug, "INNER: Actor {} has refcount {}", actor->GetDisplayFullName(), actor->QRefCount());
@@ -851,7 +850,7 @@ namespace OutfitSystem {
             if (actor->QRefCount() == 1) {
                 LOG(warn, "ListActors will return an actor {} with refcount of 1. This may crash.", actor->GetDisplayFullName());
             }
-            actorVec.push_back(actor.get());
+            actorVec.push_back(actor);
         }
         std::sort(
             actorVec.begin(),
@@ -966,7 +965,7 @@ namespace OutfitSystem {
             RE::DebugNotification(message, nullptr, false);
             */
             if (location.has_value()) {
-                service.setOutfitUsingLocation(location.value(), actor->GetHandle().native_handle());
+                service.setOutfitUsingLocation(location.value(), actor->GetFormID());
             }
         }
     }
@@ -982,7 +981,7 @@ namespace OutfitSystem {
             return;
         }
         return ArmorAddonOverrideService::GetInstance()
-            .setLocationOutfit(LocationType(location), name.data(), actor->GetHandle().native_handle());
+            .setLocationOutfit(LocationType(location), name.data(), actor->GetFormID());
     }
     void UnsetLocationOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                              RE::Actor* actor,
@@ -991,7 +990,7 @@ namespace OutfitSystem {
         if (!actor)
             return;
         return ArmorAddonOverrideService::GetInstance()
-            .unsetLocationOutfit(LocationType(location), actor->GetHandle().native_handle());
+            .unsetLocationOutfit(LocationType(location), actor->GetFormID());
     }
     RE::BSFixedString GetLocationOutfit(RE::BSScript::IVirtualMachine* registry,
                                         std::uint32_t stackId,
@@ -1002,7 +1001,7 @@ namespace OutfitSystem {
         if (!actor)
             return RE::BSFixedString("");
         auto outfit = ArmorAddonOverrideService::GetInstance()
-                          .getLocationOutfit(LocationType(location), actor->GetHandle().native_handle());
+                          .getLocationOutfit(LocationType(location), actor->GetFormID());
         if (outfit.has_value()) {
             return RE::BSFixedString(outfit.value().c_str());
         } else {

@@ -109,6 +109,7 @@ public:
         kSaveVersionV3 = 3,// Unsupported handwritten binary format
         kSaveVersionV4 = 4,// First version with protobuf
         kSaveVersionV5 = 5,// First version with Slot Control System
+        kSaveVersionV6 = 6,// Switch to FormID for Actor (instead of Handle)
     };
     //
     static constexpr std::uint32_t ce_outfitNameMaxLength = 256;// SKSE caps serialized std::strings and const char*s to 256 bytes.
@@ -145,8 +146,7 @@ public:
     };
     bool enabled = true;
     std::map<cobb::istring, Outfit> outfits;
-    // TODO: You probably shouldn't use an Actor pointer to refer to actors. It works for the PlayerCharacter, but likely not for NPCs.
-    std::map<RE::RawActorHandle, ActorOutfitAssignments> actorOutfitAssignments;
+    std::map<RE::FormID, ActorOutfitAssignments> actorOutfitAssignments;
     // Location-based switching
     bool locationBasedAutoSwitchEnabled = false;
     //
@@ -160,29 +160,33 @@ public:
     //
     void addOutfit(const char* name);                                        // can throw bad_name
     void addOutfit(const char* name, std::vector<RE::TESObjectARMO*> armors);// can throw bad_name
-    Outfit& currentOutfit(RE::RawActorHandle target);
+    Outfit& currentOutfit(RE::FormID target);
     bool hasOutfit(const char* name) const;
     void deleteOutfit(const char* name);
     void setFavorite(const char* name, bool favorite);
     void modifyOutfit(const char* name, std::vector<RE::TESObjectARMO*>& add, std::vector<RE::TESObjectARMO*>& remove, bool createIfMissing = false);// can throw bad_name if (createIfMissing)
     void renameOutfit(const char* oldName, const char* newName);                                                                                     // throws name_conflict if the new name is already taken; can throw bad_name; throws std::out_of_range if the oldName doesn't exist
-    void setOutfit(const char* name, RE::RawActorHandle target);
-    void addActor(RE::RawActorHandle target);
-    void removeActor(RE::RawActorHandle target);
-    std::unordered_set<RE::RawActorHandle> listActors();
+    void setOutfit(const char* name, RE::FormID target);
+    void addActor(RE::FormID target);
+    void removeActor(RE::FormID target);
+    std::unordered_set<RE::FormID> listActors();
     //
     void setLocationBasedAutoSwitchEnabled(bool) noexcept;
-    void setOutfitUsingLocation(LocationType location, RE::RawActorHandle target);
-    void setLocationOutfit(LocationType location, const char* name, RE::RawActorHandle target);
-    void unsetLocationOutfit(LocationType location, RE::RawActorHandle target);
-    std::optional<cobb::istring> getLocationOutfit(LocationType location, RE::RawActorHandle target);
-    std::optional<LocationType> checkLocationType(const std::unordered_set<std::string>& keywords, const WeatherFlags& weather_flags, RE::RawActorHandle target);
+    void setOutfitUsingLocation(LocationType location, RE::FormID target);
+    void setLocationOutfit(LocationType location, const char* name, RE::FormID target);
+    void unsetLocationOutfit(LocationType location, RE::FormID target);
+    std::optional<cobb::istring> getLocationOutfit(LocationType location, RE::FormID target);
+    std::optional<LocationType> checkLocationType(const std::unordered_set<std::string>& keywords, const WeatherFlags& weather_flags, RE::FormID target);
     //
-    bool shouldOverride(RE::RawActorHandle target) const noexcept;
+    bool shouldOverride(RE::FormID target) const noexcept;
     void getOutfitNames(std::vector<std::string>& out, bool favoritesOnly = false) const;
     void setEnabled(bool) noexcept;
     //
     proto::OutfitSystem save();// can throw save_error
     //
     void dump() const;
+    // Migrations
+    void migrateSaveVersionV5();
+    void migrateSaveVersionV6();
+    void checkConsistency();
 };
