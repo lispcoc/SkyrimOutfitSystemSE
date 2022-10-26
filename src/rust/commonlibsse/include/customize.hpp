@@ -11,11 +11,7 @@
 #include <SKSE/SKSE.h>
 
 namespace RE {
-    using BipedObjectSlot = BIPED_MODEL::BipedObjectSlot;
     TESObjectARMO* ResolveARMOFormID(FormID id);
-    Actor* RE_PlayerCharacter_GetSingleton() {
-         return PlayerCharacter::GetSingleton();
-    }
 }
 
 #endif

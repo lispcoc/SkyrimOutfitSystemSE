@@ -76,16 +76,12 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
 else()
     set(CMAKE_RUST_MSVC_RUNTIME_LIBRARY "/MTd")
 endif()
-message(${CMAKE_RUST_MSVC_RUNTIME_LIBRARY})
 corrosion_set_env_vars(sos INCLUDE_PATHS="${RE_INCLUDE}" OPTIONS="${RE_OPTIONS}" DEFINITIONS="${RE_DEFINITIONS}" HEADER_GEN="${RUST_HEADER_PATH}" CRATE_CC_NO_DEFAULTS=1 CXXFLAGS="${CMAKE_RUST_MSVC_RUNTIME_LIBRARY}")
 
 add_library(sos-proxy STATIC ${RUST_HEADER_PATH}/bindings.h src/rust/dummy.cpp)
 add_custom_command(OUTPUT ${RUST_HEADER_PATH}/bindings.h COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RUST_HEADER_PATH}/bindings.h.tmp ${RUST_HEADER_PATH}/bindings.h DEPENDS sos-static)
 target_link_libraries(sos-proxy PUBLIC sos-static)
 target_include_directories(sos-proxy INTERFACE ${RUST_HEADER_PATH} src/rust/)
-
-get_target_property(OUTPUT_THING sos-static LINK_INTERFACE_LIBRARIES)
-message(${OUTPUT_THING})
 
 ################################################################################
 # Target

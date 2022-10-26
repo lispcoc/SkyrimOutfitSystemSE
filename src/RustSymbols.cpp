@@ -3,7 +3,10 @@
 //
 
 namespace RE {
-    TESObjectARMO* ResolveARMOFormID(FormID id) {
+    [[maybe_unused]] TESObjectARMO* ResolveARMOFormID(FormID id) {
         return skyrim_cast<RE::TESObjectARMO*>(RE::TESForm::LookupByID(id));
+    }
+    [[maybe_unused]] void instantiate() {
+        RE::PlayerCharacter::GetSingleton();
     }
 }

@@ -2,10 +2,10 @@
 
 mod outfit;
 
-use std::string::String;
 use uncased::{Uncased};
 #[allow(unused_imports)]
 use protos::outfit as ProtoOutfit;
+use commonlibsse::RE_FormID;
 use crate::outfit::{OutfitService, Outfit};
 
 type UncasedString = Uncased<'static>;
@@ -74,9 +74,8 @@ mod ffi {
     extern "C++" {
         include!("sos/include/customize.h");
         #[namespace = "SKSE"]
-        type SerializationInterface = commonlibsse::SerializationInterface;
-        type TESObjectARMO = commonlibsse::TESObjectARMO;
-        type BIPED_OBJECT = commonlibsse::BIPED_OBJECT;
+        type SerializationInterface = commonlibsse::SKSE_SerializationInterface;
+        type TESObjectARMO = commonlibsse::RE_TESObjectARMO;
     }
     extern "Rust" {
         type OutfitService;
@@ -119,7 +118,7 @@ mod ffi {
         type Outfit;
         unsafe fn conflicts_with(self: &Outfit, armor: *mut TESObjectARMO) -> bool;
         unsafe fn compute_display_set_c(self: &Outfit, equipped: &[*mut TESObjectARMO]) -> Vec<TESObjectARMOPtr>;
-        fn set_slot_policy_c(self: &mut Outfit, slot: BIPED_OBJECT, policy: OptionalPolicy);
+        fn set_slot_policy_c(self: &mut Outfit, slot: u32, policy: OptionalPolicy);
         fn set_blanket_slot_policy(self: &mut Outfit, policy: Policy);
         fn reset_to_default_slot_policy(self: &mut Outfit);
         fn armors_c(self: &Outfit) -> Vec<TESObjectARMOPtr>;
@@ -133,61 +132,11 @@ mod ffi {
         fn is_form_id_permitted(form: u32) -> bool;
     }
 }
-fn make_rust_string() -> *mut String {
-    Box::leak(Box::new(String::from("asdf")))
-}
+
 fn outfit_service_create() -> Box<OutfitService> {
     Box::new(OutfitService::new())
 }
 
-
-impl ffi::Policy {
-    fn policy_str(&self) -> Option<&'static str> {
-        match *self {
-            Self::XXXX => Some("XXXX"),
-            Self::XXXE => Some("XXXE"),
-            Self::XXXO => Some("XXXO"),
-            Self::XXOX => Some("XXOX"),
-            Self::XXOE => Some("XXOE"),
-            Self::XXOO => Some("XXOO"),
-            Self::XEXX => Some("XEXX"),
-            Self::XEXE => Some("XEXE"),
-            Self::XEXO => Some("XEXO"),
-            Self::XEOX => Some("XEOX"),
-            Self::XEOE => Some("XEOE"),
-            Self::XEOO => Some("XEOO"),
-            _ => None
-        }
-    }
-
-    pub fn select(&self, has_equipped: bool, has_outfit: bool) -> Option<PolicySelection> {
-        let policy_str = self.policy_str()?;
-        let code = match (has_equipped, has_outfit) {
-            (false, false) => policy_str.chars().nth(0),
-            (true, false) => policy_str.chars().nth(1),
-            (false, true) => policy_str.chars().nth(2),
-            (true, true) => policy_str.chars().nth(3),
-        };
-        match code {
-            Some('E') => Some(PolicySelection::Equipped),
-            Some('O') => Some(PolicySelection::Outfit),
-            _ => None
-        }
-    }
-
-    fn translation_key(&self) -> String {
-        return "$SkyOutSys_Desc_EasyPolicyName_".to_owned() + self.policy_str().unwrap_or_else(|| "");
-    }
-
-    pub const MAX: u8 = (Self::XEOO.repr + 1);
-}
-
-pub enum PolicySelection {
-    Outfit,
-    Equipped,
-}
-
-pub type FormID = u32;
-fn is_form_id_permitted(form: FormID) -> bool {
+fn is_form_id_permitted(form: RE_FormID) -> bool {
     form < 0xFF000000
 }

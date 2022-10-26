@@ -10,3 +10,4 @@ cxx = "1.0"
 
 [build-dependencies]
 cxx-build = "1.0"
+bindgen = "0.61.0"
