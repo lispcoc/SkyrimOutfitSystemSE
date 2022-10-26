@@ -12,65 +12,6 @@ namespace RE {
     class TESObjectARMO;
 }
 
-enum class LocationType : std::uint32_t {
-    World = 0,
-    Town = 1,
-    Dungeon = 2,
-    City = 9,
-
-    WorldSnowy = 3,
-    TownSnowy = 4,
-    DungeonSnowy = 5,
-    CitySnowy = 10,
-
-    WorldRainy = 6,
-    TownRainy = 7,
-    DungeonRainy = 8,
-    CityRainy = 11
-};
-
-struct WeatherFlags {
-    bool snowy = false;
-    bool rainy = false;
-};
-
-namespace SlotPolicy {
-    enum Mode : std::uint8_t {
-        XXXX,
-        XXXE,
-        XXXO,
-        XXOX,
-        XXOE,
-        XXOO,
-        XEXX,
-        XEXE,
-        XEXO,
-        XEOX,
-        XEOE,
-        XEOO,
-        kNumModes
-    };
-
-    struct Metadata {
-        std::string code;
-        std::int32_t sortOrder;
-        bool advanced;
-        std::string translationKey() const {
-            return "$SkyOutSys_Desc_EasyPolicyName_" + code;
-        }
-    };
-
-    extern std::array<Metadata, kNumModes> g_policiesMetadata;
-
-    enum class Selection {
-        EMPTY,
-        EQUIPPED,
-        OUTFIT
-    };
-
-    Selection select(Mode policy, bool hasEquipped, bool hasOutfit);
-}// namespace SlotPolicy
-
 OutfitService& GetRustInstance();
 
 struct bad_name: public std::runtime_error {

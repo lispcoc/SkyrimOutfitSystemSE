@@ -20,6 +20,7 @@ use crate::{
 };
 pub use crate::ffi::{LocationType, WeatherFlags};
 use slot_policy::{Policies, Policy};
+use crate::outfit::policy::METADATA;
 
 pub struct Outfit {
     pub name: UncasedString,
@@ -605,26 +606,19 @@ pub mod slot_policy {
 }
 
 impl Policy {
-    fn policy_str(&self) -> Option<&'static str> {
-        match *self {
-            Self::XXXX => Some("XXXX"),
-            Self::XXXE => Some("XXXE"),
-            Self::XXXO => Some("XXXO"),
-            Self::XXOX => Some("XXOX"),
-            Self::XXOE => Some("XXOE"),
-            Self::XXOO => Some("XXOO"),
-            Self::XEXX => Some("XEXX"),
-            Self::XEXE => Some("XEXE"),
-            Self::XEXO => Some("XEXO"),
-            Self::XEOX => Some("XEOX"),
-            Self::XEOE => Some("XEOE"),
-            Self::XEOO => Some("XEOO"),
-            _ => None
-        }
+    pub fn policy_with_code(code: &str) -> Option<Self> {
+        policy::METADATA
+            .iter()
+            .find(|data| data.code == code)
+            .map(|value| value.value)
+    }
+
+    fn policy_metadata(&self) -> Option<policy::Metadata> {
+        METADATA.iter().find(|m| m.value == *self).cloned()
     }
 
     pub fn select(&self, has_equipped: bool, has_outfit: bool) -> Option<PolicySelection> {
-        let policy_str = self.policy_str()?;
+        let policy_str = self.policy_metadata()?.code;
         let code = match (has_equipped, has_outfit) {
             (false, false) => policy_str.chars().nth(0),
             (true, false) => policy_str.chars().nth(1),
@@ -639,12 +633,102 @@ impl Policy {
     }
 
     fn translation_key(&self) -> String {
-        return "$SkyOutSys_Desc_EasyPolicyName_".to_owned() + self.policy_str().unwrap_or_else(|| "");
+        return "$SkyOutSys_Desc_EasyPolicyName_".to_owned() + self.policy_metadata().map(|m| m.code).unwrap_or_else(|| "");
     }
 
     pub const MAX: u8 = (Self::XEOO.repr + 1);
 }
 
+pub mod policy {
+    use crate::ffi::{MetadataC, OptionalMetadata, OptionalPolicy};
+    pub use crate::ffi::{Policy};
+
+    #[derive(Clone)]
+    pub struct Metadata {
+        pub value: Policy,
+        pub code: &'static str,
+        pub sort_order: i8,
+        pub advanced: bool,
+    }
+
+    impl From<Metadata> for MetadataC {
+        fn from(meta: Metadata) -> Self {
+            MetadataC {
+                value: meta.value,
+                code_buf: meta.code.as_ptr() as *const i8,
+                code_len: meta.code.len(),
+                sort_order: meta.sort_order,
+                advanced: meta.advanced,
+            }
+        }
+    }
+
+    pub const METADATA: [Metadata; 12] = [
+        Metadata{value: Policy::XXXX, code: "XXXX", sort_order: 100, advanced: true},// Never show anything
+        Metadata{value: Policy::XXXE, code: "XXXE", sort_order: 101, advanced: true},// If outfit and equipped, show equipped
+        Metadata{value: Policy::XXXO, code: "XXXO", sort_order: 2, advanced: false}, // If outfit and equipped, show outfit (require equipped, no passthrough)
+        Metadata{value: Policy::XXOX, code: "XXOX", sort_order: 102, advanced: true},// If only outfit, show outfit
+        Metadata{value: Policy::XXOE, code: "XXOE", sort_order: 103, advanced: true},// If only outfit, show outfit. If both, show equipped
+        Metadata{value: Policy::XXOO, code: "XXOO", sort_order: 1, advanced: false}, // If outfit, show outfit (always show outfit, no passthough)
+        Metadata{value: Policy::XEXX, code: "XEXX", sort_order: 104, advanced: true},// If only equipped, show equipped
+        Metadata{value: Policy::XEXE, code: "XEXE", sort_order: 105, advanced: true},// If equipped, show equipped
+        Metadata{value: Policy::XEXO, code: "XEXO", sort_order: 3, advanced: false}, // If only equipped, show equipped. If both, show outfit
+        Metadata{value: Policy::XEOX, code: "XEOX", sort_order: 106, advanced: true},// If only equipped, show equipped. If only outfit, show outfit
+        Metadata{value: Policy::XEOE, code: "XEOE", sort_order: 107, advanced: true},// If only equipped, show equipped. If only outfit, show outfit. If both, show equipped
+        Metadata{value: Policy::XEOO, code: "XEOO", sort_order: 108, advanced: true} // If only equipped, show equipped. If only outfit, show outfit. If both, show outfit
+    ];
+
+    pub fn policy_with_code_c(code: &str) -> OptionalPolicy {
+        if let Some(value) = Policy::policy_with_code(code) {
+            OptionalPolicy { has_value: true, value }
+        } else {
+            OptionalPolicy { has_value: false, value: Policy::XXXX }
+        }
+    }
+
+    pub fn list_available_policies_c(allow_advanced: bool) -> Vec<MetadataC> {
+        list_available_policies(allow_advanced).into_iter().cloned().map(|m| MetadataC::from(m)).collect()
+    }
+
+    pub fn list_available_policies(allow_advanced: bool) -> Vec<&'static Metadata> {
+        let mut filtered: Vec<_> = METADATA
+            .iter()
+            .filter(|p| allow_advanced || !p.advanced)
+            .collect();
+        filtered.sort_by_key(|v| v.sort_order);
+        filtered
+    }
+
+    pub fn translation_key_c(policy: &Policy) -> String {
+        policy.translation_key()
+    }
+
+    pub fn policy_metadata_c(policy: &Policy) -> OptionalMetadata {
+        if let Some(meta) = policy.policy_metadata() {
+            OptionalMetadata {
+                has_value: true,
+                value: MetadataC {
+                    value: meta.value,
+                    code_buf: meta.code.as_ptr() as *const i8,
+                    code_len: meta.code.len(),
+                    sort_order: meta.sort_order,
+                    advanced: meta.advanced,
+                }
+            }
+        } else {
+            OptionalMetadata {
+                has_value: false,
+                value: MetadataC {
+                    value: Policy::XXXX,
+                    code_buf: std::ptr::null(),
+                    code_len: 0,
+                    sort_order: 0,
+                    advanced: false
+                }
+            }
+        }
+    }
+}
 
 pub enum PolicySelection {
     Outfit,

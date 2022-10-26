@@ -6,19 +6,17 @@ use uncased::{Uncased};
 #[allow(unused_imports)]
 use protos::outfit as ProtoOutfit;
 use commonlibsse::RE_FormID;
-use crate::outfit::{OutfitService, Outfit};
+use crate::outfit::{OutfitService, Outfit, policy::*};
 
 type UncasedString = Uncased<'static>;
 
 #[cxx::bridge]
 mod ffi {
-    #[cxx_name = "RustWeatherFlags"]
     pub struct WeatherFlags {
         pub rainy: bool,
         pub snowy: bool,
     }
 
-    #[cxx_name = "RustLocationType"]
     #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
     #[repr(u32)]
     pub enum LocationType {
@@ -38,7 +36,6 @@ mod ffi {
         CityRainy = 11
     }
 
-    #[cxx_name = "RustPolicy"]
     #[derive(Ord, PartialOrd, Eq, PartialEq)]
     #[repr(u8)]
     pub enum Policy {
@@ -68,6 +65,20 @@ mod ffi {
 
     pub struct TESObjectARMOPtr {
         pub ptr: *mut TESObjectARMO
+    }
+
+    #[derive(Clone)]
+    pub struct MetadataC {
+        pub value: Policy,
+        pub code_buf: *const c_char,
+        pub code_len: usize,
+        pub sort_order: i8,
+        pub advanced: bool,
+    }
+
+    pub struct OptionalMetadata {
+        pub has_value: bool,
+        pub value: MetadataC,
     }
 
     #[namespace = "RE"]
@@ -114,7 +125,6 @@ mod ffi {
         fn save_json_c(self: &mut OutfitService) -> String;
         fn save_proto_c(self: &mut OutfitService) -> Vec<u8>;
 
-        #[cxx_name = "RustOutfit"]
         type Outfit;
         unsafe fn conflicts_with(self: &Outfit, armor: *mut TESObjectARMO) -> bool;
         unsafe fn compute_display_set_c(self: &Outfit, equipped: &[*mut TESObjectARMO]) -> Vec<TESObjectARMOPtr>;
@@ -130,6 +140,12 @@ mod ffi {
         fn policy_names_for_outfit(self: &Outfit) -> Vec<String>;
 
         fn is_form_id_permitted(form: u32) -> bool;
+
+        // Policy methods
+        fn policy_with_code_c(code: &str) -> OptionalPolicy;
+        fn list_available_policies_c(allow_advanced: bool) -> Vec<MetadataC>;
+        fn translation_key_c(policy: &Policy) -> String;
+        fn policy_metadata_c(policy: &Policy) -> OptionalMetadata;
     }
 }
 

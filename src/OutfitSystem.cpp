@@ -397,14 +397,11 @@ namespace OutfitSystem {
                 return;
             }
             if (code.empty()) {
-                outfit.set_slot_policy_c(static_cast<RE::BIPED_OBJECT>(slot), OptionalPolicy{false, RustPolicy::XXXX});
+                outfit.set_slot_policy_c(static_cast<RE::BIPED_OBJECT>(slot), OptionalPolicy{false, Policy::XXXX});
             } else {
-                std::string codeString(code);
-                auto found = std::find_if(SlotPolicy::g_policiesMetadata.begin(), SlotPolicy::g_policiesMetadata.end(), [&](const SlotPolicy::Metadata& first) {
-                    return first.code == codeString;
-                });
-                if (found == SlotPolicy::g_policiesMetadata.end()) return;
-                outfit.set_slot_policy_c(static_cast<RE::BIPED_OBJECT>(slot), OptionalPolicy{true, static_cast<RustPolicy>(found - SlotPolicy::g_policiesMetadata.begin())});
+                auto optional_policy = policy_with_code_c(rust::Str(code.c_str()));
+                if (!optional_policy.has_value) return;
+                outfit.set_slot_policy_c(static_cast<RE::BIPED_OBJECT>(slot), optional_policy);
             }
         }
         void SetAllBodySlotPoliciesForOutfit(RE::BSScript::IVirtualMachine* registry,
@@ -418,11 +415,9 @@ namespace OutfitSystem {
             if (!outfit_ptr) return;
             auto& outfit = *outfit_ptr;
             std::string codeString(code);
-            auto found = std::find_if(SlotPolicy::g_policiesMetadata.begin(), SlotPolicy::g_policiesMetadata.end(), [&](const SlotPolicy::Metadata& first) {
-                return first.code == codeString;
-            });
-            if (found == SlotPolicy::g_policiesMetadata.end()) return;
-            outfit.set_blanket_slot_policy(static_cast<RustPolicy>(found - SlotPolicy::g_policiesMetadata.begin()));
+            auto optional_policy = policy_with_code_c(rust::Str(code.c_str()));
+            if (!optional_policy.has_value) return;
+            outfit.set_blanket_slot_policy(optional_policy.value);
         }
         void SetBodySlotPolicyToDefaultForOutfit(RE::BSScript::IVirtualMachine* registry,
                                                  std::uint32_t stackId,
@@ -439,29 +434,22 @@ namespace OutfitSystem {
                                                                std::uint32_t stackId,
                                                                RE::StaticFunctionTag*) {
             LogExit exitPrint("BodySlotPolicy.GetAvailablePolicyNames"sv);
-            auto policies = std::vector<SlotPolicy::Metadata>(SlotPolicy::g_policiesMetadata.begin(), SlotPolicy::g_policiesMetadata.end());
-            std::erase_if(policies, [](const SlotPolicy::Metadata& first) { return first.advanced; });
-            std::sort(policies.begin(), policies.end(), [](const SlotPolicy::Metadata& first, const SlotPolicy::Metadata& second) {
-                return first.sortOrder < second.sortOrder;
-            });
+            auto policies = list_available_policies_c(false);
             std::vector<RE::BSFixedString> result;
             for (const auto& policy : policies) {
-                result.emplace_back(policy.translationKey());
+                auto key = translation_key_c(policy.value);
+                result.emplace_back(key.c_str());
             }
             return result;
         }
-        std::vector<RE::BSFixedString> GetAvailablePolicyCodes(RE::BSScript::IVirtualMachine* registry,
+        std::vector<std::string> GetAvailablePolicyCodes(RE::BSScript::IVirtualMachine* registry,
                                                                std::uint32_t stackId,
                                                                RE::StaticFunctionTag*) {
             LogExit exitPrint("BodySlotPolicy.GetAvailablePolicyCodes"sv);
-            auto policies = std::vector<SlotPolicy::Metadata>(SlotPolicy::g_policiesMetadata.begin(), SlotPolicy::g_policiesMetadata.end());
-            std::erase_if(policies, [](const SlotPolicy::Metadata& first) { return first.advanced; });
-            std::sort(policies.begin(), policies.end(), [](const SlotPolicy::Metadata& first, const SlotPolicy::Metadata& second) {
-                return first.sortOrder < second.sortOrder;
-            });
-            std::vector<RE::BSFixedString> result;
+            auto policies = list_available_policies_c(false);
+            std::vector<std::string> result;
             for (const auto& policy : policies) {
-                result.emplace_back(policy.code);
+                result.emplace_back(policy.code_buf, policy.code_len);
             }
             return result;
         }
@@ -913,7 +901,7 @@ namespace OutfitSystem {
         }
         return result;
     }
-    std::optional<RustLocationType> identifyLocation(RE::BGSLocation* location, RE::TESWeather* weather) {
+    std::optional<LocationType> identifyLocation(RE::BGSLocation* location, RE::TESWeather* weather) {
         LogExit exitPrint("identifyLocation"sv);
         // Just a helper function to classify a location.
         // TODO: Think of a better place than this since we're not exposing it to Papyrus.
@@ -943,7 +931,7 @@ namespace OutfitSystem {
             }
             location = location->parentLoc;
         }
-        auto result = service.check_location_type_c(keywords, RustWeatherFlags {weather_flags.rainy, weather_flags.snowy}, RE::PlayerCharacter::GetSingleton()->GetFormID());
+        auto result = service.check_location_type_c(keywords, weather_flags, RE::PlayerCharacter::GetSingleton()->GetFormID());
         if (result.has_value) {
             return result.value;
         } else {
@@ -961,7 +949,7 @@ namespace OutfitSystem {
         //       Therefore, Papyrus cannot assume that locations returned have an outfit assigned, at least not for "World".
         return static_cast<std::uint32_t>(identifyLocation((RE::BGSLocation*) location_skse,
                                                            (RE::TESWeather*) weather_skse)
-                                              .value_or(RustLocationType::World));
+                                              .value_or(LocationType::World));
     }
     void SetOutfitUsingLocation(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                                 RE::Actor* actor,
@@ -997,7 +985,7 @@ namespace OutfitSystem {
             // Location outfit assignment is never allowed to be empty string. Use unset instead.
             return;
         }
-        GetRustInstance().set_location_outfit(RustLocationType(location), actor->GetFormID(), name.data());
+        GetRustInstance().set_location_outfit(LocationType(location), actor->GetFormID(), name.data());
     }
     void UnsetLocationOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                              RE::Actor* actor,
@@ -1005,7 +993,7 @@ namespace OutfitSystem {
         LogExit exitPrint("UnsetLocationOutfit"sv);
         if (!actor)
             return;
-        return GetRustInstance().unset_location_outfit(RustLocationType(location), actor->GetFormID());
+        return GetRustInstance().unset_location_outfit(LocationType(location), actor->GetFormID());
     }
     RE::BSFixedString GetLocationOutfit(RE::BSScript::IVirtualMachine* registry,
                                         std::uint32_t stackId,
@@ -1015,7 +1003,7 @@ namespace OutfitSystem {
         LogExit exitPrint("GetLocationOutfit"sv);
         if (!actor)
             return RE::BSFixedString("");
-        auto outfit = GetRustInstance().get_location_outfit_name_c(RustLocationType(location), actor->GetFormID());
+        auto outfit = GetRustInstance().get_location_outfit_name_c(LocationType(location), actor->GetFormID());
         if (!outfit.empty()) {
             return RE::BSFixedString(outfit.c_str());
         } else {
