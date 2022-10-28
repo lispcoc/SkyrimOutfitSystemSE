@@ -24,7 +24,3 @@ public:
         LOG(trace, "Exit {}", m_string);
     };
 };
-
-static bool isFormIdPermitted(RE::FormID id) {
-    return id < 0xFF000000;
-}

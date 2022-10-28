@@ -16,12 +16,6 @@ if(NOT "${VCPKG_TARGET_TRIPLET}" STREQUAL "x64-windows-static")
 endif()
 
 ################################################################################
-# Find and configure Google Protocol Buffers
-################################################################################
-find_package(Protobuf REQUIRED)
-message(STATUS "Found protoc at ${Protobuf_PROTOC_EXECUTABLE}")
-
-################################################################################
 # Global configuration types
 ################################################################################
 set(CMAKE_CONFIGURATION_TYPES
@@ -52,28 +46,42 @@ set(SKSE_SUPPORT_XBYAK 1)
 find_package(CommonLibSSE REQUIRED)
 
 ################################################################################
-# Build Protocol Buffers
-################################################################################
-protobuf_generate_cpp(
-    PROTO_SRC PROTO_HDR
-    src/protos/outfit.proto
-)
-
-add_library(ProtocolBuffers STATIC ${PROTO_SRC} ${PROTO_HDR})
-
-target_link_libraries(ProtocolBuffers PUBLIC protobuf::libprotobuf)
-
-target_include_directories(ProtocolBuffers PUBLIC ${CMAKE_CURRENT_BINARY_DIR}) # The headers are generated right into the output dir.
-
-################################################################################
 # MSVC runtime library
 ################################################################################
 string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
         $<$<CONFIG:Debug>:MultiThreadedDebug>
         $<$<CONFIG:Release>:MultiThreaded>)
 
-# Also force it on Protobuf
-set_target_properties(ProtocolBuffers PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
+################################################################################
+# Rust Stuff
+################################################################################
+include(FetchContent)
+
+FetchContent_Declare(
+        Corrosion
+        GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+        GIT_TAG v0.2.1 # Optionally specify a commit hash, version tag or branch here
+)
+
+FetchContent_MakeAvailable(Corrosion)
+
+corrosion_import_crate(MANIFEST_PATH src/rust/Cargo.toml)
+
+get_target_property(RE_INCLUDE CommonLibSSE::CommonLibSSE INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(RE_OPTIONS CommonLibSSE::CommonLibSSE INTERFACE_COMPILE_OPTIONS)
+get_target_property(RE_DEFINITIONS CommonLibSSE::CommonLibSSE INTERFACE_COMPILE_DEFINITIONS)
+set(RUST_HEADER_PATH ${CMAKE_CURRENT_BINARY_DIR}/rust-include/)
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_RUST_MSVC_RUNTIME_LIBRARY "/MT")
+else()
+    set(CMAKE_RUST_MSVC_RUNTIME_LIBRARY "/MTd")
+endif()
+corrosion_set_env_vars(sos INCLUDE_PATHS="${RE_INCLUDE}" OPTIONS="${RE_OPTIONS}" DEFINITIONS="${RE_DEFINITIONS}" HEADER_GEN="${RUST_HEADER_PATH}" CRATE_CC_NO_DEFAULTS=1 CXXFLAGS="${CMAKE_RUST_MSVC_RUNTIME_LIBRARY}")
+
+add_library(sos-proxy STATIC ${RUST_HEADER_PATH}/bindings.h src/rust/dummy.cpp)
+add_custom_command(OUTPUT ${RUST_HEADER_PATH}/bindings.h COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RUST_HEADER_PATH}/bindings.h.tmp ${RUST_HEADER_PATH}/bindings.h DEPENDS sos-static)
+target_link_libraries(sos-proxy PUBLIC sos-static)
+target_include_directories(sos-proxy INTERFACE ${RUST_HEADER_PATH} src/rust/)
 
 ################################################################################
 # Target
@@ -83,12 +91,7 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/version.rc
     include/SOS_PCH.h
     src/main.cpp
-    include/cobb/strings.h
-    include/cobb/utf8naturalsort.h
-    src/cobb/utf8naturalsort.cpp
-    include/cobb/utf8string.h
-    src/cobb/utf8string.cpp
-    include/ArmorAddonOverrideService.h
+        include/ArmorAddonOverrideService.h
     src/ArmorAddonOverrideService.cpp
     include/OutfitSystem.h
     src/OutfitSystem.cpp
@@ -97,7 +100,9 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/hooking/Hooks_PRE_AE.cpp
     src/hooking/Patches.cpp
     src/Utility.cpp
-        include/RE/REAugments.h src/RE/REAugments.cpp)
+    include/RE/REAugments.h
+    src/RE/REAugments.cpp
+    src/RustSymbols.cpp)
 
 set(ROOT_NAMESPACE SkyrimOutfitSystemSE)
 
@@ -179,8 +184,8 @@ target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     nonstd::span-lite
     spdlog::spdlog
     ${INIH_LIBRARY}
-    ProtocolBuffers
     xbyak::xbyak
+    sos-proxy
 )
 
 target_include_directories(SkyrimOutfitSystemSE PRIVATE
