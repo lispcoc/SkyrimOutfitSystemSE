@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use uncased::{Uncased, UncasedStr};
 use commonlibsse::{
     RE_ActorFormID,
@@ -24,7 +24,7 @@ use crate::outfit::policy::METADATA;
 
 pub struct Outfit {
     pub name: UncasedString,
-    pub armors: HashSet<*mut RE_TESObjectARMO>,
+    pub armors: BTreeSet<*mut RE_TESObjectARMO>,
     pub favorite: bool,
     pub slot_policies: Policies,
 }
@@ -128,7 +128,7 @@ impl Outfit {
             slots
         };
         let mut mask = 0;
-        let mut results = HashSet::new();
+        let mut results = BTreeSet::new();
         for slot in 0..RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal {
             if mask & (1 << slot) != 0 { continue }
             let policy = self.slot_policies
@@ -224,7 +224,7 @@ impl Default for ActorAssignments {
 
 pub struct OutfitService {
     pub enabled: bool,
-    pub outfits: HashMap<UncasedString, Outfit>,
+    pub outfits: BTreeMap<UncasedString, Outfit>,
     pub actor_assignments: BTreeMap<RE_ActorFormID, ActorAssignments>,
     pub location_switching_enabled: bool,
 }
@@ -478,7 +478,7 @@ impl OutfitService {
         }
     }
     pub fn check_location_type(&self, keywords: Vec<String>, weather_flags: WeatherFlags, target: RE_ActorFormID) -> Option<LocationType> {
-        let kw_map: HashSet<_> = keywords.into_iter().collect();
+        let kw_map: BTreeSet<_> = keywords.into_iter().collect();
         let actor_assn = &self.actor_assignments.get(&target)?.location_based;
         macro_rules! check_location {
             ($variant:expr, $check_code:expr) => {
