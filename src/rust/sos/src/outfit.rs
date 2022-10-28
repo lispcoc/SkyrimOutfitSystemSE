@@ -575,8 +575,9 @@ impl OutfitService {
     }
 
     pub fn check_consistency(&mut self) {
-        if !self.actor_assignments.contains_key(&unsafe { (*RE_PlayerCharacter_GetSingleton())._base._base._base._base.GetFormID() }) {
-            self.actor_assignments.insert(unsafe { (*RE_PlayerCharacter_GetSingleton())._base._base._base._base.GetFormID() }, ActorAssignments::default());
+        let player_form_id = unsafe { (*RE_PlayerCharacter_GetSingleton())._base._base._base._base.GetFormID() };
+        if !self.actor_assignments.contains_key(&player_form_id) {
+            self.actor_assignments.insert(player_form_id, ActorAssignments::default());
         }
         self.actor_assignments.retain(|item, _| is_form_id_permitted(*item));
     }
