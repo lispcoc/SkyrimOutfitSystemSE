@@ -91,12 +91,7 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/version.rc
     include/SOS_PCH.h
     src/main.cpp
-    include/cobb/strings.h
-    include/cobb/utf8naturalsort.h
-    src/cobb/utf8naturalsort.cpp
-    include/cobb/utf8string.h
-    src/cobb/utf8string.cpp
-    include/ArmorAddonOverrideService.h
+        include/ArmorAddonOverrideService.h
     src/ArmorAddonOverrideService.cpp
     include/OutfitSystem.h
     src/OutfitSystem.cpp

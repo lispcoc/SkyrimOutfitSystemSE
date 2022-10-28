@@ -4,8 +4,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cobb/strings.h"
-
 #include "bindings.h"
 
 namespace RE {

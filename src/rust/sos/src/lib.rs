@@ -1,12 +1,14 @@
 #![allow(dead_code)]
 
 mod outfit;
+mod strings;
 
 use uncased::{Uncased};
 #[allow(unused_imports)]
 use protos::outfit as ProtoOutfit;
 use commonlibsse::RE_FormID;
-use crate::outfit::{OutfitService, Outfit, policy::*};
+use outfit::{OutfitService, Outfit, policy::*};
+use strings::{nat_ord_case_insensitive_c};
 
 type UncasedString = Uncased<'static>;
 
@@ -146,6 +148,9 @@ mod ffi {
         fn list_available_policies_c(allow_advanced: bool) -> Vec<MetadataC>;
         fn translation_key_c(policy: &Policy) -> String;
         fn policy_metadata_c(policy: &Policy) -> OptionalMetadata;
+
+        // String Utilities
+        fn nat_ord_case_insensitive_c(a: &str, b: &str) -> i8;
     }
 }
 

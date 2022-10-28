@@ -12,6 +12,7 @@ uncased = "0.9.7"
 cxx = "1.0"
 protobuf = "3.2.0"
 protobuf-json-mapping = "3.2.0"
+natord = "1.0.9"
 
 [build-dependencies]
 cbindgen = "0.20.0"

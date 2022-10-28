@@ -5,9 +5,6 @@
 #include "ArmorAddonOverrideService.h"
 
 #include "RE/REAugments.h"
-#include "cobb/strings.h"
-#include "cobb/utf8naturalsort.h"
-#include "cobb/utf8string.h"
 #include "bindings.h"
 
 #include <algorithm>
@@ -470,7 +467,7 @@ namespace OutfitSystem {
                     std::string b(y.data());
                     if (descending)
                         std::swap(a, b);
-                    return cobb::utf8::naturalcompare(a, b) > 0;
+                    return nat_ord_case_insensitive_c(a, b) > 0;
                 });
             return result;
         }
@@ -508,7 +505,7 @@ namespace OutfitSystem {
                     std::string b(y.first.data());
                     if (descending)
                         std::swap(a, b);
-                    return cobb::utf8::naturalcompare(a, b) > 0;
+                    return nat_ord_case_insensitive_c(a, b) > 0;
                 });
             for (std::uint32_t i = 0; i < size; i++) {
                 result.push_back(pairs[i].first);
@@ -935,7 +932,7 @@ namespace OutfitSystem {
         if (result.has_value) {
             return result.value;
         } else {
-            return nullopt;
+            return std::nullopt;
         }
     }
     std::uint32_t IdentifyLocationType(RE::BSScript::IVirtualMachine* registry,
