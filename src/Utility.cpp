@@ -63,9 +63,7 @@ Settings::Settings() : reader(GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\Skyr
 
 Settings::~Settings() {}
 
-static Settings* settings;
-
 INIReader* Settings::Instance() {
-    if (!settings) settings = new Settings();
-    return &settings->reader;
+    static Settings settings = Settings();
+    return &settings.reader;
 }

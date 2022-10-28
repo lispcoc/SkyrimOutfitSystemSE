@@ -91,7 +91,7 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/version.rc
     include/SOS_PCH.h
     src/main.cpp
-        include/ArmorAddonOverrideService.h
+    include/ArmorAddonOverrideService.h
     src/ArmorAddonOverrideService.cpp
     include/OutfitSystem.h
     src/OutfitSystem.cpp
