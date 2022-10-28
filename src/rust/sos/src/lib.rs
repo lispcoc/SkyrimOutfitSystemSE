@@ -96,7 +96,7 @@ mod ffi {
         fn replace_with_new(self: &mut OutfitService);
         unsafe fn replace_with_proto_data_ptr(self: &mut OutfitService, data: &[u8], intfc: *const SerializationInterface) -> bool;
         unsafe fn replace_with_json_data(self: &mut OutfitService, data: &str, intfc: *const SerializationInterface) -> bool;
-        fn max_outfit_name_len(self: &OutfitService) -> u32;
+        fn max_outfit_name_len(self: &OutfitService) -> i32;
         fn get_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
         fn get_or_create_mut_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
         fn add_outfit(self: &mut OutfitService, name: &str);

@@ -239,7 +239,7 @@ impl OutfitService {
         }
     }
 
-    pub fn max_outfit_name_len(&self) -> u32 {
+    pub fn max_outfit_name_len(&self) -> i32 {
         256
     }
     pub fn replace_with_new(&mut self) {
