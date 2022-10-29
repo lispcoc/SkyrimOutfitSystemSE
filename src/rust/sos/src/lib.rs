@@ -1,16 +1,16 @@
 extern crate core;
 
-pub mod outfit;
-pub mod strings;
-mod interface;
 mod helpers;
-mod persistence;
+mod interface;
 mod logging;
+pub mod outfit;
+mod persistence;
+pub mod strings;
 
-use commonlibsse::*;
-use log::*;
 use crate::logging::SimpleLogger;
 use crate::outfit::OutfitService;
+use commonlibsse::*;
+use log::*;
 
 #[no_mangle]
 pub extern "C" fn plugin_main(skse: *const SKSE_LoadInterface) -> bool {
@@ -30,7 +30,9 @@ pub extern "C" fn plugin_main(skse: *const SKSE_LoadInterface) -> bool {
             return false;
         };
 
-        if (*SKSE_GetSerializationInterface()).Version() < SKSE_SerializationInterface_kVersion as u32 {
+        if (*SKSE_GetSerializationInterface()).Version()
+            < SKSE_SerializationInterface_kVersion as u32
+        {
             error!("Serialization interface too old");
             return false;
         };
@@ -39,8 +41,8 @@ pub extern "C" fn plugin_main(skse: *const SKSE_LoadInterface) -> bool {
 
         info!("Patching player skinning");
         REL_Relocate(
-        ApplyPlayerSkinningHooksSE as unsafe extern "C" fn(),
-        ApplyPlayerSkinningHooksAE as unsafe extern "C" fn()
+            ApplyPlayerSkinningHooksSE as unsafe extern "C" fn(),
+            ApplyPlayerSkinningHooksAE as unsafe extern "C" fn(),
         )();
 
         // Messaging Callback
@@ -50,8 +52,10 @@ pub extern "C" fn plugin_main(skse: *const SKSE_LoadInterface) -> bool {
         // Serialization Callbacks
         info!("Registering serialization callback");
         (*SKSE_GetSerializationInterface()).SetUniqueID(persistence::UNIQUE_SIGNATURE_INT);
-        (*SKSE_GetSerializationInterface()).SetSaveCallback(Some(persistence::serialization_save_callback));
-        (*SKSE_GetSerializationInterface()).SetLoadCallback(Some(persistence::serialization_load_callback));
+        (*SKSE_GetSerializationInterface())
+            .SetSaveCallback(Some(persistence::serialization_save_callback));
+        (*SKSE_GetSerializationInterface())
+            .SetLoadCallback(Some(persistence::serialization_load_callback));
 
         // Papyrus Registrations
         info!("Registering papyrus");
@@ -64,17 +68,19 @@ pub extern "C" fn plugin_main(skse: *const SKSE_LoadInterface) -> bool {
 #[no_mangle]
 #[allow(non_upper_case_globals)]
 pub extern "C" fn messaging_callback(message: *mut SKSE_MessagingInterface_Message) {
-    if message.is_null() { return }
+    if message.is_null() {
+        return;
+    }
     let message_type = unsafe { (*message).type_ };
     match message_type {
-        SKSE_MessagingInterface_kPostLoad => {},
-        SKSE_MessagingInterface_kPostPostLoad => {},
-        SKSE_MessagingInterface_kDataLoaded => {},
-        SKSE_MessagingInterface_kNewGame | SKSE_MessagingInterface_kPreLoadGame  => {
+        SKSE_MessagingInterface_kPostLoad => {}
+        SKSE_MessagingInterface_kPostPostLoad => {}
+        SKSE_MessagingInterface_kDataLoaded => {}
+        SKSE_MessagingInterface_kNewGame | SKSE_MessagingInterface_kPreLoadGame => {
             let service = unsafe { &mut *outfit_service_get_singleton_ptr() };
             service.replace_with_new();
             service.check_consistency();
-        },
+        }
         message_type => {
             warn!("Got unknown message type {}", message_type);
         }

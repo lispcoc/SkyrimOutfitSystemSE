@@ -45,14 +45,12 @@ fn main() {
         .generate_inline_functions(true)
         .parse_callbacks(Box::new(bindgen::CargoCallbacks));
 
-    for define in defines.split(" ") {
-        let pair = define.split_once("=").expect("Failed to split at =");
+    for define in defines.split(' ') {
+        let pair = define.split_once('=').expect("Failed to split at =");
         bindings = bindings.clang_arg(format!("-D{}={}", pair.0, pair.1));
     }
 
-    let bindings = bindings
-        .generate()
-        .expect("Unable to generate bindings");
+    let bindings = bindings.generate().expect("Unable to generate bindings");
 
     let out_path = PathBuf::from(std::env::var("OUT_DIR").unwrap());
 

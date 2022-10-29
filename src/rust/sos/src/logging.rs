@@ -1,10 +1,16 @@
+use log::{set_logger, set_max_level, Level, Log, Metadata, Record};
 use std::ffi::{c_char, c_int, CString};
-use log::{Record, Level, Metadata, Log, set_logger, set_max_level};
 
 pub struct SimpleLogger {}
 
 extern "C" {
-    fn RustLog(filename_in: *const c_char, line_in: c_int, funcname_in: *const c_char, level: c_int, message: *const c_char);
+    fn RustLog(
+        filename_in: *const c_char,
+        line_in: c_int,
+        funcname_in: *const c_char,
+        level: c_int,
+        message: *const c_char,
+    );
     fn RustGetLogLevel() -> c_int;
 }
 
@@ -23,12 +29,12 @@ mod levels {
 impl log::Log for SimpleLogger {
     fn enabled(&self, metadata: &Metadata) -> bool {
         let selected = match unsafe { RustGetLogLevel() } {
-            levels::TRACE => { Level::Trace }
-            levels::DEBUG => { Level::Debug }
-            levels::INFO => { Level::Info }
-            levels::WARN => { Level::Warn }
-            levels::ERR => { Level::Error }
-            levels::CRITICAL => { Level::Error }
+            levels::TRACE => Level::Trace,
+            levels::DEBUG => Level::Debug,
+            levels::INFO => Level::Info,
+            levels::WARN => Level::Warn,
+            levels::ERR => Level::Error,
+            levels::CRITICAL => Level::Error,
             _ => return false,
         };
         metadata.level() <= selected
@@ -43,18 +49,18 @@ impl log::Log for SimpleLogger {
 
 impl SimpleLogger {
     pub fn setup() {
-        let logger = Box::new(SimpleLogger{});
+        let logger = Box::new(SimpleLogger {});
         set_logger(Box::leak(logger)).ok();
         Self::update_max_level();
     }
     pub fn update_max_level() {
         let selected = match unsafe { RustGetLogLevel() } {
-            levels::TRACE => { Level::Trace }
-            levels::DEBUG => { Level::Debug }
-            levels::INFO => { Level::Info }
-            levels::WARN => { Level::Warn }
-            levels::ERR => { Level::Error }
-            levels::CRITICAL => { Level::Error }
+            levels::TRACE => Level::Trace,
+            levels::DEBUG => Level::Debug,
+            levels::INFO => Level::Info,
+            levels::WARN => Level::Warn,
+            levels::ERR => Level::Error,
+            levels::CRITICAL => Level::Error,
             _ => Level::Error,
         };
         set_max_level(selected.to_level_filter());
@@ -73,10 +79,26 @@ impl SimpleLogger {
             let func = CString::new(record.module_path().unwrap_or_else(|| "N/A")).ok()?;
             if let Some(static_msg) = record.args().as_str() {
                 let message = CString::new(static_msg).ok()?;
-                unsafe { RustLog(fname.as_ptr(), line as c_int, func.as_ptr(), level,message.as_ptr()) };
+                unsafe {
+                    RustLog(
+                        fname.as_ptr(),
+                        line as c_int,
+                        func.as_ptr(),
+                        level,
+                        message.as_ptr(),
+                    )
+                };
             } else {
                 let message = CString::new(record.args().to_string()).ok()?;
-                unsafe { RustLog(fname.as_ptr(), line as c_int, func.as_ptr(), level,message.as_ptr()) };
+                unsafe {
+                    RustLog(
+                        fname.as_ptr(),
+                        line as c_int,
+                        func.as_ptr(),
+                        level,
+                        message.as_ptr(),
+                    )
+                };
             };
             println!("{} - {}", record.level(), record.args());
         }

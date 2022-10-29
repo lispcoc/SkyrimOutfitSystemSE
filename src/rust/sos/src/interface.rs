@@ -1,6 +1,6 @@
-use crate::strings::*;
-use crate::outfit::{*, policy::*};
+use crate::outfit::{policy::*, *};
 use crate::outfit_service_get_singleton_ptr;
+use crate::strings::*;
 
 #[cxx::bridge]
 pub mod ffi {
@@ -25,7 +25,7 @@ pub mod ffi {
         WorldRainy = 6,
         TownRainy = 7,
         DungeonRainy = 8,
-        CityRainy = 11
+        CityRainy = 11,
     }
 
     #[derive(Ord, PartialOrd, Eq, PartialEq)]
@@ -56,7 +56,7 @@ pub mod ffi {
     }
 
     pub struct TESObjectARMOPtr {
-        pub ptr: *mut TESObjectARMO
+        pub ptr: *mut TESObjectARMO,
     }
 
     #[derive(Clone)]
@@ -83,7 +83,11 @@ pub mod ffi {
     extern "Rust" {
         type OutfitService;
         fn outfit_service_get_singleton_ptr() -> *mut OutfitService;
-        unsafe fn replace_with_json_data(self: &mut OutfitService, data: &str, intfc: *const SerializationInterface) -> bool;
+        unsafe fn replace_with_json_data(
+            self: &mut OutfitService,
+            data: &str,
+            intfc: *const SerializationInterface,
+        ) -> bool;
         fn max_outfit_name_len(self: &OutfitService) -> i32;
         fn get_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
         fn get_or_create_mut_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
@@ -92,7 +96,13 @@ pub mod ffi {
         fn has_outfit(self: &OutfitService, name: &str) -> bool;
         fn delete_outfit(self: &mut OutfitService, name: &str);
         fn set_favorite(self: &mut OutfitService, name: &str, favorite: bool);
-        unsafe fn modify_outfit(self: &mut OutfitService, name: &str, add: &[*mut TESObjectARMO], remove: &[*mut TESObjectARMO], create_if_needed: bool);
+        unsafe fn modify_outfit(
+            self: &mut OutfitService,
+            name: &str,
+            add: &[*mut TESObjectARMO],
+            remove: &[*mut TESObjectARMO],
+            create_if_needed: bool,
+        );
         fn rename_outfit(self: &mut OutfitService, old_name: &str, new_name: &str) -> u32;
         fn set_outfit_c(self: &mut OutfitService, name: &str, target: u32);
         fn add_actor(self: &mut OutfitService, target: u32);
@@ -100,11 +110,25 @@ pub mod ffi {
         fn list_actors(self: &OutfitService) -> Vec<u32>;
         fn set_location_based_switching_enabled(self: &mut OutfitService, setting: bool);
         fn set_outfit_using_location(self: &mut OutfitService, location: LocationType, target: u32);
-        fn set_location_outfit(self: &mut OutfitService, location: LocationType, target: u32, name: &str);
+        fn set_location_outfit(
+            self: &mut OutfitService,
+            location: LocationType,
+            target: u32,
+            name: &str,
+        );
         fn get_location_based_switching_enabled(self: &OutfitService) -> bool;
         fn unset_location_outfit(self: &mut OutfitService, location: LocationType, target: u32);
-        fn get_location_outfit_name_c(self: &OutfitService, location: LocationType, target: u32) -> String;
-        fn check_location_type_c(self: &OutfitService, keywords: Vec<String>, weather_flags: WeatherFlags, target: u32) -> OptionalLocationType;
+        fn get_location_outfit_name_c(
+            self: &OutfitService,
+            location: LocationType,
+            target: u32,
+        ) -> String;
+        fn check_location_type_c(
+            self: &OutfitService,
+            keywords: Vec<String>,
+            weather_flags: WeatherFlags,
+            target: u32,
+        ) -> OptionalLocationType;
         fn should_override(self: &OutfitService, target: u32) -> bool;
         fn get_outfit_names(self: &OutfitService, favorites_only: bool) -> Vec<String>;
         fn set_enabled(self: &mut OutfitService, option: bool);
@@ -113,7 +137,10 @@ pub mod ffi {
 
         type Outfit;
         unsafe fn conflicts_with(self: &Outfit, armor: *mut TESObjectARMO) -> bool;
-        unsafe fn compute_display_set_c(self: &Outfit, equipped: &[*mut TESObjectARMO]) -> Vec<TESObjectARMOPtr>;
+        unsafe fn compute_display_set_c(
+            self: &Outfit,
+            equipped: &[*mut TESObjectARMO],
+        ) -> Vec<TESObjectARMOPtr>;
         fn set_slot_policy_c(self: &mut Outfit, slot: u32, policy: OptionalPolicy);
         fn set_blanket_slot_policy(self: &mut Outfit, policy: Policy);
         fn reset_to_default_slot_policy(self: &mut Outfit);
@@ -137,4 +164,3 @@ pub mod ffi {
         fn nat_ord_case_insensitive_c(a: &str, b: &str) -> i8;
     }
 }
-

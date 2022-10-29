@@ -3,7 +3,7 @@
 #![allow(non_snake_case)]
 #![allow(improper_ctypes)]
 
-use cxx::{ExternType, type_id};
+use cxx::{type_id, ExternType};
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
@@ -22,11 +22,18 @@ pub type RE_ActorFormID = RE_FormID;
 pub type RE_TESObjectARMOFormID = RE_FormID;
 
 pub fn REL_Relocate<T>(se_and_vr: T, ae: T) -> T {
-    if unsafe { REL_Module::IsAE() } { ae } else { se_and_vr }
+    if unsafe { REL_Module::IsAE() } {
+        ae
+    } else {
+        se_and_vr
+    }
 }
 
 impl RE_TESObjectARMO {
-    pub fn assign_using_mask(&mut self, dest: &mut [*mut RE_TESObjectARMO; RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal as usize]) {
+    pub fn assign_using_mask(
+        &mut self,
+        dest: &mut [*mut RE_TESObjectARMO; RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal as usize],
+    ) {
         let mask = unsafe { self._base_10.GetSlotMask() };
         for slot in 0..RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal {
             if mask & (1 << slot) != 0 {

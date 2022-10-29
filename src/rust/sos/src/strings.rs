@@ -1,5 +1,5 @@
-use std::cmp::Ordering;
 use natord;
+use std::cmp::Ordering;
 use uncased::Uncased;
 
 pub type UncasedString = Uncased<'static>;
