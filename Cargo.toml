@@ -1,0 +1,7 @@
+[workspace]
+
+members = [
+    "src/rust/sos",
+    "src/rust/commonlibsse",
+    "src/rust/protos"
+]

@@ -65,7 +65,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Corrosion)
 
-corrosion_import_crate(MANIFEST_PATH src/rust/Cargo.toml)
+corrosion_import_crate(MANIFEST_PATH Cargo.toml)
 
 get_target_property(RE_INCLUDE CommonLibSSE::CommonLibSSE INTERFACE_INCLUDE_DIRECTORIES)
 get_target_property(RE_OPTIONS CommonLibSSE::CommonLibSSE INTERFACE_COMPILE_OPTIONS)
