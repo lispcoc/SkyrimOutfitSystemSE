@@ -5,9 +5,11 @@ pub mod strings;
 mod interface;
 mod helpers;
 mod persistence;
+mod logging;
 
 use commonlibsse::*;
 use log::*;
+use crate::logging::SimpleLogger;
 use crate::outfit::OutfitService;
 
 #[no_mangle]
@@ -15,6 +17,7 @@ pub extern "C" fn plugin_main(skse: *const SKSE_LoadInterface) -> bool {
     unsafe {
         REL_Module::reset();
         InitializeLog();
+        SimpleLogger::setup();
 
         info!("Load SkyrimOutfitSystem");
         info!("Game Type: {}", REL_Relocate("SE", "AE"));

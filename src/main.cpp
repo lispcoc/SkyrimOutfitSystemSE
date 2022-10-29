@@ -49,6 +49,12 @@ void InitializeLog() {
     spdlog::default_logger()->set_level(level);
     spdlog::default_logger()->flush_on(level);
 }
+int RustGetLogLevel() {
+    return spdlog::default_logger()->level();
+}
+void RustLog(const char *filename_in, int line_in, const char *funcname_in, int level, const char* message) {
+    spdlog::default_logger()->log(spdlog::source_loc(filename_in, line_in, funcname_in), spdlog::level::info, message);
+}
 void InitializeTrampolines() {
     SKSE::AllocTrampoline(128, true);
     Hooking::g_branchTrampoline = &SKSE::GetTrampoline();
