@@ -5,7 +5,7 @@ fn main() {
     let defines = std::env::var("DEFINITIONS").expect("No value for DEFINITIONS");
     let options = std::env::var("OPTIONS").expect("No value for OPTIONS");
 
-    let mut cxx = cxx_build::bridge("src/lib.rs");
+    let mut cxx = cxx_build::bridge("src/interface.rs");
 
     cxx
         .no_default_flags(true);
