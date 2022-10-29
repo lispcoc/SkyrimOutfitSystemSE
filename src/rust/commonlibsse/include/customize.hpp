@@ -9,6 +9,7 @@
 
 #include <RE/Skyrim.h>
 #include <SKSE/SKSE.h>
+#include <REL/Relocation.h>
 
 namespace RE {
     TESObjectARMO* ResolveARMOFormID(FormID id);

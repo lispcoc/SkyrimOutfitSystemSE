@@ -1,12 +1,9 @@
-use uncased::{Uncased};
-use commonlibsse::RE_FormID;
-use outfit::{OutfitService, Outfit, policy::*};
-use strings::{nat_ord_case_insensitive_c};
-
-type UncasedString = Uncased<'static>;
+use crate::strings::*;
+use crate::outfit::{*, policy::*};
+use crate::outfit_service_get_singleton_ptr;
 
 #[cxx::bridge]
-mod ffi {
+pub mod ffi {
     pub struct WeatherFlags {
         pub rainy: bool,
         pub snowy: bool,
@@ -85,9 +82,7 @@ mod ffi {
     }
     extern "Rust" {
         type OutfitService;
-        fn outfit_service_create() -> Box<OutfitService>;
-        fn replace_with_new(self: &mut OutfitService);
-        unsafe fn replace_with_proto_data_ptr(self: &mut OutfitService, data: &[u8], intfc: *const SerializationInterface) -> bool;
+        fn outfit_service_get_singleton_ptr() -> *mut OutfitService;
         unsafe fn replace_with_json_data(self: &mut OutfitService, data: &str, intfc: *const SerializationInterface) -> bool;
         fn max_outfit_name_len(self: &OutfitService) -> i32;
         fn get_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
@@ -114,11 +109,7 @@ mod ffi {
         fn get_outfit_names(self: &OutfitService, favorites_only: bool) -> Vec<String>;
         fn set_enabled(self: &mut OutfitService, option: bool);
         fn enabled_c(self: &OutfitService) -> bool;
-        fn migration_save_v5(self: &mut OutfitService);
-        fn migration_save_v6(self: &mut OutfitService);
-        fn check_consistency(self: &mut OutfitService);
         fn save_json_c(self: &mut OutfitService) -> String;
-        fn save_proto_c(self: &mut OutfitService) -> Vec<u8>;
 
         type Outfit;
         unsafe fn conflicts_with(self: &Outfit, armor: *mut TESObjectARMO) -> bool;
@@ -147,10 +138,3 @@ mod ffi {
     }
 }
 
-fn outfit_service_create() -> Box<OutfitService> {
-    Box::new(OutfitService::new())
-}
-
-fn is_form_id_permitted(form: RE_FormID) -> bool {
-    form < 0xFF000000
-}

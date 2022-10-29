@@ -8,5 +8,7 @@ namespace RE {
     }
     [[maybe_unused]] void instantiate() {
         RE::PlayerCharacter::GetSingleton();
+        REL::Module::reset();
     }
 }
+

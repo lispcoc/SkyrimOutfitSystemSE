@@ -337,12 +337,12 @@ namespace HookingPREAE {
 
     namespace RTTIPrinter {
     }
-
-    void ApplyPlayerSkinningHooks() {
-        DontVanillaSkinPlayer::Apply();
-        ShimWornFlags::Apply();
-        CustomSkinPlayer::Apply();
-        FixEquipConflictCheck::Apply();
-        FixSkillLeveling::Apply();
-    }
 }// namespace HookingPREAE
+
+void ApplyPlayerSkinningHooksSE() {
+    HookingPREAE::DontVanillaSkinPlayer::Apply();
+    HookingPREAE::ShimWornFlags::Apply();
+    HookingPREAE::CustomSkinPlayer::Apply();
+    HookingPREAE::FixEquipConflictCheck::Apply();
+    HookingPREAE::FixSkillLeveling::Apply();
+}

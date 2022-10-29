@@ -33,7 +33,7 @@ fn main() {
     let header_out = std::env::var("OUT_DIR").expect("No value for OUT_DIR");
     let header_dest = std::env::var("HEADER_GEN").expect("No value for HEADER_GEN");
 
-    let expected_header = header_out + "/cxxbridge/include/sos/src/lib.rs.h";
+    let expected_header = header_out + "/cxxbridge/include/sos/src/interface.rs.h";
     println!("Looking for header in {}", expected_header);
     std::fs::create_dir(header_dest.clone()).ok();
     std::fs::copy(expected_header, header_dest + "/bindings.h.tmp").unwrap();

@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use uncased::{Uncased, UncasedStr};
 use commonlibsse::{
     RE_ActorFormID,
+    RE_FormID,
     SKSE_SerializationInterface,
     RE_BIPED_OBJECT,
     RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal,
@@ -10,15 +11,15 @@ use commonlibsse::{
     RE_PlayerCharacter_GetSingleton
 };
 use crate::{
-    UncasedString,
-    is_form_id_permitted,
-    ffi::{
+    strings::UncasedString,
+    interface::ffi::{
         OptionalLocationType,
         OptionalPolicy,
-        TESObjectARMOPtr
+        TESObjectARMOPtr,
+        LocationType,
+        WeatherFlags
     }
 };
-pub use crate::ffi::{LocationType, WeatherFlags};
 use slot_policy::{Policies, Policy};
 use crate::outfit::policy::METADATA;
 
@@ -586,7 +587,7 @@ impl OutfitService {
 pub mod slot_policy {
     use std::collections::BTreeMap;
     use commonlibsse::RE_BIPED_OBJECT;
-    pub use crate::ffi::Policy;
+    pub use crate::interface::ffi::Policy;
 
     pub struct Policies {
         pub slot_policies: BTreeMap<RE_BIPED_OBJECT, Policy>,
@@ -641,8 +642,8 @@ impl Policy {
 }
 
 pub mod policy {
-    use crate::ffi::{MetadataC, OptionalMetadata, OptionalPolicy};
-    pub use crate::ffi::{Policy};
+    use crate::interface::ffi::{MetadataC, OptionalMetadata, OptionalPolicy};
+    pub use crate::interface::ffi::{Policy};
 
     #[derive(Clone)]
     pub struct Metadata {
@@ -729,6 +730,10 @@ pub mod policy {
             }
         }
     }
+}
+
+pub fn is_form_id_permitted(form: RE_FormID) -> bool {
+    form < 0xFF000000
 }
 
 pub enum PolicySelection {

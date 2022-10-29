@@ -542,6 +542,7 @@ dependencies = [
  "commonlibsse",
  "cxx",
  "cxx-build",
+ "log",
  "natord",
  "protobuf",
  "protobuf-json-mapping",
