@@ -303,13 +303,13 @@ impl OutfitService {
             assignments_out.current = if assignments.current_outfit_name.is_empty() {
                 None
             } else {
-                Some(Uncased::from(assignments.current_outfit_name.as_str()).into_owned())
+                Some(Uncased::new(assignments.current_outfit_name.clone()))
             };
             for (location, assignment) in assignments.location_based_outfits.iter() {
                 let value = if assignment.is_empty() {
                     continue
                 } else {
-                    Uncased::from(assignment.as_str()).into_owned()
+                    Uncased::new(assignment.clone())
                 };
                 let location = LocationType { repr: *location };
                 assignments_out.location_based.insert(location, value);
@@ -318,7 +318,7 @@ impl OutfitService {
         }
         new.actor_assignments = actor_assignments;
         for outfit in input.outfits {
-            new.outfits.insert(Uncased::from(outfit.name.as_str()).into_owned(),
+            new.outfits.insert(Uncased::new(outfit.name.clone()),
                                Outfit::from_proto_data(&outfit, infc));
         }
         new.location_switching_enabled = input.location_based_auto_switch_enabled;
@@ -339,17 +339,18 @@ impl OutfitService {
         self.outfits.get_mut(UncasedStr::new(name))
     }
     pub fn get_or_create_outfit(&mut self, name: &str) -> &Outfit {
-        self.outfits.entry(Uncased::from(name).into_owned()).or_insert_with(|| Outfit::new(name))
+        self.outfits.entry(Uncased::new(name.to_owned())).or_insert_with(|| Outfit::new(name))
     }
     pub fn get_or_create_mut_outfit_ptr(&mut self, name: &str) -> *mut Outfit {
         self.get_or_create_mut_outfit(name)
     }
     pub fn get_or_create_mut_outfit(&mut self, name: &str) -> &mut Outfit {
-        self.outfits.entry(Uncased::from(name).into_owned()).or_insert_with(|| Outfit::new(name))
+        self.outfits.entry(Uncased::new(name.to_owned())).or_insert_with(|| Outfit::new(name))
     }
     pub fn add_outfit(&mut self, name: &str) {
-        if !self.outfits.contains_key(UncasedStr::new(name)) {
-            self.outfits.insert(Uncased::from(name).into_owned(), Outfit::new(name));
+        let name_uncased = Uncased::new(name.to_owned());
+        if !self.outfits.contains_key(&name_uncased) {
+            self.outfits.insert(name_uncased, Outfit::new(name));
         }
     }
     pub fn current_outfit_ptr(&mut self, target: u32) -> *mut Outfit {
@@ -390,9 +391,10 @@ impl OutfitService {
     }
     pub fn rename_outfit(&mut self, old_name: &str, new_name: &str) -> u32 {
         // Returns 0 on success, 1 if outfit not found, 2 if name already used.
-        if self.outfits.contains_key(UncasedStr::new(new_name)) { return 1 };
+        let new_name = Uncased::new(new_name.to_owned());
+        if self.outfits.contains_key(&new_name) { return 1 };
         let mut entry = if let Some(entry) = self.outfits.remove(UncasedStr::new(old_name)) { entry } else { return 1; };
-        entry.name = Uncased::from(new_name).into_owned();
+        entry.name = new_name;
         self.outfits.insert(entry.name.clone(), entry);
         return 0;
     }
@@ -409,7 +411,7 @@ impl OutfitService {
             name = None;
         }
         self.actor_assignments.get_mut(&target).map(|assn| {
-            assn.current = name.map(|name| Uncased::from(name).into_owned());
+            assn.current = name.map(|name| Uncased::new(name.to_owned()));
         });
     }
     pub fn add_actor(&mut self, target: RE_ActorFormID) {
@@ -447,7 +449,7 @@ impl OutfitService {
         self
             .actor_assignments
             .get_mut(&target)
-            .map(|assn| assn.location_based.insert(location, Uncased::from(name).into_owned()));
+            .map(|assn| assn.location_based.insert(location, Uncased::new(name.to_owned())));
     }
     pub fn unset_location_outfit(&mut self, location: LocationType, target: RE_ActorFormID) {
         self

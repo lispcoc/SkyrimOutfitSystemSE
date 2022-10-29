@@ -100,5 +100,3 @@ extern "C" {
     fn ApplyPlayerSkinningHooksAE();
     fn SetupPapyrus();
 }
-
-// include!("interface.rs");
