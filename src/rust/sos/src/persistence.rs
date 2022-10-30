@@ -39,7 +39,7 @@ pub extern "C" fn serialization_save_callback(intfc: *mut SKSE_SerializationInte
     };
     info!("Writing savedata...");
     if unsafe { intfc.OpenRecord(SIGNATURE_INT, Versions::V6 as u32) } {
-        let service = OUTFIT_SERVICE_SINGLETON.lock().expect("OutfitSystem lock poisoned");
+        let service = OUTFIT_SERVICE_SINGLETON.lock();
         let proto = if let Some(proto) = service.save_proto() {
             proto
         } else {
@@ -76,7 +76,7 @@ pub extern "C" fn serialization_load_callback(intfc: *mut SKSE_SerializationInte
                     error!("Did not read the correct amount of data for deserialization");
                     break;
                 }
-                let mut service = OUTFIT_SERVICE_SINGLETON.lock().expect("OutfitSystem lock poisoned");
+                let mut service = OUTFIT_SERVICE_SINGLETON.lock();
                 if !service.replace_with_proto(&buffer, intfc) {
                     error!("Failed to use proto data to instantiate");
                     break;

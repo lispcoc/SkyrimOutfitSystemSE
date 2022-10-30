@@ -2,7 +2,7 @@ use crate::outfit::{policy::*, *};
 use crate::OUTFIT_SERVICE_SINGLETON;
 use crate::strings::*;
 use crate::settings::SETTINGS;
-use std::sync::MutexGuard;
+use parking_lot::MutexGuard;
 
 #[cxx::bridge]
 pub mod ffi {
@@ -193,5 +193,5 @@ impl OutfitSystemMutex {
 }
 
 fn outfit_service_get_singleton_ptr() -> Box<OutfitSystemMutex> {
-    Box::new(OutfitSystemMutex { inner: OUTFIT_SERVICE_SINGLETON.lock().expect("OutfitService mutex poisoned") })
+    Box::new(OutfitSystemMutex { inner: OUTFIT_SERVICE_SINGLETON.lock() })
 }

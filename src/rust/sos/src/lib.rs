@@ -6,7 +6,7 @@ mod persistence;
 pub mod strings;
 mod settings;
 use lazy_static::lazy_static;
-use std::sync::Mutex;
+use parking_lot::Mutex;
 
 use crate::logging::SimpleLogger;
 use crate::outfit::OutfitService;
@@ -78,7 +78,7 @@ pub extern "C" fn messaging_callback(message: *mut SKSE_MessagingInterface_Messa
         SKSE_MessagingInterface_kPostPostLoad => {}
         SKSE_MessagingInterface_kDataLoaded => {}
         SKSE_MessagingInterface_kNewGame | SKSE_MessagingInterface_kPreLoadGame => {
-            let mut service = OUTFIT_SERVICE_SINGLETON.lock().expect("OutfitSystem lock poisoned");
+            let mut service = OUTFIT_SERVICE_SINGLETON.lock();
             service.replace_with_new();
             service.check_consistency();
         }
