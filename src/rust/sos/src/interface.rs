@@ -2,7 +2,7 @@ use crate::outfit::{policy::*, *};
 use crate::OUTFIT_SERVICE_SINGLETON;
 use crate::strings::*;
 use crate::settings::SETTINGS;
-use parking_lot::MutexGuard;
+use parking_lot::{RwLockWriteGuard, RwLockReadGuard};
 
 #[cxx::bridge]
 pub mod ffi {
@@ -89,9 +89,12 @@ pub mod ffi {
         fn GetRuntimeDirectory() -> UniquePtr<CxxString>;
     }
     extern "Rust" {
-        type OutfitSystemMutex;
-        fn outfit_service_get_singleton_ptr() -> Box<OutfitSystemMutex>;
-        fn inner(self: &mut OutfitSystemMutex) -> &mut OutfitService;
+        type OutfitSystemReadMutex;
+        fn outfit_service_get_singleton_ptr() -> Box<OutfitSystemReadMutex>;
+        fn inner(self: &mut OutfitSystemReadMutex) -> &OutfitService;
+        type OutfitSystemWriteMutex;
+        fn outfit_service_get_mut_singleton_ptr() -> Box<OutfitSystemWriteMutex>;
+        fn inner(self: &mut OutfitSystemWriteMutex) -> &mut OutfitService;
         type OutfitService;
         unsafe fn replace_with_json_data(
             self: &mut OutfitService,
@@ -99,10 +102,12 @@ pub mod ffi {
             intfc: *const SerializationInterface,
         ) -> bool;
         fn max_outfit_name_len(self: &OutfitService) -> i32;
-        fn get_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
+        fn get_outfit_ptr(self: &OutfitService, name: &str) -> *const Outfit;
+        fn get_mut_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
         fn get_or_create_mut_outfit_ptr(self: &mut OutfitService, name: &str) -> *mut Outfit;
         fn add_outfit(self: &mut OutfitService, name: &str);
-        fn current_outfit_ptr(self: &mut OutfitService, target: u32) -> *mut Outfit;
+        fn current_outfit_ptr(self: &OutfitService, target: u32) -> *const Outfit;
+        fn current_outfit_mut_ptr(self: &mut OutfitService, target: u32) -> *mut Outfit;
         fn has_outfit(self: &OutfitService, name: &str) -> bool;
         fn delete_outfit(self: &mut OutfitService, name: &str);
         fn set_favorite(self: &mut OutfitService, name: &str, favorite: bool);
@@ -143,7 +148,7 @@ pub mod ffi {
         fn get_outfit_names(self: &OutfitService, favorites_only: bool) -> Vec<String>;
         fn set_enabled(self: &mut OutfitService, option: bool);
         fn enabled_c(self: &OutfitService) -> bool;
-        fn save_json_c(self: &mut OutfitService) -> String;
+        fn save_json_c(self: &OutfitService) -> String;
 
         type Outfit;
         unsafe fn conflicts_with(self: &Outfit, armor: *mut TESObjectARMO) -> bool;
@@ -182,16 +187,31 @@ fn settings_extra_logging_enabled() -> bool {
     SETTINGS.extra_logging_enabled()
 }
 
-struct OutfitSystemMutex {
-    inner: MutexGuard<'static, OutfitService>
+struct OutfitSystemReadMutex {
+    inner: RwLockReadGuard<'static, OutfitService>
 }
 
-impl OutfitSystemMutex {
+impl OutfitSystemReadMutex {
+    pub fn inner(&mut self) -> &OutfitService {
+        &*self.inner
+    }
+}
+
+struct OutfitSystemWriteMutex {
+    inner: RwLockWriteGuard<'static, OutfitService>
+}
+
+impl OutfitSystemWriteMutex {
     pub fn inner(&mut self) -> &mut OutfitService {
         &mut *self.inner
     }
 }
 
-fn outfit_service_get_singleton_ptr() -> Box<OutfitSystemMutex> {
-    Box::new(OutfitSystemMutex { inner: OUTFIT_SERVICE_SINGLETON.lock() })
+
+fn outfit_service_get_singleton_ptr() -> Box<OutfitSystemReadMutex> {
+    Box::new(OutfitSystemReadMutex { inner: OUTFIT_SERVICE_SINGLETON.read() })
+}
+
+fn outfit_service_get_mut_singleton_ptr() -> Box<OutfitSystemWriteMutex> {
+    Box::new(OutfitSystemWriteMutex { inner: OUTFIT_SERVICE_SINGLETON.write() })
 }

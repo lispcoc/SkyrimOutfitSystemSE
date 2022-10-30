@@ -6,7 +6,7 @@ mod persistence;
 pub mod strings;
 mod settings;
 use lazy_static::lazy_static;
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 
 use crate::logging::SimpleLogger;
 use crate::outfit::OutfitService;
@@ -78,7 +78,7 @@ pub extern "C" fn messaging_callback(message: *mut SKSE_MessagingInterface_Messa
         SKSE_MessagingInterface_kPostPostLoad => {}
         SKSE_MessagingInterface_kDataLoaded => {}
         SKSE_MessagingInterface_kNewGame | SKSE_MessagingInterface_kPreLoadGame => {
-            let mut service = OUTFIT_SERVICE_SINGLETON.lock();
+            let mut service = OUTFIT_SERVICE_SINGLETON.write();
             service.replace_with_new();
             service.check_consistency();
         }
@@ -89,7 +89,7 @@ pub extern "C" fn messaging_callback(message: *mut SKSE_MessagingInterface_Messa
 }
 
 lazy_static! {
-    pub static ref OUTFIT_SERVICE_SINGLETON: Mutex<OutfitService> = Mutex::new(OutfitService::new());
+    pub static ref OUTFIT_SERVICE_SINGLETON: RwLock<OutfitService> = RwLock::new(OutfitService::new());
 }
 
 extern "C" {

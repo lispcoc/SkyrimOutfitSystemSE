@@ -22,6 +22,7 @@ pub struct Outfit {
 }
 
 unsafe impl Send for Outfit {}
+unsafe impl Sync for Outfit {}
 
 impl Outfit {
     fn new(name: &str) -> Self {
@@ -355,13 +356,22 @@ impl OutfitService {
         Some(new)
     }
 
-    pub fn get_outfit_ptr(&mut self, name: &str) -> *mut Outfit {
+    pub fn get_outfit_ptr(&self, name: &str) -> *const Outfit {
+        if let Some(reference) = self.get_outfit(name) {
+            reference
+        } else {
+            std::ptr::null()
+        }
+    }
+
+    pub fn get_mut_outfit_ptr(&mut self, name: &str) -> *mut Outfit {
         if let Some(reference) = self.get_mut_outfit(name) {
             reference
         } else {
             std::ptr::null_mut()
         }
     }
+
     pub fn get_outfit(&self, name: &str) -> Option<&Outfit> {
         self.outfits.get(UncasedStr::new(name))
     }
@@ -387,7 +397,14 @@ impl OutfitService {
             self.outfits.insert(name_uncased, Outfit::new(name));
         }
     }
-    pub fn current_outfit_ptr(&mut self, target: u32) -> *mut Outfit {
+    pub fn current_outfit_ptr(&self, target: u32) -> *const Outfit {
+        if let Some(outfit) = self.current_outfit(target) {
+            outfit
+        } else {
+            std::ptr::null()
+        }
+    }
+    pub fn current_outfit_mut_ptr(&mut self, target: u32) -> *mut Outfit {
         if let Some(outfit) = self.current_mut_outfit(target) {
             outfit
         } else {
