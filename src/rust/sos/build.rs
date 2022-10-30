@@ -9,9 +9,7 @@ fn main() {
 
     cxx.no_default_flags(true);
 
-    cxx.include(includes)
-        .flag("/std:c++20")
-        .flag("/EHsc");
+    cxx.include(includes).flag("/std:c++20").flag("/EHsc");
 
     for option in options.split(' ') {
         cxx.flag_if_supported(option);

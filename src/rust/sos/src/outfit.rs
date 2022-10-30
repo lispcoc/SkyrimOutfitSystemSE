@@ -340,7 +340,8 @@ impl OutfitService {
                 let location = LocationType { repr: *location };
                 assignments_out.location_based.insert(location, value);
             }
-            new.actor_assignments.insert(form_id as u32, assignments_out);
+            new.actor_assignments
+                .insert(form_id as u32, assignments_out);
         }
         for outfit in input.outfits {
             new.outfits.insert(
