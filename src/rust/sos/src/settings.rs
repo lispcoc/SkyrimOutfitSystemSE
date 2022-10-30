@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::RwLock};
+use std::path::PathBuf;
 
 use crate::interface::ffi::*;
 use configparser::ini::Ini;
@@ -30,5 +30,5 @@ impl Settings {
 }
 
 lazy_static! {
-    pub static ref SETTINGS: RwLock<Settings> = RwLock::new(Settings::new());
+    pub static ref SETTINGS: Settings = Settings::new();
 }

@@ -176,5 +176,5 @@ pub mod ffi {
 }
 
 fn settings_extra_logging_enabled() -> bool {
-    SETTINGS.read().unwrap().extra_logging_enabled()
+    SETTINGS.extra_logging_enabled()
 }
