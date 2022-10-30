@@ -1,5 +1,3 @@
-extern crate core;
-
 mod helpers;
 mod interface;
 mod logging;
