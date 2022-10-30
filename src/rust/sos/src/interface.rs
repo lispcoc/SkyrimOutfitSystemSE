@@ -1,6 +1,7 @@
 use crate::outfit::{policy::*, *};
 use crate::outfit_service_get_singleton_ptr;
 use crate::strings::*;
+use crate::settings::SETTINGS;
 
 #[cxx::bridge]
 pub mod ffi {
@@ -79,6 +80,12 @@ pub mod ffi {
         #[namespace = "SKSE"]
         type SerializationInterface = commonlibsse::SKSE_SerializationInterface;
         type TESObjectARMO = commonlibsse::RE_TESObjectARMO;
+    }
+    unsafe extern "C++" {
+        include!("sos/include/customize.h");
+        // fn GetRuntimePath() -> UniquePtr<CxxString>;
+        // fn GetRuntimeName() -> UniquePtr<CxxString>;
+        fn GetRuntimeDirectory() -> UniquePtr<CxxString>;
     }
     extern "Rust" {
         type OutfitService;
@@ -162,5 +169,12 @@ pub mod ffi {
 
         // String Utilities
         fn nat_ord_case_insensitive_c(a: &str, b: &str) -> i8;
+
+        // Settings
+        fn settings_extra_logging_enabled() -> bool;
     }
+}
+
+fn settings_extra_logging_enabled() -> bool {
+    SETTINGS.read().unwrap().extra_logging_enabled()
 }

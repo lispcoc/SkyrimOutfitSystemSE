@@ -4,6 +4,7 @@ mod logging;
 pub mod outfit;
 mod persistence;
 pub mod strings;
+mod settings;
 
 use crate::logging::SimpleLogger;
 use crate::outfit::OutfitService;

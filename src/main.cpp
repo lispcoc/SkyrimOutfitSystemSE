@@ -37,7 +37,7 @@ void InitializeLog() {
 
     // Load the actual log setting we should use.
     auto level = spdlog::level::info;
-    bool deepLogEnabled = Settings::Instance()->GetBoolean("Debug", "ExtraLogging", false);
+    bool deepLogEnabled = settings_extra_logging_enabled();
     if (deepLogEnabled) {
         LOG(info, "Extra logging enabled.");
         level = spdlog::level::trace;

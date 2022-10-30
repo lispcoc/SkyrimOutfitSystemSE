@@ -176,17 +176,13 @@ add_custom_command(TARGET SkyrimOutfitSystemSE POST_BUILD
 find_package(span-lite REQUIRED CONFIG)
 find_package(spdlog REQUIRED CONFIG)
 find_package(xbyak REQUIRED CONFIG)
-find_library(INIH_LIBRARY inih REQUIRED)
-find_path(INIH_INCLUDE_DIRS "ini.h" REQUIRED)
 
 target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     CommonLibSSE::CommonLibSSE
     nonstd::span-lite
     spdlog::spdlog
-    ${INIH_LIBRARY}
     xbyak::xbyak
     sos-proxy
 )
 
-target_include_directories(SkyrimOutfitSystemSE PRIVATE
-    ${INIH_INCLUDE_DIRS})
+target_include_directories(SkyrimOutfitSystemSE PRIVATE)

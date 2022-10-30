@@ -13,8 +13,6 @@
 #include <REL/Relocation.h>
 #include <SKSE/SKSE.h>
 
-#include "INIReader.h"
-
 #ifdef NDEBUG
 #include <spdlog/sinks/basic_file_sink.h>
 #else

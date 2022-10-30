@@ -2,17 +2,9 @@
 
 #include <string>
 
-std::string GetRuntimeName();
+std::unique_ptr<std::string> GetRuntimeName();
 
-const std::string& GetRuntimeDirectory();
-
-class Settings {
-public:
-    Settings();
-    ~Settings();
-    INIReader reader;
-    static INIReader* Instance();
-};
+std::unique_ptr<std::string> GetRuntimeDirectory();
 
 class LogExit {
 public:
