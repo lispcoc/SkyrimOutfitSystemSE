@@ -500,7 +500,7 @@ impl OutfitService {
         self.actor_assignments
             .get_mut(&target)
             .and_then(|assn| assn.location_based.get(&location))
-            .map(|sel| sel.to_string())
+            .map(|sel| sel.clone())
             .map(|selected| self.set_outfit(Some(selected.as_str()), target));
     }
     pub fn set_location_outfit(
