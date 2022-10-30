@@ -21,6 +21,8 @@ pub struct Outfit {
     pub slot_policies: Policies,
 }
 
+unsafe impl Send for Outfit {}
+
 impl Outfit {
     fn new(name: &str) -> Self {
         Outfit {

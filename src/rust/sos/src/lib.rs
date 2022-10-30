@@ -5,6 +5,8 @@ pub mod outfit;
 mod persistence;
 pub mod strings;
 mod settings;
+use lazy_static::lazy_static;
+use std::sync::Mutex;
 
 use crate::logging::SimpleLogger;
 use crate::outfit::OutfitService;
@@ -76,7 +78,7 @@ pub extern "C" fn messaging_callback(message: *mut SKSE_MessagingInterface_Messa
         SKSE_MessagingInterface_kPostPostLoad => {}
         SKSE_MessagingInterface_kDataLoaded => {}
         SKSE_MessagingInterface_kNewGame | SKSE_MessagingInterface_kPreLoadGame => {
-            let service = unsafe { &mut *outfit_service_get_singleton_ptr() };
+            let mut service = OUTFIT_SERVICE_SINGLETON.lock().expect("OutfitSystem lock poisoned");
             service.replace_with_new();
             service.check_consistency();
         }
@@ -86,16 +88,8 @@ pub extern "C" fn messaging_callback(message: *mut SKSE_MessagingInterface_Messa
     }
 }
 
-static mut OUTFIT_SERVICE_SINGLETON: Option<*mut OutfitService> = None;
-
-fn outfit_service_get_singleton_ptr() -> *mut OutfitService {
-    unsafe {
-        if OUTFIT_SERVICE_SINGLETON.is_none() {
-            let leaked = Box::into_raw(Box::new(OutfitService::new()));
-            OUTFIT_SERVICE_SINGLETON = Some(leaked);
-        };
-        OUTFIT_SERVICE_SINGLETON.clone().unwrap()
-    }
+lazy_static! {
+    pub static ref OUTFIT_SERVICE_SINGLETON: Mutex<OutfitService> = Mutex::new(OutfitService::new());
 }
 
 extern "C" {

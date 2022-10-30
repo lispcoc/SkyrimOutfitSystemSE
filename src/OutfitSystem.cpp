@@ -2,8 +2,6 @@
 
 #include "Utility.h"
 
-#include "ArmorAddonOverrideService.h"
-
 #include "RE/REAugments.h"
 #include "bindings.h"
 
@@ -21,12 +19,16 @@
         return;                                                                                  \
     }
 
+struct bad_name: public std::runtime_error {
+    explicit bad_name(const std::string& what_arg) : runtime_error(what_arg){};
+};
+
 namespace OutfitSystem {
     std::int32_t GetOutfitNameMaxLength(RE::BSScript::IVirtualMachine* registry,
                                         std::uint32_t stackId,
                                         RE::StaticFunctionTag*) {
         LogExit exitPrint("GetOutfitNameMaxLength"sv);
-        return GetRustInstance().max_outfit_name_len();
+        return outfit_service_get_singleton_ptr()->inner().max_outfit_name_len();
     }
     std::vector<RE::TESObjectARMO*> GetCarriedArmor(RE::BSScript::IVirtualMachine* registry,
                                                     std::uint32_t stackId,
@@ -142,8 +144,10 @@ namespace OutfitSystem {
                                             std::uint32_t stackId,
                                             RE::StaticFunctionTag*) {
         LogExit exitPrint("RefreshArmorForAllConfiguredActors"sv);
-        auto& service = GetRustInstance();
-        auto actors = service.list_actors();
+        rust::Vec<std::uint32_t> actors; 
+        {
+            actors = outfit_service_get_singleton_ptr()->inner().list_actors();
+        }
         for (auto& actor_form : actors) {
             auto actor = RE::Actor::LookupByID<RE::Actor>(actor_form);
             if (!actor) continue;
@@ -298,9 +302,9 @@ namespace OutfitSystem {
             data.armorNames.clear();
             data.armors.clear();
             //
-            auto& service = GetRustInstance();
+            auto service = outfit_service_get_singleton_ptr();
             try {
-                auto outfit_ptr = service.get_outfit_ptr(name.data());
+                auto outfit_ptr = service->inner().get_outfit_ptr(name.data());
                 if (!outfit_ptr) throw std::out_of_range("");
                 auto& outfit = *outfit_ptr;
                 auto armors = outfit.armors_c();
@@ -368,8 +372,8 @@ namespace OutfitSystem {
                                                                     RE::BSFixedString name) {
             LogExit exitPrint("BodySlotPolicy.BodySlotPolicyNamesForOutfit"sv);
             std::vector<RE::BSFixedString> result;
-            auto& service = GetRustInstance();
-            auto outfit_ptr = service.get_outfit_ptr(name.data());
+            auto service = outfit_service_get_singleton_ptr();
+            auto outfit_ptr = service->inner().get_outfit_ptr(name.data());
             if (!outfit_ptr) return std::vector<RE::BSFixedString>(2 * RE::BIPED_OBJECTS_META::kNumSlots, "");
             auto& outfit = *outfit_ptr;
             auto slot_names = outfit.policy_names_for_outfit();
@@ -385,8 +389,8 @@ namespace OutfitSystem {
                                           std::uint32_t slot,
                                           RE::BSFixedString code) {
             LogExit exitPrint("BodySlotPolicy.SetBodySlotPoliciesForOutfit"sv);
-            auto& service = GetRustInstance();
-            auto outfit_ptr = service.get_outfit_ptr(name.data());
+            auto service = outfit_service_get_singleton_ptr();
+            auto outfit_ptr = service->inner().get_outfit_ptr(name.data());
             if (!outfit_ptr) return;
             auto& outfit = *outfit_ptr;
             if (slot >= RE::BIPED_OBJECTS_META::kNumSlots) {
@@ -407,8 +411,8 @@ namespace OutfitSystem {
                                              RE::BSFixedString name,
                                              RE::BSFixedString code) {
             LogExit exitPrint("BodySlotPolicy.SetAllBodySlotPoliciesForOutfit"sv);
-            auto& service = GetRustInstance();
-            auto outfit_ptr = service.get_outfit_ptr(name.data());
+            auto service = outfit_service_get_singleton_ptr();
+            auto outfit_ptr = service->inner().get_outfit_ptr(name.data());
             if (!outfit_ptr) return;
             auto& outfit = *outfit_ptr;
             std::string codeString(code);
@@ -421,8 +425,8 @@ namespace OutfitSystem {
                                                  RE::StaticFunctionTag*,
                                                  RE::BSFixedString name) {
             LogExit exitPrint("BodySlotPolicy.SetBodySlotPolicyToDefaultForOutfit"sv);
-            auto& service = GetRustInstance();
-            auto outfit_ptr = service.get_outfit_ptr(name.data());
+            auto service = outfit_service_get_singleton_ptr();
+            auto outfit_ptr = service->inner().get_outfit_ptr(name.data());
             if (!outfit_ptr) return;
             auto& outfit = *outfit_ptr;
             outfit.reset_to_default_slot_policy();
@@ -561,9 +565,9 @@ namespace OutfitSystem {
         LogExit exitPrint("AddArmorToOutfit"sv);
         auto armor = (RE::TESObjectARMO*) (armor_skse);
         ERROR_AND_RETURN_IF(armor == nullptr, "Cannot add a None armor to an outfit.", registry, stackId);
-        auto& service = GetRustInstance();
+        auto service = outfit_service_get_singleton_ptr();
         try {
-            auto outfit_ptr = service.get_outfit_ptr(name.data());
+            auto outfit_ptr = service->inner().get_outfit_ptr(name.data());
             if (!outfit_ptr) throw std::out_of_range("");
             auto& outfit = *outfit_ptr;
             outfit.insert_armor(armor);
@@ -583,9 +587,9 @@ namespace OutfitSystem {
             registry->TraceStack("A None armor can't conflict with anything in an outfit.", stackId, RE::BSScript::IVirtualMachine::Severity::kWarning);
             return false;
         }
-        auto& service = GetRustInstance();
+        auto service = outfit_service_get_singleton_ptr();
         try {
-            auto outfit_ptr = service.get_outfit_ptr(name.data());
+            auto outfit_ptr = service->inner().get_outfit_ptr(name.data());
             if (!outfit_ptr) throw std::out_of_range("");
             return outfit_ptr->conflicts_with(armor);
         } catch (std::out_of_range) {
@@ -598,9 +602,9 @@ namespace OutfitSystem {
                       RE::StaticFunctionTag*,
                       RE::BSFixedString name) {
         LogExit exitPrint("CreateOutfit"sv);
-        auto& service = GetRustInstance();
+        auto service = outfit_service_get_singleton_ptr();
         try {
-            service.add_outfit(name.data());
+            service->inner().add_outfit(name.data());
         } catch (bad_name) {
             registry->TraceStack("Invalid outfit name specified.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);
             return;
@@ -611,8 +615,8 @@ namespace OutfitSystem {
                       RE::StaticFunctionTag*,
                       RE::BSFixedString name) {
         LogExit exitPrint("DeleteOutfit"sv);
-        auto& service = GetRustInstance();
-        service.delete_outfit(name.data());
+        auto service = outfit_service_get_singleton_ptr();
+        service->inner().delete_outfit(name.data());
     }
     std::vector<RE::TESObjectARMO*> GetOutfitContents(RE::BSScript::IVirtualMachine* registry,
                                                       std::uint32_t stackId,
@@ -621,9 +625,9 @@ namespace OutfitSystem {
                                                       RE::BSFixedString name) {
         LogExit exitPrint("GetOutfitContents"sv);
         std::vector<RE::TESObjectARMO*> result;
-        auto& service = GetRustInstance();
+        auto service = outfit_service_get_singleton_ptr();
         try {
-            auto outfit = service.get_outfit_ptr(name.data());
+            auto outfit = service->inner().get_outfit_ptr(name.data());
             if (!outfit) throw std::out_of_range("");
             auto armors = outfit->armors_c();
             for (auto it = armors.begin(); it != armors.end(); ++it)
@@ -644,10 +648,10 @@ namespace OutfitSystem {
 
                                  RE::BSFixedString name) {
         LogExit exitPrint("GetOutfitFavoriteStatus"sv);
-        auto& service = GetRustInstance();
+        auto service = outfit_service_get_singleton_ptr();
         bool result = false;
         try {
-            auto outfit = service.get_outfit_ptr(name.data());
+            auto outfit = service->inner().get_outfit_ptr(name.data());
             if (!outfit) throw std::out_of_range("");
             result = outfit->favorite_c();
         } catch (std::out_of_range) {
@@ -662,15 +666,15 @@ namespace OutfitSystem {
         LogExit exitPrint("GetSelectedOutfit"sv);
         if (!actor)
             return RE::BSFixedString("");
-        auto& service = GetRustInstance();
-        auto outfit = service.current_outfit_ptr(actor->GetFormID());
+        auto service = outfit_service_get_singleton_ptr();
+        auto outfit = service->inner().current_outfit_ptr(actor->GetFormID());
         if (!outfit) return "";
         return outfit->name_c().c_str();
     }
     bool IsEnabled(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*) {
         LogExit exitPrint("IsEnabled"sv);
-        auto& service = GetRustInstance();
-        return service.enabled_c();
+        auto service = outfit_service_get_singleton_ptr();
+        return service->inner().enabled_c();
     }
     std::vector<RE::BSFixedString> ListOutfits(RE::BSScript::IVirtualMachine* registry,
                                                std::uint32_t stackId,
@@ -678,9 +682,9 @@ namespace OutfitSystem {
 
                                                bool favoritesOnly) {
         LogExit exitPrint("ListOutfits"sv);
-        auto& service = GetRustInstance();
+        auto service = outfit_service_get_singleton_ptr();
         std::vector<RE::BSFixedString> result;
-        auto names = service.get_outfit_names(favoritesOnly);
+        auto names = service->inner().get_outfit_names(favoritesOnly);
         result.reserve(names.size());
         for (auto it = names.begin(); it != names.end(); ++it)
             result.push_back(it->c_str());
@@ -693,9 +697,9 @@ namespace OutfitSystem {
         LogExit exitPrint("RemoveArmorFromOutfit"sv);
         auto armor = (RE::TESObjectARMO*) (armor_skse);
         ERROR_AND_RETURN_IF(armor == nullptr, "Cannot remove a None armor from an outfit.", registry, stackId);
-        auto& service = GetRustInstance();
+        auto service = outfit_service_get_singleton_ptr();
         try {
-            auto outfit = service.get_outfit_ptr(name.data());
+            auto outfit = service->inner().get_outfit_ptr(name.data());
             if (!outfit) throw std::out_of_range("");
             outfit->erase_armor(armor);
         } catch (std::out_of_range) {
@@ -714,9 +718,9 @@ namespace OutfitSystem {
                             "A None armor can't conflict with anything in an outfit.",
                             registry,
                             stackId);
-        auto& service = GetRustInstance();
+        auto service = outfit_service_get_singleton_ptr();
         try {
-            auto outfit = service.get_outfit_ptr(name.data());
+            auto outfit = service->inner().get_outfit_ptr(name.data());
             if (!outfit) throw std::out_of_range("");
             auto armors = outfit->armors_c();
             std::vector<RE::TESObjectARMO*> conflicts;
@@ -742,8 +746,8 @@ namespace OutfitSystem {
                       RE::BSFixedString name,
                       RE::BSFixedString changeTo) {
         LogExit exitPrint("RenameOutfit"sv);
-        auto& service = GetRustInstance();
-        auto outcome = service.rename_outfit(name.data(), changeTo.data());
+        auto service = outfit_service_get_singleton_ptr();
+        auto outcome = service->inner().rename_outfit(name.data(), changeTo.data());
         if (outcome == 2) {
             registry->TraceStack("The desired name is taken.", stackId, RE::BSScript::IVirtualMachine::Severity::kError);
             return false;
@@ -763,15 +767,15 @@ namespace OutfitSystem {
                                  RE::BSFixedString name,
                                  bool favorite) {
         LogExit exitPrint("SetOutfitFavoriteStatus"sv);
-        auto& service = GetRustInstance();
-        service.set_favorite(name.data(), favorite);
+        auto service = outfit_service_get_singleton_ptr();
+        service->inner().set_favorite(name.data(), favorite);
     }
     bool OutfitExists(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
 
                       RE::BSFixedString name) {
         LogExit exitPrint("OutfitExists"sv);
-        auto& service = GetRustInstance();
-        return service.has_outfit(name.data());
+        auto service = outfit_service_get_singleton_ptr();
+        return service->inner().has_outfit(name.data());
     }
     void OverwriteOutfit(RE::BSScript::IVirtualMachine* registry,
                          std::uint32_t stackId,
@@ -779,9 +783,9 @@ namespace OutfitSystem {
                          RE::BSFixedString name,
                          std::vector<RE::TESObjectARMO*> armors) {
         LogExit exitPrint("OverwriteOutfit"sv);
-        auto& service = GetRustInstance();
+        auto service = outfit_service_get_singleton_ptr();
         try {
-            auto outfit = service.get_or_create_mut_outfit_ptr(name.data());
+            auto outfit = service->inner().get_or_create_mut_outfit_ptr(name.data());
             if (!outfit) return;
             outfit->erase_all_armors();
             auto count = armors.size();
@@ -801,8 +805,8 @@ namespace OutfitSystem {
                     RE::StaticFunctionTag*,
                     bool state) {
         LogExit exitPrint("SetEnabled"sv);
-        auto& service = GetRustInstance();
-        service.set_enabled(state);
+        auto service = outfit_service_get_singleton_ptr();
+        service->inner().set_enabled(state);
     }
     void SetSelectedOutfit(RE::BSScript::IVirtualMachine* registry,
                            std::uint32_t stackId,
@@ -812,31 +816,31 @@ namespace OutfitSystem {
         LogExit exitPrint("SetSelectedOutfit"sv);
         if (!actor)
             return;
-        auto& service = GetRustInstance();
-        service.set_outfit_c(name.data(), actor->GetFormID());
+        auto service = outfit_service_get_singleton_ptr();
+        service->inner().set_outfit_c(name.data(), actor->GetFormID());
     }
     void AddActor(RE::BSScript::IVirtualMachine* registry,
                   std::uint32_t stackId,
                   RE::StaticFunctionTag*,
                   RE::Actor* target) {
         LogExit exitPrint("AddActor"sv);
-        auto& service = GetRustInstance();
-        service.add_actor(target->GetFormID());
+        auto service = outfit_service_get_singleton_ptr();
+        service->inner().add_actor(target->GetFormID());
     }
     void RemoveActor(RE::BSScript::IVirtualMachine* registry,
                      std::uint32_t stackId,
                      RE::StaticFunctionTag*,
                      RE::Actor* target) {
         LogExit exitPrint("RemoveActor"sv);
-        auto& service = GetRustInstance();
-        service.remove_actor(target->GetFormID());
+        auto service = outfit_service_get_singleton_ptr();
+        service->inner().remove_actor(target->GetFormID());
     }
     std::vector<RE::Actor*> ListActors(RE::BSScript::IVirtualMachine* registry,
                                        std::uint32_t stackId,
                                        RE::StaticFunctionTag*) {
         LogExit exitPrint("ListActors"sv);
-        auto& service = GetRustInstance();
-        auto actors = service.list_actors();
+        auto service = outfit_service_get_singleton_ptr();
+        auto actors = service->inner().list_actors();
         std::vector<RE::Actor*> actorVec;
         for (auto& actor_form : actors) {
             auto actor = RE::Actor::LookupByID<RE::Actor>(actor_form);
@@ -868,13 +872,13 @@ namespace OutfitSystem {
 
                                            bool value) {
         LogExit exitPrint("SetLocationBasedAutoSwitchEnabled"sv);
-        GetRustInstance().set_location_based_switching_enabled(value);
+        outfit_service_get_singleton_ptr()->inner().set_location_based_switching_enabled(value);
     }
     bool GetLocationBasedAutoSwitchEnabled(RE::BSScript::IVirtualMachine* registry,
                                            std::uint32_t stackId,
                                            RE::StaticFunctionTag*) {
         LogExit exitPrint("GetLocationBasedAutoSwitchEnabled"sv);
-        return GetRustInstance().get_location_based_switching_enabled();
+        return outfit_service_get_singleton_ptr()->inner().get_location_based_switching_enabled();
     }
     std::vector<std::uint32_t> GetAutoSwitchLocationArray(RE::BSScript::IVirtualMachine* registry,
                                                           std::uint32_t stackId,
@@ -898,11 +902,10 @@ namespace OutfitSystem {
         }
         return result;
     }
-    std::optional<LocationType> identifyLocation(RE::BGSLocation* location, RE::TESWeather* weather) {
+    std::optional<LocationType> identifyLocation(OutfitService& service, RE::BGSLocation* location, RE::TESWeather* weather) {
         LogExit exitPrint("identifyLocation"sv);
         // Just a helper function to classify a location.
         // TODO: Think of a better place than this since we're not exposing it to Papyrus.
-        auto& service = GetRustInstance();
 
         // Collect weather information.
         WeatherFlags weather_flags;
@@ -944,9 +947,11 @@ namespace OutfitSystem {
         LogExit exitPrint("IdentifyLocationType"sv);
         // NOTE: Identify the location for Papyrus. In the event no location is identified, we lie to Papyrus and say "World".
         //       Therefore, Papyrus cannot assume that locations returned have an outfit assigned, at least not for "World".
-        return static_cast<std::uint32_t>(identifyLocation((RE::BGSLocation*) location_skse,
-                                                           (RE::TESWeather*) weather_skse)
-                                              .value_or(LocationType::World));
+        auto service = outfit_service_get_singleton_ptr();
+        return static_cast<std::uint32_t>(identifyLocation(
+            service->inner(),
+            (RE::BGSLocation*) location_skse,
+            (RE::TESWeather*) weather_skse).value_or(LocationType::World));
     }
     void SetOutfitUsingLocation(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                                 RE::Actor* actor,
@@ -954,11 +959,11 @@ namespace OutfitSystem {
                                 RE::TESWeather* weather_skse) {
         LogExit exitPrint("SetOutfitUsingLocation"sv);
         // NOTE: Location can be NULL.
-        auto& service = GetRustInstance();
+        auto service = outfit_service_get_singleton_ptr();
         if (!actor)
             return;
-        if (service.get_location_based_switching_enabled()) {
-            auto location = identifyLocation(location_skse, weather_skse);
+        if (service->inner().get_location_based_switching_enabled()) {
+            auto location = identifyLocation(service->inner(), location_skse, weather_skse);
             // Debug notifications for location classification.
             /*
             const char* locationName = locationTypeStrings[static_cast<std::uint32_t>(location)];
@@ -967,7 +972,7 @@ namespace OutfitSystem {
             RE::DebugNotification(message, nullptr, false);
             */
             if (location.has_value()) {
-                service.set_outfit_using_location(location.value(), actor->GetFormID());
+                service->inner().set_outfit_using_location(location.value(), actor->GetFormID());
             }
         }
     }
@@ -982,7 +987,7 @@ namespace OutfitSystem {
             // Location outfit assignment is never allowed to be empty string. Use unset instead.
             return;
         }
-        GetRustInstance().set_location_outfit(LocationType(location), actor->GetFormID(), name.data());
+        outfit_service_get_singleton_ptr()->inner().set_location_outfit(LocationType(location), actor->GetFormID(), name.data());
     }
     void UnsetLocationOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                              RE::Actor* actor,
@@ -990,7 +995,7 @@ namespace OutfitSystem {
         LogExit exitPrint("UnsetLocationOutfit"sv);
         if (!actor)
             return;
-        return GetRustInstance().unset_location_outfit(LocationType(location), actor->GetFormID());
+        return outfit_service_get_singleton_ptr()->inner().unset_location_outfit(LocationType(location), actor->GetFormID());
     }
     RE::BSFixedString GetLocationOutfit(RE::BSScript::IVirtualMachine* registry,
                                         std::uint32_t stackId,
@@ -1000,7 +1005,7 @@ namespace OutfitSystem {
         LogExit exitPrint("GetLocationOutfit"sv);
         if (!actor)
             return RE::BSFixedString("");
-        auto outfit = GetRustInstance().get_location_outfit_name_c(LocationType(location), actor->GetFormID());
+        auto outfit = outfit_service_get_singleton_ptr()->inner().get_location_outfit_name_c(LocationType(location), actor->GetFormID());
         if (!outfit.empty()) {
             return RE::BSFixedString(outfit.c_str());
         } else {
@@ -1011,8 +1016,8 @@ namespace OutfitSystem {
     bool ExportSettings(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*) {
         LogExit exitPrint("ExportSettings"sv);
         std::string outputFile = *GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\OutfitSystemData.json";
-        auto& service = GetRustInstance();
-        auto data = service.save_json_c();
+        auto service = outfit_service_get_singleton_ptr();
+        auto data = service->inner().save_json_c();
         std::string output(data.c_str());
         std::ofstream file(outputFile);
         if (file) {
@@ -1044,10 +1049,10 @@ namespace OutfitSystem {
             RE::DebugNotification("Failed to read config data", nullptr, false);
             return false;
         }
-        auto& service = GetRustInstance();
+        auto service = outfit_service_get_singleton_ptr();
         auto json = input.str();
         auto intfc = SKSE::GetSerializationInterface();
-        if (!service.replace_with_json_data(rust::Str{json.data(), json.size()}, intfc)) {
+        if (!service->inner().replace_with_json_data(rust::Str{json.data(), json.size()}, intfc)) {
             RE::DebugNotification("Failed to parse config data. Invalid syntax.", nullptr, false);
             return false;
         }

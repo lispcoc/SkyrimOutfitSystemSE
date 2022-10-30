@@ -7,8 +7,8 @@
 #include <bit>
 #include <unordered_set>
 
-#include "ArmorAddonOverrideService.h"
 #include "Utility.h"
+#include "bindings.h"
 
 namespace Hooking {
     SKSE::Trampoline* g_localTrampoline = nullptr;
@@ -16,17 +16,18 @@ namespace Hooking {
 
     bool ShouldOverrideSkinning(RE::TESObjectREFR* target) {
         LogExit exitPrint("ShouldOverrideSkinning"sv);
+        auto service = outfit_service_get_singleton_ptr();
         if (!target) {
             LOG(warn, "Target was null");
             return false;
         }
-        if (!GetRustInstance().enabled_c()) return false;
+        if (!service->inner().enabled_c()) return false;
         auto actor = skyrim_cast<RE::Actor*>(target);
         if (!actor) {
             LOG(warn, "Target failed to cast to RE::Actor");
             return false;
         }
-        if (!GetRustInstance().should_override(actor->GetFormID())) return false;
+        if (!service->inner().should_override(actor->GetFormID())) return false;
         return true;
     }
 
@@ -70,14 +71,14 @@ namespace Hooking {
         bool ShouldOverride(RE::TESObjectARMO* armor, RE::TESObjectREFR* target) {
             LogExit exitPrint("DontVanillaSkinPlayer.ShouldOverride"sv);
             if (!ShouldOverrideSkinning(target)) { return false; }
-            auto& svc = GetRustInstance();
+            auto svc = outfit_service_get_singleton_ptr();
             auto actor = skyrim_cast<RE::Actor*>(target);
             if (!actor) {
                 // Actor failed to cast...
                 LOG(warn, "ShouldOverride: Failed to cast target to Actor.");
                 return true;
             }
-            auto outfit = svc.current_outfit_ptr(actor->GetFormID());
+            auto outfit = svc->inner().current_outfit_ptr(actor->GetFormID());
             if (!outfit) return false;
             auto inventory = target->GetInventoryChanges();
             EquippedArmorVisitor visitor;
@@ -106,8 +107,8 @@ namespace Hooking {
             std::uint32_t mask = 0;
             auto actor = skyrim_cast<RE::Actor*>(target);
             if (!actor) return mask;
-            auto& svc = GetRustInstance();
-            auto outfit = svc.current_outfit_ptr(actor->GetFormID());
+            auto svc = outfit_service_get_singleton_ptr();
+            auto outfit = svc->inner().current_outfit_ptr(actor->GetFormID());
             if (!outfit) return mask;
             EquippedArmorVisitor visitor;
             RE::InventoryChangesAugments::ExecuteAugmentVisitorOnWorn(inventory, &visitor);
@@ -141,8 +142,8 @@ namespace Hooking {
             auto race = base->race;
             bool isFemale = base->IsFemale();
             //
-            auto& svc = GetRustInstance();
-            auto outfit = svc.current_outfit_ptr(actor->GetFormID());
+            auto svc = outfit_service_get_singleton_ptr();
+            auto outfit = svc->inner().current_outfit_ptr(actor->GetFormID());
             if (!outfit) return;
 
             // Get actor inventory and equipped items

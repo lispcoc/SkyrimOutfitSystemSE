@@ -1,7 +1,8 @@
 use crate::outfit::{policy::*, *};
-use crate::outfit_service_get_singleton_ptr;
+use crate::OUTFIT_SERVICE_SINGLETON;
 use crate::strings::*;
 use crate::settings::SETTINGS;
+use std::sync::MutexGuard;
 
 #[cxx::bridge]
 pub mod ffi {
@@ -88,8 +89,10 @@ pub mod ffi {
         fn GetRuntimeDirectory() -> UniquePtr<CxxString>;
     }
     extern "Rust" {
+        type OutfitSystemMutex;
+        fn outfit_service_get_singleton_ptr() -> Box<OutfitSystemMutex>;
+        fn inner(self: &mut OutfitSystemMutex) -> &mut OutfitService;
         type OutfitService;
-        fn outfit_service_get_singleton_ptr() -> *mut OutfitService;
         unsafe fn replace_with_json_data(
             self: &mut OutfitService,
             data: &str,
@@ -177,4 +180,18 @@ pub mod ffi {
 
 fn settings_extra_logging_enabled() -> bool {
     SETTINGS.extra_logging_enabled()
+}
+
+struct OutfitSystemMutex {
+    inner: MutexGuard<'static, OutfitService>
+}
+
+impl OutfitSystemMutex {
+    pub fn inner(&mut self) -> &mut OutfitService {
+        &mut *self.inner
+    }
+}
+
+fn outfit_service_get_singleton_ptr() -> Box<OutfitSystemMutex> {
+    Box::new(OutfitSystemMutex { inner: OUTFIT_SERVICE_SINGLETON.lock().expect("OutfitService mutex poisoned") })
 }
