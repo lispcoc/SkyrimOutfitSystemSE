@@ -320,7 +320,6 @@ impl OutfitService {
     ) -> Option<Self> {
         let mut new = OutfitService::new();
         new.enabled = input.enabled;
-        let mut actor_assignments = BTreeMap::new();
         for (old_form_id, assignments) in &input.actor_outfit_assignments {
             let mut form_id = 0;
             if unsafe { !(*infc).ResolveFormID(*old_form_id, &mut form_id) } || form_id == 0 {
@@ -341,9 +340,8 @@ impl OutfitService {
                 let location = LocationType { repr: *location };
                 assignments_out.location_based.insert(location, value);
             }
-            actor_assignments.insert(form_id as u32, assignments_out);
+            new.actor_assignments.insert(form_id as u32, assignments_out);
         }
-        new.actor_assignments = actor_assignments;
         for outfit in input.outfits {
             new.outfits.insert(
                 Uncased::new(outfit.name.clone()),
@@ -397,7 +395,7 @@ impl OutfitService {
         let outfit_name = self
             .actor_assignments
             .get(&target)
-            .and_then(|assn| assn.current.clone())?;
+            .and_then(|assn| assn.current.as_ref())?;
         self.get_outfit(outfit_name.as_str())
     }
     pub fn current_mut_outfit(&mut self, target: RE_ActorFormID) -> Option<&mut Outfit> {
