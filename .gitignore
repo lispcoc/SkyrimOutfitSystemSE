@@ -345,3 +345,4 @@ build
 *.pex
 *.dll
 .vscode/settings.json
+target

@@ -412,15 +412,15 @@ namespace HookingAE {
             }
         }
     }// namespace RTTIPrinter
-
-    void ApplyPlayerSkinningHooks() {
-        DontVanillaSkinPlayer::Apply();
-        ShimWornFlags::Apply();
-        CustomSkinPlayer::Apply();
-        FixEquipConflictCheck::Apply();
-        FixSkillLeveling::Apply();
-#if _DEBUG
-        RTTIPrinter::Apply();
-#endif
-    }
 }// namespace HookingAE
+
+void ApplyPlayerSkinningHooksAE() {
+    HookingAE::DontVanillaSkinPlayer::Apply();
+    HookingAE::ShimWornFlags::Apply();
+    HookingAE::CustomSkinPlayer::Apply();
+    HookingAE::FixEquipConflictCheck::Apply();
+    HookingAE::FixSkillLeveling::Apply();
+#if _DEBUG
+    HookingAE::RTTIPrinter::Apply();
+#endif
+}

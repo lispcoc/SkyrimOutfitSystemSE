@@ -65,7 +65,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Corrosion)
 
-corrosion_import_crate(MANIFEST_PATH src/rust/Cargo.toml)
+corrosion_import_crate(MANIFEST_PATH Cargo.toml)
 
 get_target_property(RE_INCLUDE CommonLibSSE::CommonLibSSE INTERFACE_INCLUDE_DIRECTORIES)
 get_target_property(RE_OPTIONS CommonLibSSE::CommonLibSSE INTERFACE_COMPILE_OPTIONS)
@@ -91,7 +91,7 @@ add_library(SkyrimOutfitSystemSE SHARED
     src/version.rc
     include/SOS_PCH.h
     src/main.cpp
-        include/ArmorAddonOverrideService.h
+    include/ArmorAddonOverrideService.h
     src/ArmorAddonOverrideService.cpp
     include/OutfitSystem.h
     src/OutfitSystem.cpp
@@ -176,17 +176,13 @@ add_custom_command(TARGET SkyrimOutfitSystemSE POST_BUILD
 find_package(span-lite REQUIRED CONFIG)
 find_package(spdlog REQUIRED CONFIG)
 find_package(xbyak REQUIRED CONFIG)
-find_library(INIH_LIBRARY inih REQUIRED)
-find_path(INIH_INCLUDE_DIRS "ini.h" REQUIRED)
 
 target_link_libraries(SkyrimOutfitSystemSE PUBLIC
     CommonLibSSE::CommonLibSSE
     nonstd::span-lite
     spdlog::spdlog
-    ${INIH_LIBRARY}
     xbyak::xbyak
     sos-proxy
 )
 
-target_include_directories(SkyrimOutfitSystemSE PRIVATE
-    ${INIH_INCLUDE_DIRS})
+target_include_directories(SkyrimOutfitSystemSE PRIVATE)

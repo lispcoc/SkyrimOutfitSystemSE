@@ -14,12 +14,9 @@ namespace Hooking {
     extern SKSE::Trampoline* g_branchTrampoline;
 }// namespace Hooking
 
-namespace HookingPREAE {
-    void ApplyPlayerSkinningHooks();
-}
-
-namespace HookingAE {
-    void ApplyPlayerSkinningHooks();
+extern "C" {
+    void ApplyPlayerSkinningHooksSE();
+    void ApplyPlayerSkinningHooksAE();
 }
 
 #endif//SKYRIMOUTFITSYSTEMSE_SRC_HOOKING_HOOKS_AE_HPP

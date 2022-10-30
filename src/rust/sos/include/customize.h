@@ -7,6 +7,8 @@
 
 #if RUST_DEFINES
 #include <cstdint>
+#include <memory>
+#include <string>
 
 namespace SKSE {
     class SerializationInterface;
@@ -19,6 +21,11 @@ namespace RE {
     }
     using BIPED_OBJECT = BIPED_OBJECTS::BIPED_OBJECT;
 }
+
+std::unique_ptr<std::string> GetRuntimePath();
+std::unique_ptr<std::string> GetRuntimeName();
+std::unique_ptr<std::string> GetRuntimeDirectory();
+
 #endif
 
 #endif //SKYRIMOUTFITSYSTEMSE_SRC_RUST_COMMONLIBSSE_SRC_CUSTOMIZE_H

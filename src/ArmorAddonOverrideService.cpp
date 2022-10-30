@@ -12,6 +12,5 @@ void _assertRead(bool result, const char* err) {
 }
 
 OutfitService& GetRustInstance() {
-    static rust::Box<OutfitService> instance = outfit_service_create();
-    return *instance;
+    return *outfit_service_get_singleton_ptr();
 }

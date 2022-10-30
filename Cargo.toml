@@ -1,0 +1,14 @@
+[workspace]
+
+members = [
+    "src/rust/sos",
+    "src/rust/commonlibsse",
+    "src/rust/protos"
+]
+
+[profile.release]
+panic = 'abort'
+lto = true
+
+[profile.dev]
+panic = 'abort'

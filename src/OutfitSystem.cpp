@@ -1010,7 +1010,7 @@ namespace OutfitSystem {
     }
     bool ExportSettings(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*) {
         LogExit exitPrint("ExportSettings"sv);
-        std::string outputFile = GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\OutfitSystemData.json";
+        std::string outputFile = *GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\OutfitSystemData.json";
         auto& service = GetRustInstance();
         auto data = service.save_json_c();
         std::string output(data.c_str());
@@ -1032,7 +1032,7 @@ namespace OutfitSystem {
     }
     bool ImportSettings(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*) {
         LogExit exitPrint("ImportSettings"sv);
-        std::string inputFile = GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\OutfitSystemData.json";
+        std::string inputFile = *GetRuntimeDirectory() + "Data\\SKSE\\Plugins\\OutfitSystemData.json";
         std::ifstream file(inputFile);
         if (!file) {
             RE::DebugNotification("Failed to open config for reading", nullptr, false);
