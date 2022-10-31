@@ -4,12 +4,14 @@ mod logging;
 pub mod outfit;
 mod persistence;
 pub mod strings;
+mod panicking;
 mod settings;
 use lazy_static::lazy_static;
 use parking_lot::RwLock;
 
 use crate::logging::SimpleLogger;
 use crate::outfit::OutfitService;
+use crate::panicking::setup_panic;
 use commonlibsse::*;
 use log::*;
 
@@ -17,6 +19,7 @@ use log::*;
 pub extern "C" fn plugin_main(skse: *const SKSE_LoadInterface) -> bool {
     unsafe {
         REL_Module::reset();
+        setup_panic();
         InitializeLog();
         SimpleLogger::setup();
 
