@@ -27,6 +27,12 @@ impl Settings {
         .unwrap_or_else(|_| None)
         .unwrap_or_else(|| false)
     }
+
+    pub fn allow_unsafe_armor_resolution_in_json(&self) -> bool {
+        self.ini.getboolcoerce("Import", "AllowUnsafeArmorResolutionInJSON")
+        .unwrap_or_else(|_| None)
+        .unwrap_or_else(|| false)
+    }
 }
 
 lazy_static! {

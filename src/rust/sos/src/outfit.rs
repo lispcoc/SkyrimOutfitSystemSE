@@ -1,4 +1,5 @@
 use crate::outfit::policy::METADATA;
+use crate::settings::SETTINGS;
 use crate::{
     interface::ffi::{
         LocationType, OptionalLocationType, OptionalPolicy, TESObjectARMOPtr, WeatherFlags,
@@ -34,7 +35,7 @@ impl Outfit {
         }
     }
 
-    fn from_proto_data(input: &protos::outfit::Outfit, infc: &SKSE_SerializationInterface) -> Self {
+    fn from_proto_data(input: &protos::outfit::Outfit, infc: &SKSE_SerializationInterface, allow_unsafe_armor_resolution: bool) -> Self {
         let mut outfit = Outfit {
             name: Uncased::new(input.name.as_str()).into_owned(),
             armors: Default::default(),
@@ -44,15 +45,24 @@ impl Outfit {
                 blanket_slot_policy: Policy::XXXX,
             },
         };
-        for armor in &input.armors {
-            let mut form_id = 0;
-            if unsafe { (*infc).ResolveFormID(*armor, &mut form_id) } {
+        for old_form_id in input.armors.iter().cloned() {
+            let form_id = {
+                let mut resolved_form_id = 0;
+                if unsafe { (*infc).ResolveFormID(old_form_id, &mut resolved_form_id) } {
+                    Some(resolved_form_id)
+                } else if allow_unsafe_armor_resolution {
+                    Some(old_form_id)
+                } else {
+                    None
+                }
+            };
+            if let Some(form_id) = form_id {
                 let armor = unsafe { RE_ResolveARMOFormID(form_id) };
                 if !armor.is_null() {
                     outfit.armors.insert(armor);
                 }
             }
-        }
+    }
         for (slot, policy) in &input.slot_policies {
             let policy = *policy as u8;
             if *slot >= RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal || policy >= Policy::MAX {
@@ -309,17 +319,19 @@ impl OutfitService {
     pub fn from_proto(data: &[u8], infc: &SKSE_SerializationInterface) -> Option<Self> {
         use protobuf::Message;
         let input = protos::outfit::OutfitSystem::parse_from_bytes(data).ok()?;
-        Self::from_proto_struct(input, infc)
+        Self::from_proto_struct(input, infc, false)
     }
 
     pub fn from_json(data: &str, infc: &SKSE_SerializationInterface) -> Option<Self> {
         let input = protobuf_json_mapping::parse_from_str(data).ok()?;
-        Self::from_proto_struct(input, infc)
+        let allow_unsafe_armor_resolution = SETTINGS.allow_unsafe_armor_resolution_in_json();
+        Self::from_proto_struct(input, infc, allow_unsafe_armor_resolution)
     }
 
     pub fn from_proto_struct(
         input: protos::outfit::OutfitSystem,
         infc: &SKSE_SerializationInterface,
+        allow_unsafe_armor_resolution: bool,
     ) -> Option<Self> {
         let mut new = OutfitService::new();
         new.enabled = input.enabled;
@@ -349,7 +361,7 @@ impl OutfitService {
         for outfit in input.outfits {
             new.outfits.insert(
                 Uncased::new(outfit.name.clone()),
-                Outfit::from_proto_data(&outfit, infc),
+                Outfit::from_proto_data(&outfit, infc, allow_unsafe_armor_resolution),
             );
         }
         new.location_switching_enabled = input.location_based_auto_switch_enabled;
