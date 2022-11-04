@@ -448,9 +448,7 @@ impl OutfitService {
         } else {
             self.get_mut_outfit(name)
         };
-        let outfit = if let Some(outfit) = outfit {
-            outfit
-        } else {
+        let Some(outfit) = outfit else {
             return;
         };
         for added in add {
@@ -464,11 +462,9 @@ impl OutfitService {
         // Returns 0 on success, 1 if outfit not found, 2 if name already used.
         let new_name = Uncased::new(new_name.to_owned());
         if self.outfits.contains_key(&new_name) {
-            return 1;
+            return 2;
         };
-        let mut entry = if let Some(entry) = self.outfits.remove(UncasedStr::new(old_name)) {
-            entry
-        } else {
+        let Some(mut entry) = self.outfits.remove(UncasedStr::new(old_name)) else {
             return 1;
         };
         entry.name = new_name;
