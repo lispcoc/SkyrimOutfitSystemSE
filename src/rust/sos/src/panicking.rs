@@ -7,17 +7,17 @@ use winapi::um::processthreadsapi::ExitProcess;
 pub fn setup_panic() {
     std::panic::set_hook(Box::new(|info| {
         // The payload may either downcast to a &str or String. Try to get both then pick one.
-        let string = info.payload().downcast_ref::<String>();
-        let str = info.payload().downcast_ref::<&str>();
-        let str = match (string, str) {
-            (Some(str), _) => Some(str.as_str()),
-            (_, Some(str)) => Some(*str),
-            (None, None) => None,
+        let string = if let Some(string) = info.payload().downcast_ref::<String>() {
+            Some(string.as_str())
+        } else if let Some(&string) = info.payload().downcast_ref::<&'static str>() {
+            Some(string)
+        } else {
+            None
         };
         // If we got a string payload, then print the reason.
-        match str {
-            Some(message) => quick_msg_box(&format!("PANIC: {}", message)),
-            None => quick_msg_box(&"PANIC: Unknown reason.".to_string()),
+        match string {
+            Some(message) => quick_msg_box(format!("PANIC: {}", message)),
+            None => quick_msg_box("PANIC: Unknown reason."),
         }
         unsafe {
             ExitProcess(42);
@@ -25,10 +25,9 @@ pub fn setup_panic() {
     }));
 }
 
-/// A helper function to quickly show a message box. Panics if `msg` cannot be converted to a [`WideCString`]
-/// (likely, because it contains NULL bytes inside of it.
-pub fn quick_msg_box(msg: &str) {
-    let message = CString::new(msg).unwrap_or_default();
+/// A helper function to quickly show a message box. If `msg` cannot be converted to a CString (due to NULL bytes), a default message is shown.
+pub fn quick_msg_box<S: AsRef<str>>(msg: S) {
+    let message = CString::new(msg.as_ref()).unwrap_or_else(|_| c!("<Could not render error message.>").to_owned());
     let title = c!("Skyrim Outfit System Critical Error");
     unsafe {
         MessageBoxA(null_mut(), message.as_ptr(), title.as_ptr(), MB_OK);
