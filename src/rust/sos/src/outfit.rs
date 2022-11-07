@@ -710,10 +710,12 @@ impl OutfitService {
                 ._base
                 .GetFormID()
         };
+        // Make sure that the player character is in the actor assignments list.
         if !self.actor_assignments.contains_key(&player_form_id) {
             self.actor_assignments
                 .insert(player_form_id, ActorAssignments::default());
         }
+        // Remove any temporary actors from our actor assignments list.
         self.actor_assignments
             .retain(|item, _| is_form_id_permitted(*item));
     }
