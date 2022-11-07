@@ -11,7 +11,7 @@ pub mod ffi {
         pub snowy: bool,
     }
 
-    #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+    #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Hash)]
     #[repr(u32)]
     pub enum LocationType {
         World = 0,
@@ -30,7 +30,7 @@ pub mod ffi {
         CityRainy = 11,
     }
 
-    #[derive(Ord, PartialOrd, Eq, PartialEq)]
+    #[derive(Ord, PartialOrd, Eq, PartialEq, Hash)]
     #[repr(u8)]
     pub enum Policy {
         XXXX,

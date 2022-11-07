@@ -10,12 +10,12 @@ use commonlibsse::{
     SKSE_SerializationInterface, RE_BIPED_OBJECT,
 };
 use slot_policy::{Policies, Policy};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{HashSet, HashMap};
 use uncased::{Uncased, UncasedStr};
 
 pub struct Outfit {
     pub name: UncasedString,
-    pub armors: BTreeSet<*mut RE_TESObjectARMO>,
+    pub armors: HashSet<*mut RE_TESObjectARMO>,
     pub favorite: bool,
     pub slot_policies: Policies,
 }
@@ -138,7 +138,7 @@ impl Outfit {
             slots
         };
         let mut mask = 0;
-        let mut results = BTreeSet::new();
+        let mut results = HashSet::new();
         for slot in 0..RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal {
             if mask & (1 << slot) != 0 {
                 continue;
@@ -227,7 +227,7 @@ impl Outfit {
 
 pub struct ActorAssignments {
     pub current: Option<UncasedString>,
-    pub location_based: BTreeMap<LocationType, UncasedString>,
+    pub location_based: HashMap<LocationType, UncasedString>,
 }
 
 impl Default for ActorAssignments {
@@ -241,8 +241,8 @@ impl Default for ActorAssignments {
 
 pub struct OutfitService {
     pub enabled: bool,
-    pub outfits: BTreeMap<UncasedString, Outfit>,
-    pub actor_assignments: BTreeMap<RE_ActorFormID, ActorAssignments>,
+    pub outfits: HashMap<UncasedString, Outfit>,
+    pub actor_assignments: HashMap<RE_ActorFormID, ActorAssignments>,
     pub location_switching_enabled: bool,
 }
 
@@ -582,7 +582,7 @@ impl OutfitService {
         weather_flags: WeatherFlags,
         target: RE_ActorFormID,
     ) -> Option<LocationType> {
-        let kw_map: BTreeSet<_> = keywords.into_iter().collect();
+        let kw_map: HashSet<_> = keywords.into_iter().collect();
         let actor_assn = &self.actor_assignments.get(&target)?.location_based;
         
         macro_rules! check_location {
@@ -722,17 +722,17 @@ impl OutfitService {
 pub mod slot_policy {
     pub use crate::interface::ffi::Policy;
     use commonlibsse::RE_BIPED_OBJECT;
-    use std::collections::BTreeMap;
+    use std::collections::HashMap;
 
     pub struct Policies {
-        pub slot_policies: BTreeMap<RE_BIPED_OBJECT, Policy>,
+        pub slot_policies: HashMap<RE_BIPED_OBJECT, Policy>,
         pub blanket_slot_policy: Policy,
     }
 
     impl Policies {
         pub fn standard() -> Self {
             use commonlibsse::RE_BIPED_OBJECTS_BIPED_OBJECT_kShield;
-            let mut policies: BTreeMap<RE_BIPED_OBJECT, Policy> = Default::default();
+            let mut policies: HashMap<RE_BIPED_OBJECT, Policy> = Default::default();
             policies.insert(RE_BIPED_OBJECTS_BIPED_OBJECT_kShield, Policy::XEXO);
             Policies {
                 slot_policies: policies,
@@ -775,7 +775,7 @@ impl Policy {
 }
 
 pub mod policy {
-    use std::collections::BTreeMap;
+    use std::collections::HashMap;
 
     use arrayvec::ArrayVec;
     use lazy_static::lazy_static;
@@ -881,18 +881,18 @@ pub mod policy {
     ];
 
     lazy_static!{ 
-        pub static ref METADATA_VALUE_LUT: BTreeMap<Policy, &'static Metadata> = build_metadata_value_map();
-        pub static ref METADATA_NAME_LUT: BTreeMap<&'static str, &'static Metadata> = build_metadata_name_map();
+        pub static ref METADATA_VALUE_LUT: HashMap<Policy, &'static Metadata> = build_metadata_value_map();
+        pub static ref METADATA_NAME_LUT: HashMap<&'static str, &'static Metadata> = build_metadata_name_map();
     }
 
-    fn build_metadata_value_map() -> BTreeMap<Policy, &'static Metadata> {
+    fn build_metadata_value_map() -> HashMap<Policy, &'static Metadata> {
         METADATA
             .iter()
             .map(|m| (m.value, m))
             .collect()
     }
 
-    fn build_metadata_name_map() -> BTreeMap<&'static str, &'static Metadata> {
+    fn build_metadata_name_map() -> HashMap<&'static str, &'static Metadata> {
         METADATA
             .iter()
             .map(|m| (m.code, m))
