@@ -748,7 +748,7 @@ impl Policy {
     }
 
     fn policy_metadata(&self) -> Option<&'static policy::Metadata> {
-        policy::METADATA_VALUE_LUT.get(self).cloned()
+        policy::METADATA.get(self.repr as usize)
     }
 
     pub fn select(&self, has_equipped: bool, has_outfit: bool) -> Option<PolicySelection> {
@@ -805,6 +805,8 @@ pub mod policy {
 
     pub static METADATA: [Metadata; METADATA_ALL.len()] = METADATA_ALL;
     pub const METADATA_COUNT: usize = METADATA_ALL.len();
+    // NOTE: Policy value must match the index in this array. This is checked by static assertion.
+    const _: () = assert!(metadata_is_correctly_indexed(), "assert_foo_equals_bar");
     const METADATA_ALL: [Metadata; 12] = [
         Metadata {
             value: Policy::XXXX,
@@ -881,15 +883,17 @@ pub mod policy {
     ];
 
     lazy_static!{ 
-        pub static ref METADATA_VALUE_LUT: HashMap<Policy, &'static Metadata> = build_metadata_value_map();
         pub static ref METADATA_NAME_LUT: HashMap<&'static str, &'static Metadata> = build_metadata_name_map();
     }
 
-    fn build_metadata_value_map() -> HashMap<Policy, &'static Metadata> {
-        METADATA
-            .iter()
-            .map(|m| (m.value, m))
-            .collect()
+    #[allow(dead_code)]
+    const fn metadata_is_correctly_indexed() -> bool {
+        let mut idx = 0;
+        while idx < METADATA_COUNT {
+            assert!(METADATA_ALL[idx].value.repr as usize == idx);
+            idx += 1;
+        }
+        true
     }
 
     fn build_metadata_name_map() -> HashMap<&'static str, &'static Metadata> {
