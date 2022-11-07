@@ -46,7 +46,7 @@ impl Outfit {
         };
         for armor in &input.armors {
             let mut form_id = 0;
-            if unsafe { (*infc).ResolveFormID(*armor, &mut form_id) } {
+            if unsafe { infc.ResolveFormID(*armor, &mut form_id) } {
                 let armor = unsafe { RE_ResolveARMOFormID(form_id) };
                 if !armor.is_null() {
                     outfit.armors.insert(armor);
@@ -325,7 +325,7 @@ impl OutfitService {
         new.enabled = input.enabled;
         for (old_form_id, assignments) in &input.actor_outfit_assignments {
             let mut form_id = 0;
-            if unsafe { !(*infc).ResolveFormID(*old_form_id, &mut form_id) } || form_id == 0 {
+            if unsafe { !infc.ResolveFormID(*old_form_id, &mut form_id) } || form_id == 0 {
                 continue;
             }
             let mut assignments_out = ActorAssignments::default();
