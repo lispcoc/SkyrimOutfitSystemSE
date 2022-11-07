@@ -72,9 +72,7 @@ pub extern "C" fn plugin_main(skse: *const SKSE_LoadInterface) -> bool {
 #[no_mangle]
 #[allow(non_upper_case_globals)]
 pub extern "C" fn messaging_callback(message: *mut SKSE_MessagingInterface_Message) {
-    if message.is_null() {
-        return;
-    }
+    if message.is_null() { return }
     let message_type = unsafe { (*message).type_ };
     match message_type {
         SKSE_MessagingInterface_kPostLoad => {}

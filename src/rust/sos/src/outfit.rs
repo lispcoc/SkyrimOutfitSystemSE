@@ -1,4 +1,3 @@
-use crate::outfit::policy::METADATA;
 use crate::{
     interface::ffi::{
         LocationType, OptionalLocationType, OptionalPolicy, TESObjectARMOPtr, WeatherFlags,
@@ -749,14 +748,11 @@ pub mod slot_policy {
 
 impl Policy {
     pub fn policy_with_code(code: &str) -> Option<Self> {
-        policy::METADATA
-            .iter()
-            .find(|data| data.code == code)
-            .map(|value| value.value)
+        policy::METADATA_NAME_LUT.get(code).map(|v| v.value)
     }
 
-    fn policy_metadata(&self) -> Option<policy::Metadata> {
-        METADATA.iter().find(|m| m.value == *self).cloned()
+    fn policy_metadata(&self) -> Option<&'static policy::Metadata> {
+        policy::METADATA_VALUE_LUT.get(self).cloned()
     }
 
     pub fn select(&self, has_equipped: bool, has_outfit: bool) -> Option<PolicySelection> {
@@ -783,6 +779,11 @@ impl Policy {
 }
 
 pub mod policy {
+    use std::collections::BTreeMap;
+
+    use arrayvec::ArrayVec;
+    use lazy_static::lazy_static;
+
     pub use crate::interface::ffi::Policy;
     use crate::interface::ffi::{MetadataC, OptionalMetadata, OptionalPolicy};
 
@@ -806,7 +807,9 @@ pub mod policy {
         }
     }
 
-    pub const METADATA: [Metadata; 12] = [
+    pub static METADATA: [Metadata; METADATA_ALL.len()] = METADATA_ALL;
+    pub const METADATA_COUNT: usize = METADATA_ALL.len();
+    const METADATA_ALL: [Metadata; 12] = [
         Metadata {
             value: Policy::XXXX,
             code: "XXXX",
@@ -881,6 +884,25 @@ pub mod policy {
         }, // If only equipped, show equipped. If only outfit, show outfit. If both, show outfit
     ];
 
+    lazy_static!{ 
+        pub static ref METADATA_VALUE_LUT: BTreeMap<Policy, &'static Metadata> = build_metadata_value_map();
+        pub static ref METADATA_NAME_LUT: BTreeMap<&'static str, &'static Metadata> = build_metadata_name_map();
+    }
+
+    fn build_metadata_value_map() -> BTreeMap<Policy, &'static Metadata> {
+        METADATA
+            .iter()
+            .map(|m| (m.value, m))
+            .collect()
+    }
+
+    fn build_metadata_name_map() -> BTreeMap<&'static str, &'static Metadata> {
+        METADATA
+            .iter()
+            .map(|m| (m.code, m))
+            .collect()
+    }
+
     pub fn policy_with_code_c(code: &str) -> OptionalPolicy {
         if let Some(value) = Policy::policy_with_code(code) {
             OptionalPolicy {
@@ -899,12 +921,12 @@ pub mod policy {
         list_available_policies(allow_advanced)
             .into_iter()
             .cloned()
-            .map(|m| MetadataC::from(m))
+            .map(|m| m.into())
             .collect()
     }
 
-    pub fn list_available_policies(allow_advanced: bool) -> Vec<&'static Metadata> {
-        let mut filtered: Vec<_> = METADATA
+    pub fn list_available_policies(allow_advanced: bool) -> ArrayVec<&'static Metadata, METADATA_COUNT> {
+        let mut filtered: ArrayVec<_, METADATA_COUNT> = METADATA
             .iter()
             .filter(|p| allow_advanced || !p.advanced)
             .collect();
