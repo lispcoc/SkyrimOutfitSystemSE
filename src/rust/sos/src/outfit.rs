@@ -33,9 +33,9 @@ impl Outfit {
         }
     }
 
-    fn from_proto_data(input: &protos::outfit::Outfit, infc: &SKSE_SerializationInterface) -> Self {
+    fn from_proto_data(input: protos::outfit::Outfit, infc: &SKSE_SerializationInterface) -> Self {
         let mut outfit = Outfit {
-            name: Uncased::new(input.name.as_str()).into_owned(),
+            name: Uncased::new(input.name),
             armors: Default::default(),
             favorite: input.is_favorite,
             slot_policies: Policies {
@@ -43,22 +43,22 @@ impl Outfit {
                 blanket_slot_policy: Policy::XXXX,
             },
         };
-        for armor in &input.armors {
+        for armor in input.armors {
             let mut form_id = 0;
-            if unsafe { infc.ResolveFormID(*armor, &mut form_id) } {
+            if unsafe { infc.ResolveFormID(armor, &mut form_id) } {
                 let armor = unsafe { RE_ResolveARMOFormID(form_id) };
                 if !armor.is_null() {
                     outfit.armors.insert(armor);
                 }
             }
         }
-        for (slot, policy) in &input.slot_policies {
-            let policy = *policy as u8;
-            if *slot >= RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal || policy >= Policy::MAX {
+        for (slot, policy) in input.slot_policies {
+            let policy = policy as u8;
+            if slot >= RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal || policy >= Policy::MAX {
                 continue;
             }
             let policy = Policy { repr: policy };
-            outfit.slot_policies.slot_policies.insert(*slot, policy);
+            outfit.slot_policies.slot_policies.insert(slot, policy);
         }
         if (input.slot_policy as u8) < Policy::MAX {
             outfit.slot_policies.blanket_slot_policy = Policy {
@@ -322,9 +322,9 @@ impl OutfitService {
     ) -> Option<Self> {
         let mut new = OutfitService::new();
         new.enabled = input.enabled;
-        for (old_form_id, assignments) in &input.actor_outfit_assignments {
+        for (old_form_id, assignments) in input.actor_outfit_assignments {
             let mut form_id = 0;
-            if unsafe { !infc.ResolveFormID(*old_form_id, &mut form_id) } || form_id == 0 {
+            if unsafe { !infc.ResolveFormID(old_form_id, &mut form_id) } || form_id == 0 {
                 continue;
             }
             let mut assignments_out = ActorAssignments::default();
@@ -348,7 +348,7 @@ impl OutfitService {
         for outfit in input.outfits {
             new.outfits.insert(
                 Uncased::new(outfit.name.clone()),
-                Outfit::from_proto_data(&outfit, infc),
+                Outfit::from_proto_data(outfit, infc),
             );
         }
         new.location_switching_enabled = input.location_based_auto_switch_enabled;
@@ -551,10 +551,12 @@ impl OutfitService {
         location: LocationType,
         target: RE_ActorFormID,
     ) -> Option<String> {
-        self.actor_assignments
-            .get(&target)
-            .and_then(|assn| assn.location_based.get(&location))
-            .map(|name| name.to_string())
+        let name = self.actor_assignments
+            .get(&target)?
+            .location_based
+            .get(&location)?
+            .to_string();
+        Some(name)
     }
     pub fn check_location_type_c(
         &self,
@@ -582,6 +584,7 @@ impl OutfitService {
     ) -> Option<LocationType> {
         let kw_map: BTreeSet<_> = keywords.into_iter().collect();
         let actor_assn = &self.actor_assignments.get(&target)?.location_based;
+        
         macro_rules! check_location {
             ($variant:expr, $check_code:expr) => {
                 if actor_assn.contains_key(&$variant) && ($check_code) {
@@ -632,17 +635,10 @@ impl OutfitService {
     }
 
     pub fn should_override(&self, target: RE_ActorFormID) -> bool {
-        if !self.enabled
-            || self
+        self.enabled && self
                 .actor_assignments
                 .get(&target)
-                .and_then(|assn| assn.current.as_ref())
-                == None
-        {
-            false
-        } else {
-            true
-        }
+                .map_or(false, |assn| assn.current.is_some())
     }
     pub fn get_outfit_names(&self, favorites_only: bool) -> Vec<String> {
         self.outfits
