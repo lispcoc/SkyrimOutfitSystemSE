@@ -40,9 +40,7 @@ pub extern "C" fn serialization_save_callback(intfc: *mut SKSE_SerializationInte
     info!("Writing savedata...");
     if unsafe { intfc.OpenRecord(SIGNATURE_INT, Versions::V6 as u32) } {
         let service = OUTFIT_SERVICE_SINGLETON.read();
-        let proto = if let Some(proto) = service.save_proto() {
-            proto
-        } else {
+        let Some(proto) = service.save_proto() else {
             error!("Could not serialize proto data!");
             return;
         };
