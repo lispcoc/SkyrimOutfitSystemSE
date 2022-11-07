@@ -1,4 +1,4 @@
-use crate::outfit_service_get_singleton_ptr;
+use crate::OUTFIT_SERVICE_SINGLETON;
 use commonlibsse::*;
 use log::*;
 use std::ffi::c_void;
@@ -39,10 +39,8 @@ pub extern "C" fn serialization_save_callback(intfc: *mut SKSE_SerializationInte
     };
     info!("Writing savedata...");
     if unsafe { intfc.OpenRecord(SIGNATURE_INT, Versions::V6 as u32) } {
-        let service = unsafe { &mut *outfit_service_get_singleton_ptr() };
-        let proto = if let Some(proto) = service.save_proto() {
-            proto
-        } else {
+        let service = OUTFIT_SERVICE_SINGLETON.read();
+        let Some(proto) = service.save_proto() else {
             error!("Could not serialize proto data!");
             return;
         };
@@ -76,7 +74,7 @@ pub extern "C" fn serialization_load_callback(intfc: *mut SKSE_SerializationInte
                     error!("Did not read the correct amount of data for deserialization");
                     break;
                 }
-                let service = unsafe { &mut *outfit_service_get_singleton_ptr() };
+                let mut service = OUTFIT_SERVICE_SINGLETON.write();
                 if !service.replace_with_proto(&buffer, intfc) {
                     error!("Failed to use proto data to instantiate");
                     break;

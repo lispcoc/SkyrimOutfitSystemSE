@@ -78,7 +78,7 @@ else()
 endif()
 corrosion_set_env_vars(sos INCLUDE_PATHS="${RE_INCLUDE}" OPTIONS="${RE_OPTIONS}" DEFINITIONS="${RE_DEFINITIONS}" HEADER_GEN="${RUST_HEADER_PATH}" CRATE_CC_NO_DEFAULTS=1 CXXFLAGS="${CMAKE_RUST_MSVC_RUNTIME_LIBRARY}")
 
-add_library(sos-proxy STATIC ${RUST_HEADER_PATH}/bindings.h src/rust/dummy.cpp)
+add_library(sos-proxy STATIC ${RUST_HEADER_PATH}/bindings.h src/cpp/dummy.cpp)
 add_custom_command(OUTPUT ${RUST_HEADER_PATH}/bindings.h COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RUST_HEADER_PATH}/bindings.h.tmp ${RUST_HEADER_PATH}/bindings.h DEPENDS sos-static)
 target_link_libraries(sos-proxy PUBLIC sos-static)
 target_include_directories(sos-proxy INTERFACE ${RUST_HEADER_PATH} src/rust/)
@@ -87,22 +87,20 @@ target_include_directories(sos-proxy INTERFACE ${RUST_HEADER_PATH} src/rust/)
 # Target
 ################################################################################
 add_library(SkyrimOutfitSystemSE SHARED
-    include/version.h
-    src/version.rc
-    include/SOS_PCH.h
-    src/main.cpp
-    include/ArmorAddonOverrideService.h
-    src/ArmorAddonOverrideService.cpp
-    include/OutfitSystem.h
-    src/OutfitSystem.cpp
-    include/PlayerSkinning.h
-    src/hooking/Hooks_AE.cpp
-    src/hooking/Hooks_PRE_AE.cpp
-    src/hooking/Patches.cpp
-    src/Utility.cpp
-    include/RE/REAugments.h
-    src/RE/REAugments.cpp
-    src/RustSymbols.cpp)
+    src/cpp/include/version.h
+    src/cpp/version.rc
+    src/cpp/include/SOS_PCH.h
+    src/cpp/main.cpp
+    src/cpp/include/OutfitSystem.h
+    src/cpp/OutfitSystem.cpp
+    src/cpp/include/PlayerSkinning.h
+    src/cpp/hooking/Hooks_AE.cpp
+    src/cpp/hooking/Hooks_PRE_AE.cpp
+    src/cpp/hooking/Patches.cpp
+    src/cpp/Utility.cpp
+    src/cpp/include/RE/REAugments.h
+    src/cpp/RE/REAugments.cpp
+    src/cpp/RustSymbols.cpp)
 
 set(ROOT_NAMESPACE SkyrimOutfitSystemSE)
 
@@ -115,11 +113,11 @@ set_target_properties(SkyrimOutfitSystemSE PROPERTIES
 )
 
 target_include_directories(SkyrimOutfitSystemSE PUBLIC
-    include/
+    src/cpp/include/
 )
 
 target_precompile_headers(SkyrimOutfitSystemSE PRIVATE
-    include/SOS_PCH.h
+    src/cpp/include/SOS_PCH.h
 )
 
 target_compile_definitions(SkyrimOutfitSystemSE PRIVATE

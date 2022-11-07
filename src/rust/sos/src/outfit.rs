@@ -1,4 +1,3 @@
-use crate::outfit::policy::METADATA;
 use crate::{
     interface::ffi::{
         LocationType, OptionalLocationType, OptionalPolicy, TESObjectARMOPtr, WeatherFlags,
@@ -11,15 +10,18 @@ use commonlibsse::{
     SKSE_SerializationInterface, RE_BIPED_OBJECT,
 };
 use slot_policy::{Policies, Policy};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{HashSet, HashMap};
 use uncased::{Uncased, UncasedStr};
 
 pub struct Outfit {
     pub name: UncasedString,
-    pub armors: BTreeSet<*mut RE_TESObjectARMO>,
+    pub armors: HashSet<*mut RE_TESObjectARMO>,
     pub favorite: bool,
     pub slot_policies: Policies,
 }
+
+unsafe impl Send for Outfit {}
+unsafe impl Sync for Outfit {}
 
 impl Outfit {
     fn new(name: &str) -> Self {
@@ -31,9 +33,9 @@ impl Outfit {
         }
     }
 
-    fn from_proto_data(input: &protos::outfit::Outfit, infc: &SKSE_SerializationInterface) -> Self {
+    fn from_proto_data(input: protos::outfit::Outfit, infc: &SKSE_SerializationInterface) -> Self {
         let mut outfit = Outfit {
-            name: Uncased::new(input.name.as_str()).into_owned(),
+            name: Uncased::new(input.name),
             armors: Default::default(),
             favorite: input.is_favorite,
             slot_policies: Policies {
@@ -41,22 +43,22 @@ impl Outfit {
                 blanket_slot_policy: Policy::XXXX,
             },
         };
-        for armor in &input.armors {
+        for armor in input.armors {
             let mut form_id = 0;
-            if unsafe { (*infc).ResolveFormID(*armor, &mut form_id) } {
+            if unsafe { infc.ResolveFormID(armor, &mut form_id) } {
                 let armor = unsafe { RE_ResolveARMOFormID(form_id) };
                 if !armor.is_null() {
                     outfit.armors.insert(armor);
                 }
             }
         }
-        for (slot, policy) in &input.slot_policies {
-            let policy = *policy as u8;
-            if *slot >= RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal || policy >= Policy::MAX {
+        for (slot, policy) in input.slot_policies {
+            let policy = policy as u8;
+            if slot >= RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal || policy >= Policy::MAX {
                 continue;
             }
             let policy = Policy { repr: policy };
-            outfit.slot_policies.slot_policies.insert(*slot, policy);
+            outfit.slot_policies.slot_policies.insert(slot, policy);
         }
         if (input.slot_policy as u8) < Policy::MAX {
             outfit.slot_policies.blanket_slot_policy = Policy {
@@ -136,7 +138,7 @@ impl Outfit {
             slots
         };
         let mut mask = 0;
-        let mut results = BTreeSet::new();
+        let mut results = HashSet::new();
         for slot in 0..RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal {
             if mask & (1 << slot) != 0 {
                 continue;
@@ -225,7 +227,7 @@ impl Outfit {
 
 pub struct ActorAssignments {
     pub current: Option<UncasedString>,
-    pub location_based: BTreeMap<LocationType, UncasedString>,
+    pub location_based: HashMap<LocationType, UncasedString>,
 }
 
 impl Default for ActorAssignments {
@@ -239,8 +241,8 @@ impl Default for ActorAssignments {
 
 pub struct OutfitService {
     pub enabled: bool,
-    pub outfits: BTreeMap<UncasedString, Outfit>,
-    pub actor_assignments: BTreeMap<RE_ActorFormID, ActorAssignments>,
+    pub outfits: HashMap<UncasedString, Outfit>,
+    pub actor_assignments: HashMap<RE_ActorFormID, ActorAssignments>,
     pub location_switching_enabled: bool,
 }
 
@@ -320,9 +322,9 @@ impl OutfitService {
     ) -> Option<Self> {
         let mut new = OutfitService::new();
         new.enabled = input.enabled;
-        for (old_form_id, assignments) in &input.actor_outfit_assignments {
+        for (old_form_id, assignments) in input.actor_outfit_assignments {
             let mut form_id = 0;
-            if unsafe { !(*infc).ResolveFormID(*old_form_id, &mut form_id) } || form_id == 0 {
+            if unsafe { !infc.ResolveFormID(old_form_id, &mut form_id) } || form_id == 0 {
                 continue;
             }
             let mut assignments_out = ActorAssignments::default();
@@ -346,20 +348,29 @@ impl OutfitService {
         for outfit in input.outfits {
             new.outfits.insert(
                 Uncased::new(outfit.name.clone()),
-                Outfit::from_proto_data(&outfit, infc),
+                Outfit::from_proto_data(outfit, infc),
             );
         }
         new.location_switching_enabled = input.location_based_auto_switch_enabled;
         Some(new)
     }
 
-    pub fn get_outfit_ptr(&mut self, name: &str) -> *mut Outfit {
+    pub fn get_outfit_ptr(&self, name: &str) -> *const Outfit {
+        if let Some(reference) = self.get_outfit(name) {
+            reference
+        } else {
+            std::ptr::null()
+        }
+    }
+
+    pub fn get_mut_outfit_ptr(&mut self, name: &str) -> *mut Outfit {
         if let Some(reference) = self.get_mut_outfit(name) {
             reference
         } else {
             std::ptr::null_mut()
         }
     }
+
     pub fn get_outfit(&self, name: &str) -> Option<&Outfit> {
         self.outfits.get(UncasedStr::new(name))
     }
@@ -385,7 +396,14 @@ impl OutfitService {
             self.outfits.insert(name_uncased, Outfit::new(name));
         }
     }
-    pub fn current_outfit_ptr(&mut self, target: u32) -> *mut Outfit {
+    pub fn current_outfit_ptr(&self, target: u32) -> *const Outfit {
+        if let Some(outfit) = self.current_outfit(target) {
+            outfit
+        } else {
+            std::ptr::null()
+        }
+    }
+    pub fn current_outfit_mut_ptr(&mut self, target: u32) -> *mut Outfit {
         if let Some(outfit) = self.current_mut_outfit(target) {
             outfit
         } else {
@@ -429,9 +447,7 @@ impl OutfitService {
         } else {
             self.get_mut_outfit(name)
         };
-        let outfit = if let Some(outfit) = outfit {
-            outfit
-        } else {
+        let Some(outfit) = outfit else {
             return;
         };
         for added in add {
@@ -445,11 +461,9 @@ impl OutfitService {
         // Returns 0 on success, 1 if outfit not found, 2 if name already used.
         let new_name = Uncased::new(new_name.to_owned());
         if self.outfits.contains_key(&new_name) {
-            return 1;
+            return 2;
         };
-        let mut entry = if let Some(entry) = self.outfits.remove(UncasedStr::new(old_name)) {
-            entry
-        } else {
+        let Some(mut entry) = self.outfits.remove(UncasedStr::new(old_name)) else {
             return 1;
         };
         entry.name = new_name;
@@ -537,10 +551,12 @@ impl OutfitService {
         location: LocationType,
         target: RE_ActorFormID,
     ) -> Option<String> {
-        self.actor_assignments
-            .get(&target)
-            .and_then(|assn| assn.location_based.get(&location))
-            .map(|name| name.to_string())
+        let name = self.actor_assignments
+            .get(&target)?
+            .location_based
+            .get(&location)?
+            .to_string();
+        Some(name)
     }
     pub fn check_location_type_c(
         &self,
@@ -566,8 +582,9 @@ impl OutfitService {
         weather_flags: WeatherFlags,
         target: RE_ActorFormID,
     ) -> Option<LocationType> {
-        let kw_map: BTreeSet<_> = keywords.into_iter().collect();
+        let kw_map: HashSet<_> = keywords.into_iter().collect();
         let actor_assn = &self.actor_assignments.get(&target)?.location_based;
+        
         macro_rules! check_location {
             ($variant:expr, $check_code:expr) => {
                 if actor_assn.contains_key(&$variant) && ($check_code) {
@@ -618,17 +635,10 @@ impl OutfitService {
     }
 
     pub fn should_override(&self, target: RE_ActorFormID) -> bool {
-        if !self.enabled
-            || self
+        self.enabled && self
                 .actor_assignments
                 .get(&target)
-                .and_then(|assn| assn.current.as_ref())
-                == None
-        {
-            false
-        } else {
-            true
-        }
+                .map_or(false, |assn| assn.current.is_some())
     }
     pub fn get_outfit_names(&self, favorites_only: bool) -> Vec<String> {
         self.outfits
@@ -700,10 +710,12 @@ impl OutfitService {
                 ._base
                 .GetFormID()
         };
+        // Make sure that the player character is in the actor assignments list.
         if !self.actor_assignments.contains_key(&player_form_id) {
             self.actor_assignments
                 .insert(player_form_id, ActorAssignments::default());
         }
+        // Remove any temporary actors from our actor assignments list.
         self.actor_assignments
             .retain(|item, _| is_form_id_permitted(*item));
     }
@@ -712,17 +724,17 @@ impl OutfitService {
 pub mod slot_policy {
     pub use crate::interface::ffi::Policy;
     use commonlibsse::RE_BIPED_OBJECT;
-    use std::collections::BTreeMap;
+    use std::collections::HashMap;
 
     pub struct Policies {
-        pub slot_policies: BTreeMap<RE_BIPED_OBJECT, Policy>,
+        pub slot_policies: HashMap<RE_BIPED_OBJECT, Policy>,
         pub blanket_slot_policy: Policy,
     }
 
     impl Policies {
         pub fn standard() -> Self {
             use commonlibsse::RE_BIPED_OBJECTS_BIPED_OBJECT_kShield;
-            let mut policies: BTreeMap<RE_BIPED_OBJECT, Policy> = Default::default();
+            let mut policies: HashMap<RE_BIPED_OBJECT, Policy> = Default::default();
             policies.insert(RE_BIPED_OBJECTS_BIPED_OBJECT_kShield, Policy::XEXO);
             Policies {
                 slot_policies: policies,
@@ -734,14 +746,11 @@ pub mod slot_policy {
 
 impl Policy {
     pub fn policy_with_code(code: &str) -> Option<Self> {
-        policy::METADATA
-            .iter()
-            .find(|data| data.code == code)
-            .map(|value| value.value)
+        policy::METADATA_NAME_LUT.get(code).map(|v| v.value)
     }
 
-    fn policy_metadata(&self) -> Option<policy::Metadata> {
-        METADATA.iter().find(|m| m.value == *self).cloned()
+    fn policy_metadata(&self) -> Option<&'static policy::Metadata> {
+        policy::METADATA.get(self.repr as usize)
     }
 
     pub fn select(&self, has_equipped: bool, has_outfit: bool) -> Option<PolicySelection> {
@@ -768,6 +777,11 @@ impl Policy {
 }
 
 pub mod policy {
+    use std::collections::HashMap;
+
+    use arrayvec::ArrayVec;
+    use lazy_static::lazy_static;
+
     pub use crate::interface::ffi::Policy;
     use crate::interface::ffi::{MetadataC, OptionalMetadata, OptionalPolicy};
 
@@ -791,7 +805,11 @@ pub mod policy {
         }
     }
 
-    pub const METADATA: [Metadata; 12] = [
+    pub static METADATA: [Metadata; METADATA_ALL.len()] = METADATA_ALL;
+    pub const METADATA_COUNT: usize = METADATA_ALL.len();
+    // NOTE: Policy value must match the index in this array. This is checked by static assertion.
+    const _: () = assert!(metadata_is_correctly_indexed(), "assert_foo_equals_bar");
+    const METADATA_ALL: [Metadata; 12] = [
         Metadata {
             value: Policy::XXXX,
             code: "XXXX",
@@ -866,6 +884,27 @@ pub mod policy {
         }, // If only equipped, show equipped. If only outfit, show outfit. If both, show outfit
     ];
 
+    lazy_static!{ 
+        pub static ref METADATA_NAME_LUT: HashMap<&'static str, &'static Metadata> = build_metadata_name_map();
+    }
+
+    #[allow(dead_code)]
+    const fn metadata_is_correctly_indexed() -> bool {
+        let mut idx = 0;
+        while idx < METADATA_COUNT {
+            assert!(METADATA_ALL[idx].value.repr as usize == idx);
+            idx += 1;
+        }
+        true
+    }
+
+    fn build_metadata_name_map() -> HashMap<&'static str, &'static Metadata> {
+        METADATA
+            .iter()
+            .map(|m| (m.code, m))
+            .collect()
+    }
+
     pub fn policy_with_code_c(code: &str) -> OptionalPolicy {
         if let Some(value) = Policy::policy_with_code(code) {
             OptionalPolicy {
@@ -884,12 +923,12 @@ pub mod policy {
         list_available_policies(allow_advanced)
             .into_iter()
             .cloned()
-            .map(|m| MetadataC::from(m))
+            .map(|m| m.into())
             .collect()
     }
 
-    pub fn list_available_policies(allow_advanced: bool) -> Vec<&'static Metadata> {
-        let mut filtered: Vec<_> = METADATA
+    pub fn list_available_policies(allow_advanced: bool) -> ArrayVec<&'static Metadata, METADATA_COUNT> {
+        let mut filtered: ArrayVec<_, METADATA_COUNT> = METADATA
             .iter()
             .filter(|p| allow_advanced || !p.advanced)
             .collect();

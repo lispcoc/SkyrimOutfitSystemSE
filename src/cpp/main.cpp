@@ -1,6 +1,6 @@
 #include "OutfitSystem.h"
 
-#include "ArmorAddonOverrideService.h"
+#include "bindings.h"
 #include "Utility.h"
 #include "hooking/Hooks.hpp"
 

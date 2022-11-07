@@ -8,6 +8,9 @@
     "settings": {
         "papyrus.skyrimSpecialEdition.enabled": true,
         "papyrus.fallout4.enabled": false,
-        "papyrus.skyrim.enabled": false
+        "papyrus.skyrim.enabled": false,
+        "files.associations": {
+            "cstdint": "cpp"
+        }
     }
 }

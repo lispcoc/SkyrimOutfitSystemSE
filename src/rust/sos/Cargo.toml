@@ -16,6 +16,10 @@ natord = "1.0.9"
 log = "0.4.17"
 configparser = "3.0.2"
 lazy_static = "1.4.0"
+parking_lot = "0.12.1"
+winapi = { version = "0.3.9", features = ["winuser", "processthreadsapi"] }
+literal_cstr = "0.1.1"
+arrayvec = "0.7.2"
 
 [build-dependencies]
 cbindgen = "0.20.0"
