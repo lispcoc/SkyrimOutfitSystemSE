@@ -8,7 +8,7 @@ use commonlibsse::{
     RE_ActorFormID, RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal, RE_FormID,
     RE_PlayerCharacter_GetSingleton, RE_ResolveARMOFormID, RE_TESObjectARMO,
     SKSE_SerializationInterface, RE_BIPED_OBJECT, RE_TESDataHandler_GetSingleton,
-    RE_TESDataHandler_LookupFormIDRawC,
+    RE_TESDataHandler_LookupFormIDC,
 };
 use protos::outfit::ArmorLocator;
 use slot_policy::{Policies, Policy};
@@ -64,14 +64,19 @@ impl Outfit {
         // Handle the new method of loading.
         let data_handler = unsafe { RE_TESDataHandler_GetSingleton() };
         assert!(!data_handler.is_null(), "Could not get TESDataHandler for loading!");
-        for ArmorLocator { raw_form_id, mod_name, .. } in input.armors {
+        for ArmorLocator { local_form_id, mod_name, .. } in input.armors {
             let Ok(mod_name) = CString::new(mod_name) else { continue };
-            let form_id = unsafe { RE_TESDataHandler_LookupFormIDRawC(data_handler, raw_form_id, mod_name.as_ptr()) };
+            // TODO: Change this to using RE_TESDataHandler_LookupFormIDRawC
+            let form_id = unsafe { RE_TESDataHandler_LookupFormIDC(data_handler, local_form_id, mod_name.as_ptr()) };
             if form_id != 0 {
                 let armor = unsafe { RE_ResolveARMOFormID(form_id) };
                 if !armor.is_null() {
                     outfit.armors.insert(armor);
+                } else {
+                    warn!("Saved FormID {} resulted in no armor. Skipping.", local_form_id);
                 }
+            } else {
+                warn!("Saved FormID {} could not be matched. Skipping.", local_form_id);
             }
         }
         for (slot, policy) in input.slot_policies {
@@ -234,6 +239,8 @@ impl Outfit {
         out.name = self.name.to_string();
         for armor in &self.armors {
             if !armor.is_null() {
+                // TODO: Change this to using GetRawFormID exclusively
+                let local_form_id = unsafe { (**armor)._base._base._base.GetLocalFormID() };
                 let raw_form_id = unsafe { (**armor)._base._base._base.GetRawFormID() };
                 let file = unsafe { (**armor)._base._base._base.GetFile(0) };
                 if file.is_null() { 
@@ -244,6 +251,7 @@ impl Outfit {
                 out.armors.push({
                     let mut locator = ArmorLocator::new();
                     locator.raw_form_id = raw_form_id;
+                    locator.local_form_id = local_form_id;
                     locator.mod_name = filename.to_string_lossy().into_owned();
                     locator
                 });

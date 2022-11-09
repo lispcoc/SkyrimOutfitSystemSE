@@ -4,7 +4,8 @@ package proto;
 
 message ArmorLocator {
   uint32 raw_form_id = 1;
-  string mod_name = 2;
+  uint32 local_form_id = 2;
+  string mod_name = 3;
 }
 
 message Outfit {
