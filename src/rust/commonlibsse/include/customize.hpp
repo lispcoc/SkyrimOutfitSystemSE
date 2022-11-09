@@ -13,6 +13,7 @@
 
 namespace RE {
     TESObjectARMO* ResolveARMOFormID(FormID id);
+    FormID TESDataHandler_LookupFormIDRawC(TESDataHandler* dh, FormID raw_form_id, const char* mod_name);
 }
 
 #endif

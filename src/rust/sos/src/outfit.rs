@@ -1,17 +1,20 @@
 use crate::{
     interface::ffi::{
-        LocationType, OptionalLocationType, OptionalPolicy, TESObjectARMOPtr, WeatherFlags,
+        LocationType, OptionalLocationType, OptionalPolicy, TESObjectARMOPtr, WeatherFlags
     },
     strings::UncasedString,
 };
 use commonlibsse::{
     RE_ActorFormID, RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal, RE_FormID,
     RE_PlayerCharacter_GetSingleton, RE_ResolveARMOFormID, RE_TESObjectARMO,
-    SKSE_SerializationInterface, RE_BIPED_OBJECT,
+    SKSE_SerializationInterface, RE_BIPED_OBJECT, RE_TESDataHandler_GetSingleton,
+    RE_TESDataHandler_LookupFormIDRawC,
 };
+use protos::outfit::ArmorLocator;
 use slot_policy::{Policies, Policy};
-use std::collections::{HashSet, HashMap};
+use std::{collections::{HashSet, HashMap}, ffi::{CStr, CString}};
 use uncased::{Uncased, UncasedStr};
+use log::*;
 
 pub struct Outfit {
     pub name: UncasedString,
@@ -43,9 +46,28 @@ impl Outfit {
                 blanket_slot_policy: Policy::XXXX,
             },
         };
-        for armor in input.armors {
+        // The next two blocks handle both methods of loading armors.
+        // In theory, the first load after upgrading to the new model
+        // should only have the old model, and the first save after
+        // that will only have the new model.
+        // 
+        // Handles old method where we just stored the FormIDs directly.
+        for armor in input.OBSOLETE_armors {
             let mut form_id = 0;
             if unsafe { infc.ResolveFormID(armor, &mut form_id) } {
+                let armor = unsafe { RE_ResolveARMOFormID(form_id) };
+                if !armor.is_null() {
+                    outfit.armors.insert(armor);
+                }
+            }
+        }
+        // Handle the new method of loading.
+        let data_handler = unsafe { RE_TESDataHandler_GetSingleton() };
+        assert!(!data_handler.is_null(), "Could not get TESDataHandler for loading!");
+        for ArmorLocator { raw_form_id, mod_name, .. } in input.armors {
+            let Ok(mod_name) = CString::new(mod_name) else { continue };
+            let form_id = unsafe { RE_TESDataHandler_LookupFormIDRawC(data_handler, raw_form_id, mod_name.as_ptr()) };
+            if form_id != 0 {
                 let armor = unsafe { RE_ResolveARMOFormID(form_id) };
                 if !armor.is_null() {
                     outfit.armors.insert(armor);
@@ -212,8 +234,19 @@ impl Outfit {
         out.name = self.name.to_string();
         for armor in &self.armors {
             if !armor.is_null() {
-                let form_id = unsafe { (**armor)._base._base._base.GetFormID() };
-                out.armors.push(form_id);
+                let raw_form_id = unsafe { (**armor)._base._base._base.GetRawFormID() };
+                let file = unsafe { (**armor)._base._base._base.GetFile(0) };
+                if file.is_null() { 
+                    warn!("Raw FormID {} for an armor has no filename. Skipping.", raw_form_id);
+                    continue;
+                }
+                let filename = unsafe { CStr::from_ptr(&(*file).fileName as *const i8) };
+                out.armors.push({
+                    let mut locator = ArmorLocator::new();
+                    locator.raw_form_id = raw_form_id;
+                    locator.mod_name = filename.to_string_lossy().into_owned();
+                    locator
+                });
             }
         }
         out.is_favorite = self.favorite;

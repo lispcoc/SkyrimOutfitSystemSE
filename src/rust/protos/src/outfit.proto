@@ -2,12 +2,18 @@ syntax = "proto3";
 
 package proto;
 
+message ArmorLocator {
+  uint32 raw_form_id = 1;
+  string mod_name = 2;
+}
+
 message Outfit {
   string name = 1;
-  repeated uint32 armors = 2; // A list of formIDs that will be resolved as pointers to RE::TESObjectARMO
   bool is_favorite = 3;
+  repeated ArmorLocator armors = 8; // A list of formIDs that will be resolved as pointers to RE::TESObjectARMO
   map<uint32, uint32> slot_policies = 6;
   uint32 slot_policy = 7;
+  repeated uint32 OBSOLETE_armors = 2; // A list of formIDs that will be resolved as pointers to RE::TESObjectARMO
 }
 
 message ActorOutfitAssignment {
