@@ -1,6 +1,6 @@
 use crate::{
     interface::ffi::{
-        LocationType, OptionalLocationType, OptionalPolicy, TESObjectARMOPtr, WeatherFlags
+        StateType, OptionalStateType, OptionalPolicy, TESObjectARMOPtr, WeatherFlags
     },
     strings::UncasedString,
 };
@@ -268,14 +268,14 @@ impl Outfit {
 
 pub struct ActorAssignments {
     pub current: Option<UncasedString>,
-    pub location_based: HashMap<LocationType, UncasedString>,
+    pub state_based: HashMap<StateType, UncasedString>,
 }
 
 impl Default for ActorAssignments {
     fn default() -> Self {
         ActorAssignments {
             current: None,
-            location_based: Default::default(),
+            state_based: Default::default(),
         }
     }
 }
@@ -374,14 +374,14 @@ impl OutfitService {
             } else {
                 Some(Uncased::new(assignments.current_outfit_name.clone()))
             };
-            for (location, assignment) in assignments.location_based_outfits.iter() {
+            for (location, assignment) in assignments.state_based_outfits.iter() {
                 let value = if assignment.is_empty() {
                     continue;
                 } else {
                     Uncased::new(assignment.clone())
                 };
-                let location = LocationType { repr: *location };
-                assignments_out.location_based.insert(location, value);
+                let location = StateType { repr: *location };
+                assignments_out.state_based.insert(location, value);
             }
             new.actor_assignments
                 .insert(form_id as u32, assignments_out);
@@ -392,7 +392,7 @@ impl OutfitService {
                 Outfit::from_proto_data(outfit, infc),
             );
         }
-        new.location_switching_enabled = input.location_based_auto_switch_enabled;
+        new.location_switching_enabled = input.state_based_auto_switch_enabled;
         Some(new)
     }
 
@@ -545,56 +545,56 @@ impl OutfitService {
     pub fn list_actors(&self) -> Vec<RE_ActorFormID> {
         self.actor_assignments.keys().cloned().collect()
     }
-    pub fn set_location_based_switching_enabled(&mut self, setting: bool) {
+    pub fn set_state_based_switching_enabled(&mut self, setting: bool) {
         self.location_switching_enabled = setting
     }
-    pub fn get_location_based_switching_enabled(&self) -> bool {
+    pub fn get_state_based_switching_enabled(&self) -> bool {
         self.location_switching_enabled
     }
 
-    pub fn set_outfit_using_location(&mut self, location: LocationType, target: RE_ActorFormID) {
+    pub fn set_outfit_using_state(&mut self, location: StateType, target: RE_ActorFormID) {
         self.actor_assignments
             .get_mut(&target)
-            .and_then(|assn| assn.location_based.get(&location))
+            .and_then(|assn| assn.state_based.get(&location))
             .map(|sel| sel.clone())
             .map(|selected| self.set_outfit(Some(selected.as_str()), target));
     }
-    pub fn set_location_outfit(
+    pub fn set_state_outfit(
         &mut self,
-        location: LocationType,
+        location: StateType,
         target: RE_ActorFormID,
         name: &str,
     ) {
         if name.is_empty() {
-            self.unset_location_outfit(location, target);
+            self.unset_state_outfit(location, target);
             return;
         }
         self.actor_assignments.get_mut(&target).map(|assn| {
-            assn.location_based
+            assn.state_based
                 .insert(location, Uncased::new(name.to_owned()))
         });
     }
-    pub fn unset_location_outfit(&mut self, location: LocationType, target: RE_ActorFormID) {
+    pub fn unset_state_outfit(&mut self, location: StateType, target: RE_ActorFormID) {
         self.actor_assignments
             .get_mut(&target)
-            .map(|assn| assn.location_based.remove(&location));
+            .map(|assn| assn.state_based.remove(&location));
     }
-    pub fn get_location_outfit_name_c(
+    pub fn get_state_outfit_name_c(
         &self,
-        location: LocationType,
+        location: StateType,
         target: RE_ActorFormID,
     ) -> String {
-        self.get_location_outfit_name(location, target)
+        self.get_state_outfit_name(location, target)
             .unwrap_or_else(|| String::new())
     }
-    pub fn get_location_outfit_name(
+    pub fn get_state_outfit_name(
         &self,
-        location: LocationType,
+        location: StateType,
         target: RE_ActorFormID,
     ) -> Option<String> {
         let name = self.actor_assignments
             .get(&target)?
-            .location_based
+            .state_based
             .get(&location)?
             .to_string();
         Some(name)
@@ -604,16 +604,16 @@ impl OutfitService {
         keywords: Vec<String>,
         weather_flags: WeatherFlags,
         target: RE_ActorFormID,
-    ) -> OptionalLocationType {
+    ) -> OptionalStateType {
         if let Some(result) = self.check_location_type(keywords, weather_flags, target) {
-            OptionalLocationType {
+            OptionalStateType {
                 has_value: true,
                 value: result,
             }
         } else {
-            OptionalLocationType {
+            OptionalStateType {
                 has_value: false,
-                value: LocationType::World,
+                value: StateType::World,
             }
         }
     }
@@ -622,9 +622,9 @@ impl OutfitService {
         keywords: Vec<String>,
         weather_flags: WeatherFlags,
         target: RE_ActorFormID,
-    ) -> Option<LocationType> {
+    ) -> Option<StateType> {
         let kw_map: HashSet<_> = keywords.into_iter().collect();
-        let actor_assn = &self.actor_assignments.get(&target)?.location_based;
+        let actor_assn = &self.actor_assignments.get(&target)?.state_based;
         
         macro_rules! check_location {
             ($variant:expr, $check_code:expr) => {
@@ -635,42 +635,47 @@ impl OutfitService {
         }
 
         check_location!(
-            LocationType::CitySnowy,
+            StateType::Combat,
+            true
+        );
+
+        check_location!(
+            StateType::CitySnowy,
             kw_map.contains("LocTypeCity") && weather_flags.snowy
         );
         check_location!(
-            LocationType::CityRainy,
+            StateType::CityRainy,
             kw_map.contains("LocTypeCity") && weather_flags.rainy
         );
-        check_location!(LocationType::City, kw_map.contains("LocTypeCity"));
+        check_location!(StateType::City, kw_map.contains("LocTypeCity"));
 
         // A city is considered a town, so it will use the town outfit unless a city one is selected.
         check_location!(
-            LocationType::TownSnowy,
+            StateType::TownSnowy,
             kw_map.contains("LocTypeTown") && kw_map.contains("LocTypeCity") && weather_flags.snowy
         );
         check_location!(
-            LocationType::TownRainy,
+            StateType::TownRainy,
             kw_map.contains("LocTypeTown") && kw_map.contains("LocTypeCity") && weather_flags.rainy
         );
         check_location!(
-            LocationType::Town,
+            StateType::Town,
             kw_map.contains("LocTypeTown") && kw_map.contains("LocTypeCity")
         );
 
         check_location!(
-            LocationType::DungeonSnowy,
+            StateType::DungeonSnowy,
             kw_map.contains("LocTypeDungeon") && weather_flags.snowy
         );
         check_location!(
-            LocationType::DungeonRainy,
+            StateType::DungeonRainy,
             kw_map.contains("LocTypeDungeon") && weather_flags.rainy
         );
-        check_location!(LocationType::Dungeon, kw_map.contains("LocTypeDungeon"));
+        check_location!(StateType::Dungeon, kw_map.contains("LocTypeDungeon"));
 
-        check_location!(LocationType::WorldSnowy, weather_flags.snowy);
-        check_location!(LocationType::WorldRainy, weather_flags.rainy);
-        check_location!(LocationType::World, true);
+        check_location!(StateType::WorldSnowy, weather_flags.snowy);
+        check_location!(StateType::WorldRainy, weather_flags.rainy);
+        check_location!(StateType::World, true);
 
         None
     }
@@ -717,8 +722,8 @@ impl OutfitService {
                 .as_ref()
                 .map(|s| s.to_string())
                 .unwrap_or_else(|| String::new());
-            out_assn.location_based_outfits = assn
-                .location_based
+            out_assn.state_based_outfits = assn
+                .state_based
                 .iter()
                 .map(|(loc, name)| (loc.repr, name.to_string()))
                 .collect();
@@ -727,7 +732,7 @@ impl OutfitService {
         for (_, outfit) in &self.outfits {
             out.outfits.push(outfit.save());
         }
-        out.location_based_auto_switch_enabled = self.location_switching_enabled;
+        out.state_based_auto_switch_enabled = self.location_switching_enabled;
         out
     }
 

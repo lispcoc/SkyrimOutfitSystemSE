@@ -19,16 +19,16 @@ message Outfit {
 
 message ActorOutfitAssignment {
   string current_outfit_name = 1;
-  map<uint32, string> location_based_outfits = 2;
+  map<uint32, string> state_based_outfits = 2;
 }
 
 message OutfitSystem {
   bool enabled = 1;
   repeated Outfit outfits = 3;
-  bool location_based_auto_switch_enabled = 4;
+  bool state_based_auto_switch_enabled = 4;
   map<uint32, ActorOutfitAssignment> actor_outfit_assignments = 7;
 
   string OBSOLETE_current_outfit_name = 2;
-  map<uint32, string> OBSOLETE_location_based_outfits = 5;
+  map<uint32, string> OBSOLETE_state_based_outfits = 5;
   map<uint64, ActorOutfitAssignment> OBSOLETE_actor_outfit_assignments_handle = 6;
 }

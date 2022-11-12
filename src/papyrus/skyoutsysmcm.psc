@@ -208,12 +208,12 @@ EndFunction
          EndIf
          Int iAutoswitchIndex = StringUtil.Substring(sState, 19) as Int
          If aiIndex == -1 ; user wants no outfit
-            SkyrimOutfitSystemNativeFuncs.UnsetLocationOutfit(_aCurrentActor, iAutoswitchIndex)
+            SkyrimOutfitSystemNativeFuncs.UnsetStateOutfit(_aCurrentActor, iAutoswitchIndex)
             SetMenuOptionValueST("$SkyOutSys_AutoswitchEdit_None")
          Else ; set the requested outfit
             String sOutfitName = _sOutfitNames[aiIndex]
-            SkyrimOutfitSystemNativeFuncs.SetLocationOutfit(_aCurrentActor, iAutoswitchIndex, sOutfitName)
-            SetMenuOptionValueST(SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(_aCurrentActor, iAutoswitchIndex))
+            SkyrimOutfitSystemNativeFuncs.SetStateOutfit(_aCurrentActor, iAutoswitchIndex, sOutfitName)
+            SetMenuOptionValueST(SkyrimOutfitSystemNativeFuncs.GetStateOutfit(_aCurrentActor, iAutoswitchIndex))
          EndIf
          Return
       EndIf
@@ -254,7 +254,7 @@ EndFunction
          Int iAutoswitchIndex = StringUtil.Substring(sState, 19) as Int
          Bool bDelete = ShowMessage("$SkyOutSys_Confirm_UnsetAutoswitch_Text", True, "$SkyOutSys_Confirm_UnsetAutoswitch_Yes", "$SkyOutSys_Confirm_UnsetAutoswitch_No")
          If bDelete
-            SkyrimOutfitSystemNativeFuncs.UnsetLocationOutfit(_aCurrentActor, iAutoswitchIndex)
+            SkyrimOutfitSystemNativeFuncs.UnsetStateOutfit(_aCurrentActor, iAutoswitchIndex)
             SetMenuOptionValueST("")
          EndIf
          Return
@@ -299,17 +299,17 @@ EndFunction
          SetCursorPosition(1)
          If _aCurrentActor == Game.GetPlayer()
             AddHeaderOption("$SkyOutSys_MCMHeader_Autoswitch")
-            Int[] iIndices = SkyrimOutfitSystemNativeFuncs.GetAutoSwitchLocationArray()
+            Int[] iIndices = SkyrimOutfitSystemNativeFuncs.GetAutoSwitchStateArray()
             Int iCount = iIndices.Length
             AddToggleOptionST("OPT_AutoswitchEnabled", "$SkyOutSys_Text_EnableAutoswitch", SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
             If SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled()
                Int iIterator = 0
                While iIterator < iCount
-                  String sLocationOutfit = SkyrimOutfitSystemNativeFuncs.GetLocationOutfit(_aCurrentActor, iIndices[iIterator])
-                  If sLocationOutfit == ""
-                     sLocationOutfit = "$SkyOutSys_AutoswitchEdit_None"
+                  String sStateOutfit = SkyrimOutfitSystemNativeFuncs.GetStateOutfit(_aCurrentActor, iIndices[iIterator])
+                  If sStateOutfit == ""
+                     sStateOutfit = "$SkyOutSys_AutoswitchEdit_None"
                   EndIf
-                  AddMenuOptionST("OPT_AutoswitchEntry" + iIndices[iIterator], "$SkyOutSys_Text_Autoswitch" + iIndices[iIterator], sLocationOutfit)
+                  AddMenuOptionST("OPT_AutoswitchEntry" + iIndices[iIterator], "$SkyOutSys_Text_Autoswitch" + iIndices[iIterator], sStateOutfit)
                   iIterator = iIterator + 1
                EndWhile
             EndIf

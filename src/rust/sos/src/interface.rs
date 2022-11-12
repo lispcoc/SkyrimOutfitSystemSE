@@ -13,7 +13,8 @@ pub mod ffi {
 
     #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Hash)]
     #[repr(u32)]
-    pub enum LocationType {
+    pub enum StateType {
+        Combat = 12,
         World = 0,
         Town = 1,
         Dungeon = 2,
@@ -47,9 +48,9 @@ pub mod ffi {
         XEOO,
     }
 
-    pub struct OptionalLocationType {
+    pub struct OptionalStateType {
         pub has_value: bool,
-        pub value: LocationType,
+        pub value: StateType,
     }
 
     pub struct OptionalPolicy {
@@ -123,19 +124,19 @@ pub mod ffi {
         fn add_actor(self: &mut OutfitService, target: u32);
         fn remove_actor(self: &mut OutfitService, target: u32);
         fn list_actors(self: &OutfitService) -> Vec<u32>;
-        fn set_location_based_switching_enabled(self: &mut OutfitService, setting: bool);
-        fn set_outfit_using_location(self: &mut OutfitService, location: LocationType, target: u32);
-        fn set_location_outfit(
+        fn set_state_based_switching_enabled(self: &mut OutfitService, setting: bool);
+        fn set_outfit_using_state(self: &mut OutfitService, location: StateType, target: u32);
+        fn set_state_outfit(
             self: &mut OutfitService,
-            location: LocationType,
+            location: StateType,
             target: u32,
             name: &str,
         );
-        fn get_location_based_switching_enabled(self: &OutfitService) -> bool;
-        fn unset_location_outfit(self: &mut OutfitService, location: LocationType, target: u32);
-        fn get_location_outfit_name_c(
+        fn get_state_based_switching_enabled(self: &OutfitService) -> bool;
+        fn unset_state_outfit(self: &mut OutfitService, location: StateType, target: u32);
+        fn get_state_outfit_name_c(
             self: &OutfitService,
-            location: LocationType,
+            location: StateType,
             target: u32,
         ) -> String;
         fn check_location_type_c(
@@ -143,7 +144,7 @@ pub mod ffi {
             keywords: Vec<String>,
             weather_flags: WeatherFlags,
             target: u32,
-        ) -> OptionalLocationType;
+        ) -> OptionalStateType;
         fn should_override(self: &OutfitService, target: u32) -> bool;
         fn get_outfit_names(self: &OutfitService, favorites_only: bool) -> Vec<String>;
         fn set_enabled(self: &mut OutfitService, option: bool);

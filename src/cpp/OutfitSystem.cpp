@@ -872,38 +872,39 @@ namespace OutfitSystem {
 
                                            bool value) {
         LogExit exitPrint("SetLocationBasedAutoSwitchEnabled"sv);
-        outfit_service_get_mut_singleton_ptr()->inner().set_location_based_switching_enabled(value);
+        outfit_service_get_mut_singleton_ptr()->inner().set_state_based_switching_enabled(value);
     }
     bool GetLocationBasedAutoSwitchEnabled(RE::BSScript::IVirtualMachine* registry,
                                            std::uint32_t stackId,
                                            RE::StaticFunctionTag*) {
         LogExit exitPrint("GetLocationBasedAutoSwitchEnabled"sv);
-        return outfit_service_get_singleton_ptr()->inner().get_location_based_switching_enabled();
+        return outfit_service_get_singleton_ptr()->inner().get_state_based_switching_enabled();
     }
-    std::vector<std::uint32_t> GetAutoSwitchLocationArray(RE::BSScript::IVirtualMachine* registry,
+    std::vector<std::uint32_t> GetAutoSwitchStateArray(RE::BSScript::IVirtualMachine* registry,
                                                           std::uint32_t stackId,
                                                           RE::StaticFunctionTag*) {
-        LogExit exitPrint("GetAutoSwitchLocationArray"sv);
+        LogExit exitPrint("GetAutoSwitchStateArray"sv);
         std::vector<std::uint32_t> result;
-        for (LocationType i : {
-                 LocationType::World,
-                 LocationType::WorldSnowy,
-                 LocationType::WorldRainy,
-                 LocationType::City,
-                 LocationType::CitySnowy,
-                 LocationType::CityRainy,
-                 LocationType::Town,
-                 LocationType::TownSnowy,
-                 LocationType::TownRainy,
-                 LocationType::Dungeon,
-                 LocationType::DungeonSnowy,
-                 LocationType::DungeonRainy}) {
+        for (StateType i : {
+                 StateType::Combat,
+                 StateType::World,
+                 StateType::WorldSnowy,
+                 StateType::WorldRainy,
+                 StateType::City,
+                 StateType::CitySnowy,
+                 StateType::CityRainy,
+                 StateType::Town,
+                 StateType::TownSnowy,
+                 StateType::TownRainy,
+                 StateType::Dungeon,
+                 StateType::DungeonSnowy,
+                 StateType::DungeonRainy}) {
             result.push_back(std::uint32_t(i));
         }
         return result;
     }
-    std::optional<LocationType> identifyLocation(const OutfitService& service, RE::BGSLocation* location, RE::TESWeather* weather) {
-        LogExit exitPrint("identifyLocation"sv);
+    std::optional<StateType> identifyStateType(const OutfitService& service, RE::BGSLocation* location, RE::TESWeather* weather) {
+        LogExit exitPrint("identifyStateType"sv);
         // Just a helper function to classify a location.
         // TODO: Think of a better place than this since we're not exposing it to Papyrus.
 
@@ -938,74 +939,74 @@ namespace OutfitSystem {
             return std::nullopt;
         }
     }
-    std::uint32_t IdentifyLocationType(RE::BSScript::IVirtualMachine* registry,
+    std::uint32_t IdentifyStateType(RE::BSScript::IVirtualMachine* registry,
                                        std::uint32_t stackId,
                                        RE::StaticFunctionTag*,
 
                                        RE::BGSLocation* location_skse,
                                        RE::TESWeather* weather_skse) {
-        LogExit exitPrint("IdentifyLocationType"sv);
+        LogExit exitPrint("IdentifyStateType"sv);
         // NOTE: Identify the location for Papyrus. In the event no location is identified, we lie to Papyrus and say "World".
         //       Therefore, Papyrus cannot assume that locations returned have an outfit assigned, at least not for "World".
         auto service = outfit_service_get_singleton_ptr();
-        return static_cast<std::uint32_t>(identifyLocation(
+        return static_cast<std::uint32_t>(identifyStateType(
             service->inner(),
             (RE::BGSLocation*) location_skse,
-            (RE::TESWeather*) weather_skse).value_or(LocationType::World));
+            (RE::TESWeather*) weather_skse).value_or(StateType::World));
     }
-    void SetOutfitUsingLocation(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
+    void SetOutfitUsingState(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                                 RE::Actor* actor,
                                 RE::BGSLocation* location_skse,
                                 RE::TESWeather* weather_skse) {
-        LogExit exitPrint("SetOutfitUsingLocation"sv);
+        LogExit exitPrint("SetOutfitUsingState"sv);
         // NOTE: Location can be NULL.
         auto service = outfit_service_get_mut_singleton_ptr();
         if (!actor)
             return;
-        if (service->inner().get_location_based_switching_enabled()) {
-            auto location = identifyLocation(service->inner(), location_skse, weather_skse);
+        if (service->inner().get_state_based_switching_enabled()) {
+            auto state = identifyStateType(service->inner(), location_skse, weather_skse);
             // Debug notifications for location classification.
             /*
-            const char* locationName = locationTypeStrings[static_cast<std::uint32_t>(location)];
+            const char* locationName = StateTypeStrings[static_cast<std::uint32_t>(location)];
             char message[100];
             sprintf_s(message, "SOS: This location is a %s.", locationName);
             RE::DebugNotification(message, nullptr, false);
             */
-            if (location.has_value()) {
-                service->inner().set_outfit_using_location(location.value(), actor->GetFormID());
+            if (state.has_value()) {
+                service->inner().set_outfit_using_state(state.value(), actor->GetFormID());
             }
         }
     }
-    void SetLocationOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
+    void SetStateOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                            RE::Actor* actor,
                            std::uint32_t location,
                            RE::BSFixedString name) {
-        LogExit exitPrint("SetLocationOutfit"sv);
+        LogExit exitPrint("SetStateOutfit"sv);
         if (!actor)
             return;
         if (strcmp(name.data(), "") == 0) {
             // Location outfit assignment is never allowed to be empty string. Use unset instead.
             return;
         }
-        outfit_service_get_mut_singleton_ptr()->inner().set_location_outfit(LocationType(location), actor->GetFormID(), name.data());
+        outfit_service_get_mut_singleton_ptr()->inner().set_state_outfit(StateType(location), actor->GetFormID(), name.data());
     }
-    void UnsetLocationOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
+    void UnsetStateOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                              RE::Actor* actor,
                              std::uint32_t location) {
-        LogExit exitPrint("UnsetLocationOutfit"sv);
+        LogExit exitPrint("UnsetStateOutfit"sv);
         if (!actor)
             return;
-        return outfit_service_get_mut_singleton_ptr()->inner().unset_location_outfit(LocationType(location), actor->GetFormID());
+        return outfit_service_get_mut_singleton_ptr()->inner().unset_state_outfit(StateType(location), actor->GetFormID());
     }
-    RE::BSFixedString GetLocationOutfit(RE::BSScript::IVirtualMachine* registry,
+    RE::BSFixedString GetStateOutfit(RE::BSScript::IVirtualMachine* registry,
                                         std::uint32_t stackId,
                                         RE::StaticFunctionTag*,
                                         RE::Actor* actor,
                                         std::uint32_t location) {
-        LogExit exitPrint("GetLocationOutfit"sv);
+        LogExit exitPrint("GetStateOutfit"sv);
         if (!actor)
             return RE::BSFixedString("");
-        auto outfit = outfit_service_get_singleton_ptr()->inner().get_location_outfit_name_c(LocationType(location), actor->GetFormID());
+        auto outfit = outfit_service_get_singleton_ptr()->inner().get_state_outfit_name_c(StateType(location), actor->GetFormID());
         if (!outfit.empty()) {
             return RE::BSFixedString(outfit.c_str());
         } else {
@@ -1272,29 +1273,29 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
         "SkyrimOutfitSystemNativeFuncs",
         GetLocationBasedAutoSwitchEnabled);
     registry->RegisterFunction(
-        "GetAutoSwitchLocationArray",
+        "GetAutoSwitchStateArray",
         "SkyrimOutfitSystemNativeFuncs",
-        GetAutoSwitchLocationArray);
+        GetAutoSwitchStateArray);
     registry->RegisterFunction(
-        "IdentifyLocationType",
+        "IdentifyStateType",
         "SkyrimOutfitSystemNativeFuncs",
-        IdentifyLocationType);
+        IdentifyStateType);
     registry->RegisterFunction(
-        "SetOutfitUsingLocation",
+        "SetOutfitUsingState",
         "SkyrimOutfitSystemNativeFuncs",
-        SetOutfitUsingLocation);
+        SetOutfitUsingState);
     registry->RegisterFunction(
-        "SetLocationOutfit",
+        "SetStateOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        SetLocationOutfit);
+        SetStateOutfit);
     registry->RegisterFunction(
-        "UnsetLocationOutfit",
+        "UnsetStateOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        UnsetLocationOutfit);
+        UnsetStateOutfit);
     registry->RegisterFunction(
-        "GetLocationOutfit",
+        "GetStateOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        GetLocationOutfit);
+        GetStateOutfit);
     registry->RegisterFunction(
         "ExportSettings",
         "SkyrimOutfitSystemNativeFuncs",
