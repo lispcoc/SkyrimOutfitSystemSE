@@ -66,6 +66,10 @@ void InitializeTrampolines() {
 void SetupPapyrus() {
     SKSE::GetPapyrusInterface()->Register(OutfitSystem::RegisterPapyrus);
 }
+void SetupEvents() {
+    OutfitSystem::RegisterEvents();
+}
+
 }// namespace
 
 

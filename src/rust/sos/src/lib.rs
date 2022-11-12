@@ -65,6 +65,9 @@ pub extern "C" fn plugin_main(skse: *const SKSE_LoadInterface) -> bool {
         info!("Registering papyrus");
         SetupPapyrus();
 
+        info!("Registering event subscriptions");
+        SetupEvents();
+
         true
     }
 }
@@ -99,4 +102,5 @@ extern "C" {
     fn ApplyPlayerSkinningHooksSE();
     fn ApplyPlayerSkinningHooksAE();
     fn SetupPapyrus();
+    fn SetupEvents();
 }

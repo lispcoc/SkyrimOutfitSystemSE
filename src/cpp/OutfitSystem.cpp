@@ -1306,3 +1306,18 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
 
     return true;
 }
+
+// Event Subscriptions
+
+class CombatStartSubscription: public RE::BSTEventSink<RE::TESCombatEvent> {
+    RE::BSEventNotifyControl ProcessEvent(const RE::TESCombatEvent* a_event, RE::BSTEventSource<RE::TESCombatEvent>* a_eventSource) override {
+        LOG(info, "Combat state {}: {:x} -> {:x}", a_event->newState.underlying(), (uintptr_t)a_event->actor.get(), (uintptr_t)a_event->targetActor.get());
+        return RE::BSEventNotifyControl::kContinue;
+    }
+};
+
+bool OutfitSystem::RegisterEvents() {
+    auto* combatSubscription = new CombatStartSubscription();
+    RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink(combatSubscription);
+    return true;
+}
