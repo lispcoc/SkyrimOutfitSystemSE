@@ -143,6 +143,7 @@ pub mod ffi {
             self: &OutfitService,
             keywords: Vec<String>,
             weather_flags: WeatherFlags,
+            is_in_combat: bool,
             target: u32,
         ) -> OptionalStateType;
         fn should_override(self: &OutfitService, target: u32) -> bool;

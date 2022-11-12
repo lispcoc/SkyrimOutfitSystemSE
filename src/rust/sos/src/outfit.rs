@@ -603,9 +603,10 @@ impl OutfitService {
         &self,
         keywords: Vec<String>,
         weather_flags: WeatherFlags,
+        is_in_combat: bool,
         target: RE_ActorFormID,
     ) -> OptionalStateType {
-        if let Some(result) = self.check_location_type(keywords, weather_flags, target) {
+        if let Some(result) = self.check_location_type(keywords, weather_flags, is_in_combat, target) {
             OptionalStateType {
                 has_value: true,
                 value: result,
@@ -621,6 +622,7 @@ impl OutfitService {
         &self,
         keywords: Vec<String>,
         weather_flags: WeatherFlags,
+        is_in_combat: bool,
         target: RE_ActorFormID,
     ) -> Option<StateType> {
         let kw_map: HashSet<_> = keywords.into_iter().collect();
@@ -636,7 +638,7 @@ impl OutfitService {
 
         check_location!(
             StateType::Combat,
-            true
+            is_in_combat
         );
 
         check_location!(

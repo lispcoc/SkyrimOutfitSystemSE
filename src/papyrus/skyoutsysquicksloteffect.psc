@@ -26,7 +26,7 @@ Event OnEffectStart(Actor akCaster, Actor akTarget)
       ; 1) autoswitching is enabled,
       ; 2) the current location has an outfit assigned already, and
       ; 3) if we have an outfit selected in this menu
-      Int playerStateType = SkyrimOutfitSystemNativeFuncs.IdentifyStateType(Game.GetPlayer().GetCurrentLocation(), Weather.GetCurrentWeather())
+      Int playerStateType = SkyrimOutfitSystemNativeFuncs.IdentifyStateType(Game.GetPlayer())
       If SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled() && SkyrimOutfitSystemNativeFuncs.GetStateOutfit(Game.GetPlayer(), playerStateType) != "" && result != ""
          SkyrimOutfitSystemNativeFuncs.SetStateOutfit(Game.GetPlayer(), playerStateType, result)
          Debug.Notification("This outfit will be remembered for this location type.")
