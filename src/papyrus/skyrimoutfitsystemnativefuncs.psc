@@ -101,3 +101,5 @@ Int      Function IdentifyStateType (Actor actor) Global Native
 String   Function GetStateOutfit (Actor actor, Int aiStateType) Global Native
 Bool     Function ExportSettings () Global Native
 Bool     Function ImportSettings () Global Native
+
+         Function NotifyCombatStateChanged (Actor actor) Global Native

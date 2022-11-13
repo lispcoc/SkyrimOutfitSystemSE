@@ -972,6 +972,18 @@ namespace OutfitSystem {
         if (!actor) return;
         setOutfitUsingState(service->inner(), actor);
     }
+    void NotifyCombatStateChanged(RE::BSScript::IVirtualMachine* registry,
+                                    std::uint32_t stackId,
+                                    RE::StaticFunctionTag*,
+                                    RE::Actor* actor) {
+        LogExit exitPrint("NotifyCombatStateChanged"sv);
+        if (!actor) return;
+        {
+            LOG(info, "Script notification of combat change for {}", actor->GetDisplayFullName());
+            OutfitSystem::setOutfitUsingState(outfit_service_get_mut_singleton_ptr()->inner(), actor);
+        }
+        OutfitSystem::refreshArmorFor(actor);
+    }
     void SetStateOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                            RE::Actor* actor,
                            std::uint32_t location,
@@ -1279,6 +1291,10 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
         "SetOutfitUsingState",
         "SkyrimOutfitSystemNativeFuncs",
         SetOutfitUsingState);
+    registry->RegisterFunction(
+        "NotifyCombatStateChanged",
+        "SkyrimOutfitSystemNativeFuncs",
+        NotifyCombatStateChanged);
     registry->RegisterFunction(
         "SetStateOutfit",
         "SkyrimOutfitSystemNativeFuncs",
