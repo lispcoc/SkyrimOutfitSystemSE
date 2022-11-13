@@ -301,8 +301,8 @@ EndFunction
          AddHeaderOption("$SkyOutSys_MCMHeader_Autoswitch")
          Int[] iIndices = SkyrimOutfitSystemNativeFuncs.GetAutoSwitchStateArray()
          Int iCount = iIndices.Length
-         AddToggleOptionST("OPT_AutoswitchEnabled", "$SkyOutSys_Text_EnableAutoswitch", SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
-         If SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled()
+         AddToggleOptionST("OPT_AutoswitchEnabled", "$SkyOutSys_Text_EnableAutoswitch", SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled(_aCurrentActor))
+         If SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled(_aCurrentActor)
             Int iIterator = 0
             While iIterator < iCount
                String sStateOutfit = SkyrimOutfitSystemNativeFuncs.GetStateOutfit(_aCurrentActor, iIndices[iIterator])
@@ -420,8 +420,8 @@ EndFunction
    EndState
    State OPT_AutoswitchEnabled
       Event OnSelectST()
-         SkyrimOutfitSystemNativeFuncs.SetLocationBasedAutoSwitchEnabled(!SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
-         SetToggleOptionValueST(SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
+         SkyrimOutfitSystemNativeFuncs.SetLocationBasedAutoSwitchEnabled(_aCurrentActor, !SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled(_aCurrentActor))
+         SetToggleOptionValueST(SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled(_aCurrentActor))
          ForcePageReset()
       EndEvent
       Event OnHighlightST()

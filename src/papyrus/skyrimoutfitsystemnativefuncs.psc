@@ -91,8 +91,8 @@ Bool     Function OutfitExists      (String asOutfitName) Global Native
          Function RemoveActor (Actor akSubject) Global Native
 Actor[]  Function ListActors() Global Native
 
-         Function SetLocationBasedAutoSwitchEnabled (Bool abEnabled) Global Native
-Bool     Function GetLocationBasedAutoSwitchEnabled () Global Native
+         Function SetLocationBasedAutoSwitchEnabled (Actor actor, Bool abEnabled) Global Native
+Bool     Function GetLocationBasedAutoSwitchEnabled (Actor actor) Global Native
 Int[]    Function GetAutoSwitchStateArray () Global Native
 Int      Function IdentifyStateType (Actor actor) Global Native
          Function SetOutfitUsingState (Actor actor) Global Native

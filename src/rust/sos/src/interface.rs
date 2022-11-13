@@ -124,10 +124,10 @@ pub mod ffi {
         fn add_actor(self: &mut OutfitService, target: u32);
         fn remove_actor(self: &mut OutfitService, target: u32);
         fn list_actors(self: &OutfitService) -> Vec<u32>;
-        fn set_state_based_switching_enabled(self: &mut OutfitService, setting: bool);
+        fn set_state_based_switching_enabled(self: &mut OutfitService, setting: bool, target: u32);
         fn set_outfit_using_state(self: &mut OutfitService, location: StateType, target: u32);
         fn set_state_outfit(self: &mut OutfitService, location: StateType, target: u32, name: &str);
-        fn get_state_based_switching_enabled(self: &OutfitService) -> bool;
+        fn get_state_based_switching_enabled_c(self: &OutfitService, target: u32) -> bool;
         fn unset_state_outfit(self: &mut OutfitService, location: StateType, target: u32);
         fn get_state_outfit_name_c(
             self: &OutfitService,

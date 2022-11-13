@@ -864,16 +864,19 @@ namespace OutfitSystem {
     void SetLocationBasedAutoSwitchEnabled(RE::BSScript::IVirtualMachine* registry,
                                            std::uint32_t stackId,
                                            RE::StaticFunctionTag*,
-
+                                           RE::Actor* actor,
                                            bool value) {
         LogExit exitPrint("SetLocationBasedAutoSwitchEnabled"sv);
-        outfit_service_get_mut_singleton_ptr()->inner().set_state_based_switching_enabled(value);
+        if (!actor) return;
+        outfit_service_get_mut_singleton_ptr()->inner().set_state_based_switching_enabled(value, actor->GetFormID());
     }
     bool GetLocationBasedAutoSwitchEnabled(RE::BSScript::IVirtualMachine* registry,
                                            std::uint32_t stackId,
-                                           RE::StaticFunctionTag*) {
+                                           RE::StaticFunctionTag*,
+                                           RE::Actor* actor) {
         LogExit exitPrint("GetLocationBasedAutoSwitchEnabled"sv);
-        return outfit_service_get_singleton_ptr()->inner().get_state_based_switching_enabled();
+        if (!actor) return false;
+        return outfit_service_get_singleton_ptr()->inner().get_state_based_switching_enabled_c(actor->GetFormID());
     }
     std::vector<std::uint32_t> GetAutoSwitchStateArray(RE::BSScript::IVirtualMachine* registry,
                                                           std::uint32_t stackId,
@@ -951,7 +954,7 @@ namespace OutfitSystem {
         LogExit exitPrint("setOutfitUsingState"sv);
         // NOTE: Location can be NULL.
         if (!actor) return;
-        if (service.get_state_based_switching_enabled()) {
+        if (service.get_state_based_switching_enabled_c(actor->GetFormID())) {
             auto state = identifyStateType(service, actor);
             // Debug notifications for location classification.
             /*

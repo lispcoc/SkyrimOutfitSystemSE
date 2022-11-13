@@ -292,6 +292,7 @@ impl Outfit {
 
 pub struct ActorAssignments {
     pub current: Option<UncasedString>,
+    pub state_based_auto_switching_enabled: bool,
     pub state_based: HashedMap<StateType, UncasedString>,
 }
 
@@ -299,6 +300,7 @@ impl Default for ActorAssignments {
     fn default() -> Self {
         ActorAssignments {
             current: None,
+            state_based_auto_switching_enabled: false,
             state_based: Default::default(),
         }
     }
@@ -308,7 +310,6 @@ pub struct OutfitService {
     pub enabled: bool,
     pub outfits: HashMap<UncasedString, Outfit>,
     pub actor_assignments: HashedMap<RE_ActorFormID, ActorAssignments>,
-    pub location_switching_enabled: bool,
 }
 
 impl OutfitService {
@@ -317,7 +318,6 @@ impl OutfitService {
             enabled: false,
             outfits: Default::default(),
             actor_assignments: Default::default(),
-            location_switching_enabled: false,
         }
     }
 
@@ -398,6 +398,7 @@ impl OutfitService {
             } else {
                 Some(Uncased::new(assignments.current_outfit_name.clone()))
             };
+            assignments_out.state_based_auto_switching_enabled = assignments.state_based_auto_switch_enabled;
             for (location, assignment) in assignments.state_based_outfits.iter() {
                 let value = if assignment.is_empty() {
                     continue;
@@ -416,7 +417,6 @@ impl OutfitService {
                 Outfit::from_proto_data(outfit, infc),
             );
         }
-        new.location_switching_enabled = input.state_based_auto_switch_enabled;
         Some(new)
     }
 
@@ -476,18 +476,10 @@ impl OutfitService {
         }
     }
     pub fn current_outfit(&self, target: RE_ActorFormID) -> Option<&Outfit> {
-        let outfit_name = self
-            .actor_assignments
-            .get(&target)
-            .and_then(|assn| assn.current.as_ref())?;
-        self.get_outfit(outfit_name.as_str())
+        self.get_outfit(self.actor_assignments.get(&target)?.current.as_ref()?.as_str())
     }
     pub fn current_mut_outfit(&mut self, target: RE_ActorFormID) -> Option<&mut Outfit> {
-        let outfit_name = self
-            .actor_assignments
-            .get(&target)
-            .and_then(|assn| assn.current.clone())?;
-        self.get_mut_outfit(outfit_name.as_str())
+        self.get_mut_outfit(&self.actor_assignments.get(&target)?.current.as_ref()?.to_string())
     }
     pub fn has_outfit(&self, name: &str) -> bool {
         self.outfits.contains_key(&Uncased::from_borrowed(name))
@@ -569,19 +561,22 @@ impl OutfitService {
     pub fn list_actors(&self) -> Vec<RE_ActorFormID> {
         self.actor_assignments.keys().cloned().collect()
     }
-    pub fn set_state_based_switching_enabled(&mut self, setting: bool) {
-        self.location_switching_enabled = setting
+    pub fn set_state_based_switching_enabled(&mut self, setting: bool, target: RE_ActorFormID) {
+        let Some(assn) = self.actor_assignments.get_mut(&target) else { return };
+        assn.state_based_auto_switching_enabled = setting;
     }
-    pub fn get_state_based_switching_enabled(&self) -> bool {
-        self.location_switching_enabled
+    pub fn get_state_based_switching_enabled_c(&self, target: RE_ActorFormID) -> bool {
+        self.get_state_based_switching_enabled(target).unwrap_or_else(|| false)
+    }
+    pub fn get_state_based_switching_enabled(&self, target: RE_ActorFormID) -> Option<bool> {
+        let Some(assn) = self.actor_assignments.get(&target) else { return None };
+        Some(assn.state_based_auto_switching_enabled)
     }
 
     pub fn set_outfit_using_state(&mut self, location: StateType, target: RE_ActorFormID) {
-        self.actor_assignments
-            .get_mut(&target)
-            .and_then(|assn| assn.state_based.get(&location))
-            .map(|sel| sel.clone())
-            .map(|selected| self.set_outfit(Some(selected.as_str()), target));
+        let Some(assn) = self.actor_assignments.get_mut(&target) else { return };
+        let Some(outfit) = assn.state_based.get(&location).cloned() else { return };
+        self.set_outfit(Some(outfit.as_str()), target);
     }
     pub fn set_state_outfit(&mut self, location: StateType, target: RE_ActorFormID, name: &str) {
         if name.is_empty() {
@@ -740,6 +735,7 @@ impl OutfitService {
                 .as_ref()
                 .map(|s| s.to_string())
                 .unwrap_or_else(|| String::new());
+            out_assn.state_based_auto_switch_enabled = assn.state_based_auto_switching_enabled;
             out_assn.state_based_outfits = assn
                 .state_based
                 .iter()
@@ -750,7 +746,6 @@ impl OutfitService {
         for (_, outfit) in &self.outfits {
             out.outfits.push(outfit.save());
         }
-        out.state_based_auto_switch_enabled = self.location_switching_enabled;
         out
     }
 
