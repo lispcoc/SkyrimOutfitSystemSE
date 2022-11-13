@@ -12,13 +12,14 @@ use commonlibsse::{
 };
 use protos::outfit::ArmorLocator;
 use slot_policy::{Policies, Policy};
-use std::{collections::{HashSet, HashMap}, ffi::{CStr, CString}};
+use std::{ffi::{CStr, CString}};
+use hash_hasher::{HashBuildHasher, HashedMap, HashedSet};
 use uncased::{Uncased, UncasedStr};
 use log::*;
 
 pub struct Outfit {
     pub name: UncasedString,
-    pub armors: HashSet<*mut RE_TESObjectARMO>,
+    pub armors: HashedSet<*mut RE_TESObjectARMO>,
     pub favorite: bool,
     pub slot_policies: Policies,
 }
@@ -165,7 +166,9 @@ impl Outfit {
             slots
         };
         let mut mask = 0;
-        let mut results = HashSet::new();
+        let mut results = HashedSet::with_capacity_and_hasher(
+            RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal as usize,
+            HashBuildHasher::default());
         for slot in 0..RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal {
             if mask & (1 << slot) != 0 {
                 continue;
@@ -268,7 +271,7 @@ impl Outfit {
 
 pub struct ActorAssignments {
     pub current: Option<UncasedString>,
-    pub state_based: HashMap<StateType, UncasedString>,
+    pub state_based: HashedMap<StateType, UncasedString>,
 }
 
 impl Default for ActorAssignments {
@@ -282,8 +285,8 @@ impl Default for ActorAssignments {
 
 pub struct OutfitService {
     pub enabled: bool,
-    pub outfits: HashMap<UncasedString, Outfit>,
-    pub actor_assignments: HashMap<RE_ActorFormID, ActorAssignments>,
+    pub outfits: HashedMap<UncasedString, Outfit>,
+    pub actor_assignments: HashedMap<RE_ActorFormID, ActorAssignments>,
     pub location_switching_enabled: bool,
 }
 
@@ -625,7 +628,7 @@ impl OutfitService {
         is_in_combat: bool,
         target: RE_ActorFormID,
     ) -> Option<StateType> {
-        let kw_map: HashSet<_> = keywords.into_iter().collect();
+        let kw_map: HashedSet<_> = keywords.into_iter().collect();
         let actor_assn = &self.actor_assignments.get(&target)?.state_based;
         
         macro_rules! check_location {
@@ -772,17 +775,17 @@ impl OutfitService {
 pub mod slot_policy {
     pub use crate::interface::ffi::Policy;
     use commonlibsse::RE_BIPED_OBJECT;
-    use std::collections::HashMap;
+    use hash_hasher::HashedMap;
 
     pub struct Policies {
-        pub slot_policies: HashMap<RE_BIPED_OBJECT, Policy>,
+        pub slot_policies: HashedMap<RE_BIPED_OBJECT, Policy>,
         pub blanket_slot_policy: Policy,
     }
 
     impl Policies {
         pub fn standard() -> Self {
             use commonlibsse::RE_BIPED_OBJECTS_BIPED_OBJECT_kShield;
-            let mut policies: HashMap<RE_BIPED_OBJECT, Policy> = Default::default();
+            let mut policies: HashedMap<RE_BIPED_OBJECT, Policy> = Default::default();
             policies.insert(RE_BIPED_OBJECTS_BIPED_OBJECT_kShield, Policy::XEXO);
             Policies {
                 slot_policies: policies,
@@ -825,7 +828,7 @@ impl Policy {
 }
 
 pub mod policy {
-    use std::collections::HashMap;
+    use hash_hasher::HashedMap;
 
     use arrayvec::ArrayVec;
     use lazy_static::lazy_static;
@@ -933,7 +936,7 @@ pub mod policy {
     ];
 
     lazy_static!{ 
-        pub static ref METADATA_NAME_LUT: HashMap<&'static str, &'static Metadata> = build_metadata_name_map();
+        pub static ref METADATA_NAME_LUT: HashedMap<&'static str, &'static Metadata> = build_metadata_name_map();
     }
 
     #[allow(dead_code)]
@@ -946,7 +949,7 @@ pub mod policy {
         true
     }
 
-    fn build_metadata_name_map() -> HashMap<&'static str, &'static Metadata> {
+    fn build_metadata_name_map() -> HashedMap<&'static str, &'static Metadata> {
         METADATA
             .iter()
             .map(|m| (m.code, m))

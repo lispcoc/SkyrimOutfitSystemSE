@@ -20,6 +20,7 @@ parking_lot = "0.12.1"
 winapi = { version = "0.3.9", features = ["winuser", "processthreadsapi"] }
 literal_cstr = "0.1.1"
 arrayvec = "0.7.2"
+hash_hasher = "2.0.3"
 
 [build-dependencies]
 cbindgen = "0.20.0"
