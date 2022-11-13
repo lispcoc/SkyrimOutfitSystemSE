@@ -911,7 +911,7 @@ namespace OutfitSystem {
             weather_flags.snowy = sky->IsSnowing();
             weather_flags.rainy = sky->IsRaining();
         }
-        LOG(info, "Identifying state for {}: rain: {}, snow: {}, loc: {:x}, combat: {}", actor->GetDisplayFullName(), weather_flags.rainy, weather_flags.snowy, (uintptr_t) location, is_in_combat);
+        LOG(debug, "Identifying state for {}: rain: {}, snow: {}, loc: {:x}, combat: {}", actor->GetDisplayFullName(), weather_flags.rainy, weather_flags.snowy, (uintptr_t) location, is_in_combat);
         // Collect location keywords
         rust::Vec<rust::String> keywords;
         keywords.reserve(20);
@@ -979,7 +979,7 @@ namespace OutfitSystem {
         LogExit exitPrint("NotifyCombatStateChanged"sv);
         if (!actor) return;
         {
-            LOG(info, "Script notification of combat change for {}", actor->GetDisplayFullName());
+            LOG(debug, "Script notification of combat change for {}", actor->GetDisplayFullName());
             OutfitSystem::setOutfitUsingState(outfit_service_get_mut_singleton_ptr()->inner(), actor);
         }
         OutfitSystem::refreshArmorFor(actor);
@@ -1325,9 +1325,9 @@ class CombatStartSubscription: public RE::BSTEventSink<RE::TESCombatEvent>, publ
     RE::BSEventNotifyControl ProcessEvent(const RE::TESCombatEvent* a_event, RE::BSTEventSource<RE::TESCombatEvent>* a_eventSource) override {
         if (!a_event) return RE::BSEventNotifyControl::kContinue;
         if (a_event->actor.get() && a_event->targetActor.get()) {
-            LOG(info, "Combat state {}: {} -> {}", a_event->newState.underlying(), a_event->actor->GetDisplayFullName(), a_event->targetActor->GetDisplayFullName());
+            LOG(debug, "Combat state {}: {} -> {}", a_event->newState.underlying(), a_event->actor->GetDisplayFullName(), a_event->targetActor->GetDisplayFullName());
         } else {
-            LOG(info, "Combat state {}: {:x} -> {:x}", a_event->newState.underlying(), (uintptr_t)a_event->actor.get(), (uintptr_t)a_event->targetActor.get());
+            LOG(debug, "Combat state {}: {:x} -> {:x}", a_event->newState.underlying(), (uintptr_t)a_event->actor.get(), (uintptr_t)a_event->targetActor.get());
         }
         std::array<RE::Actor*, 3> relevantActors{nullptr};
         {
@@ -1344,7 +1344,7 @@ class CombatStartSubscription: public RE::BSTEventSink<RE::TESCombatEvent>, publ
             }
             for (auto actor : relevantActors) {
                 if (actor) {
-                    LOG(info, "New combat state for {} ({}): {}", actor->GetDisplayFullName(), (uintptr_t) actor, a_event->newState.underlying());
+                    LOG(debug, "New combat state for {} ({}): {}", actor->GetDisplayFullName(), (uintptr_t) actor, a_event->newState.underlying());
                     OutfitSystem::setOutfitUsingState(service->inner(), actor);
                 }
             }
@@ -1358,7 +1358,7 @@ class CombatStartSubscription: public RE::BSTEventSink<RE::TESCombatEvent>, publ
         return RE::BSEventNotifyControl::kContinue;
     }
     RE::BSEventNotifyControl ProcessEvent(const RE::TESDeathEvent* a_event, RE::BSTEventSource<RE::TESDeathEvent>* a_eventSource) override {
-        LOG(info, "Character died. Checking for PC combat state");
+        LOG(debug, "Character died. Checking for PC combat state");
         bool shouldOverride;
         {
             auto service = outfit_service_get_mut_singleton_ptr();
