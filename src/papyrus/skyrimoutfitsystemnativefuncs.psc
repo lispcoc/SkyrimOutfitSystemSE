@@ -96,6 +96,7 @@ Bool     Function GetLocationBasedAutoSwitchEnabled () Global Native
 Int[]    Function GetAutoSwitchStateArray () Global Native
 Int      Function IdentifyStateType (Actor actor) Global Native
          Function SetOutfitUsingState (Actor actor) Global Native
+         Function SetOutfitUsingStateForAllConfiguredActors () Global Native
          Function SetStateOutfit (Actor actor, Int aiStateType, String asOutfitName) Global Native
          Function UnsetStateOutfit (Actor actor, Int aiStateType) Global Native
 String   Function GetStateOutfit (Actor actor, Int aiStateType) Global Native

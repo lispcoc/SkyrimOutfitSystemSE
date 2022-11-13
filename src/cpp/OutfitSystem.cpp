@@ -972,6 +972,22 @@ namespace OutfitSystem {
         if (!actor) return;
         setOutfitUsingState(service->inner(), actor);
     }
+    void setOutfitUsingStateForAllConfiguredActors(OutfitService& service) {
+        LogExit exitPrint("setOutfitUsingStateForAllConfiguredActors"sv);
+        rust::Vec<std::uint32_t> actors = service.list_actors(); 
+        for (auto& actor_form : actors) {
+            auto actor = RE::Actor::LookupByID<RE::Actor>(actor_form);
+            if (!actor) continue;
+            setOutfitUsingState(service, actor);
+        }
+    }
+    void SetOutfitUsingStateForAllConfiguredActors(RE::BSScript::IVirtualMachine* registry,
+                                            std::uint32_t stackId,
+                                            RE::StaticFunctionTag*) {
+        LogExit exitPrint("SetOutfitUsingStateForAllConfiguredActors"sv);
+        auto service = outfit_service_get_mut_singleton_ptr();
+        setOutfitUsingStateForAllConfiguredActors(service->inner());
+    }
     void NotifyCombatStateChanged(RE::BSScript::IVirtualMachine* registry,
                                     std::uint32_t stackId,
                                     RE::StaticFunctionTag*,
@@ -1291,6 +1307,10 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
         "SetOutfitUsingState",
         "SkyrimOutfitSystemNativeFuncs",
         SetOutfitUsingState);
+    registry->RegisterFunction(
+        "SetOutfitUsingStateForAllConfiguredActors",
+        "SkyrimOutfitSystemNativeFuncs",
+        SetOutfitUsingStateForAllConfiguredActors);
     registry->RegisterFunction(
         "NotifyCombatStateChanged",
         "SkyrimOutfitSystemNativeFuncs",

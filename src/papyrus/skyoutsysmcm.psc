@@ -297,22 +297,20 @@ EndFunction
       ;/EndBlock/;
       ;/Block/; ; Right column
          SetCursorPosition(1)
-         If _aCurrentActor == Game.GetPlayer()
-            AddHeaderOption("$SkyOutSys_MCMHeader_Autoswitch")
-            Int[] iIndices = SkyrimOutfitSystemNativeFuncs.GetAutoSwitchStateArray()
-            Int iCount = iIndices.Length
-            AddToggleOptionST("OPT_AutoswitchEnabled", "$SkyOutSys_Text_EnableAutoswitch", SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
-            If SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled()
-               Int iIterator = 0
-               While iIterator < iCount
-                  String sStateOutfit = SkyrimOutfitSystemNativeFuncs.GetStateOutfit(_aCurrentActor, iIndices[iIterator])
-                  If sStateOutfit == ""
-                     sStateOutfit = "$SkyOutSys_AutoswitchEdit_None"
-                  EndIf
-                  AddMenuOptionST("OPT_AutoswitchEntry" + iIndices[iIterator], "$SkyOutSys_Text_Autoswitch" + iIndices[iIterator], sStateOutfit)
-                  iIterator = iIterator + 1
-               EndWhile
-            EndIf
+         AddHeaderOption("$SkyOutSys_MCMHeader_Autoswitch")
+         Int[] iIndices = SkyrimOutfitSystemNativeFuncs.GetAutoSwitchStateArray()
+         Int iCount = iIndices.Length
+         AddToggleOptionST("OPT_AutoswitchEnabled", "$SkyOutSys_Text_EnableAutoswitch", SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled())
+         If SkyrimOutfitSystemNativeFuncs.GetLocationBasedAutoSwitchEnabled()
+            Int iIterator = 0
+            While iIterator < iCount
+               String sStateOutfit = SkyrimOutfitSystemNativeFuncs.GetStateOutfit(_aCurrentActor, iIndices[iIterator])
+               If sStateOutfit == ""
+                  sStateOutfit = "$SkyOutSys_AutoswitchEdit_None"
+               EndIf
+               AddMenuOptionST("OPT_AutoswitchEntry" + iIndices[iIterator], "$SkyOutSys_Text_Autoswitch" + iIndices[iIterator], sStateOutfit)
+               iIterator = iIterator + 1
+            EndWhile
          EndIf
       ;/EndBlock/;
 
