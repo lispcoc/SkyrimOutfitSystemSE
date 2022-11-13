@@ -485,7 +485,14 @@ impl OutfitService {
         self.outfits.contains_key(&Uncased::from_borrowed(name))
     }
     pub fn delete_outfit(&mut self, name: &str) {
-        self.outfits.remove(UncasedStr::new(name));
+        let name = UncasedStr::new(name);
+        self.outfits.remove(name);
+        for assn in self.actor_assignments.values_mut() {
+            if assn.current.as_ref().map(|inner| inner.as_uncased_str()) == Some(&name) {
+                assn.current = None;
+            }
+            assn.state_based.retain(|_, value| value.as_uncased_str() != name)
+        }
     }
     pub fn set_favorite(&mut self, name: &str, favorite: bool) {
         if let Some(outfit) = self.outfits.get_mut(UncasedStr::new(name)) {
@@ -516,15 +523,27 @@ impl OutfitService {
     }
     pub fn rename_outfit(&mut self, old_name: &str, new_name: &str) -> u32 {
         // Returns 0 on success, 1 if outfit not found, 2 if name already used.
+        let old_name = Uncased::new(old_name.to_owned());
         let new_name = Uncased::new(new_name.to_owned());
         if self.outfits.contains_key(&new_name) {
             return 2;
         };
-        let Some(mut entry) = self.outfits.remove(UncasedStr::new(old_name)) else {
+        let Some(mut entry) = self.outfits.remove(&old_name) else {
             return 1;
         };
-        entry.name = new_name;
+        entry.name = new_name.clone();
         self.outfits.insert(entry.name.clone(), entry);
+        // Rewrite assignments to this new name
+        for assn in self.actor_assignments.values_mut() {
+            if assn.current.as_ref() == Some(&old_name) {
+                assn.current = Some(new_name.clone());
+            }
+            for value in assn.state_based.values_mut() {
+                if *value == old_name {
+                    *value = new_name.clone();
+                }
+            }
+        }
         return 0;
     }
     pub fn set_outfit_c(&mut self, name: &str, target: RE_ActorFormID) {
