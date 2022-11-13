@@ -67,7 +67,7 @@ namespace OutfitSystem {
         auto inventory = target->GetInventoryChanges();
         if (inventory) {
             _Visitor visitor(result);
-            RE::InventoryChangesAugments::ExecuteAugmentVisitorOnWorn(inventory, &visitor);
+            RE::InventoryChangesAugments::ExecuteAugmentVisitor(inventory, &visitor);
         }
         std::vector<RE::TESObjectARMO*> converted_result;
         converted_result.reserve(result.size());
