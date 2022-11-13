@@ -6,7 +6,7 @@ use lazy_static::lazy_static;
 use log::*;
 
 pub struct Settings {
-    ini: Ini
+    ini: Ini,
 }
 
 impl Settings {
@@ -15,7 +15,11 @@ impl Settings {
         file.push("Data\\SKSE\\Plugins\\SkyrimOutfitSystemSE.ini");
         let mut ini = Ini::new();
         if let Err(error) = ini.load(file.clone()) {
-            warn!("Could not load INI file at {} due to {}", file.display(), error);
+            warn!(
+                "Could not load INI file at {} due to {}",
+                file.display(),
+                error
+            );
         } else {
             info!("Loaded INI file in {}", file.display());
         }
@@ -23,9 +27,10 @@ impl Settings {
     }
 
     pub fn extra_logging_enabled(&self) -> bool {
-        self.ini.getboolcoerce("Debug", "ExtraLogging")
-        .unwrap_or_else(|_| None)
-        .unwrap_or_else(|| false)
+        self.ini
+            .getboolcoerce("Debug", "ExtraLogging")
+            .unwrap_or_else(|_| None)
+            .unwrap_or_else(|| false)
     }
 }
 

@@ -1,24 +1,25 @@
 use crate::{
     interface::ffi::{
-        StateType, OptionalStateType, OptionalPolicy, TESObjectARMOPtr, WeatherFlags
+        OptionalPolicy, OptionalStateType, StateType, TESObjectARMOPtr, WeatherFlags,
     },
     strings::UncasedString,
 };
 use commonlibsse::{
     RE_ActorFormID, RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal, RE_FormID,
-    RE_PlayerCharacter_GetSingleton, RE_ResolveARMOFormID, RE_TESObjectARMO,
-    SKSE_SerializationInterface, RE_BIPED_OBJECT, RE_TESDataHandler_GetSingleton,
-    RE_TESDataHandler_LookupFormIDC,
+    RE_PlayerCharacter_GetSingleton, RE_ResolveARMOFormID, RE_TESDataHandler_GetSingleton,
+    RE_TESDataHandler_LookupFormIDC, RE_TESObjectARMO, SKSE_SerializationInterface,
+    RE_BIPED_OBJECT,
 };
+use hash_hasher::{HashBuildHasher, HashedMap, HashedSet};
+use log::*;
 use protos::outfit::ArmorLocator;
 use slot_policy::{Policies, Policy};
-use std::{collections::{HashSet, HashMap}, ffi::{CStr, CString}};
+use std::ffi::{CStr, CString};
 use uncased::{Uncased, UncasedStr};
-use log::*;
 
 pub struct Outfit {
     pub name: UncasedString,
-    pub armors: HashSet<*mut RE_TESObjectARMO>,
+    pub armors: HashedSet<*mut RE_TESObjectARMO>,
     pub favorite: bool,
     pub slot_policies: Policies,
 }
@@ -50,7 +51,7 @@ impl Outfit {
         // In theory, the first load after upgrading to the new model
         // should only have the old model, and the first save after
         // that will only have the new model.
-        // 
+        //
         // Handles old method where we just stored the FormIDs directly.
         for armor in input.OBSOLETE_armors {
             let mut form_id = 0;
@@ -63,20 +64,36 @@ impl Outfit {
         }
         // Handle the new method of loading.
         let data_handler = unsafe { RE_TESDataHandler_GetSingleton() };
-        assert!(!data_handler.is_null(), "Could not get TESDataHandler for loading!");
-        for ArmorLocator { local_form_id, mod_name, .. } in input.armors {
+        assert!(
+            !data_handler.is_null(),
+            "Could not get TESDataHandler for loading!"
+        );
+        for ArmorLocator {
+            local_form_id,
+            mod_name,
+            ..
+        } in input.armors
+        {
             let Ok(mod_name) = CString::new(mod_name) else { continue };
             // TODO: Change this to using RE_TESDataHandler_LookupFormIDRawC
-            let form_id = unsafe { RE_TESDataHandler_LookupFormIDC(data_handler, local_form_id, mod_name.as_ptr()) };
+            let form_id = unsafe {
+                RE_TESDataHandler_LookupFormIDC(data_handler, local_form_id, mod_name.as_ptr())
+            };
             if form_id != 0 {
                 let armor = unsafe { RE_ResolveARMOFormID(form_id) };
                 if !armor.is_null() {
                     outfit.armors.insert(armor);
                 } else {
-                    warn!("Saved FormID {} resulted in no armor. Skipping.", local_form_id);
+                    warn!(
+                        "Saved FormID {} resulted in no armor. Skipping.",
+                        local_form_id
+                    );
                 }
             } else {
-                warn!("Saved FormID {} could not be matched. Skipping.", local_form_id);
+                warn!(
+                    "Saved FormID {} could not be matched. Skipping.",
+                    local_form_id
+                );
             }
         }
         for (slot, policy) in input.slot_policies {
@@ -165,7 +182,10 @@ impl Outfit {
             slots
         };
         let mut mask = 0;
-        let mut results = HashSet::new();
+        let mut results = HashedSet::with_capacity_and_hasher(
+            RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal as usize,
+            HashBuildHasher::default(),
+        );
         for slot in 0..RE_BIPED_OBJECTS_BIPED_OBJECT_kEditorTotal {
             if mask & (1 << slot) != 0 {
                 continue;
@@ -243,8 +263,11 @@ impl Outfit {
                 let local_form_id = unsafe { (**armor)._base._base._base.GetLocalFormID() };
                 let raw_form_id = unsafe { (**armor)._base._base._base.GetRawFormID() };
                 let file = unsafe { (**armor)._base._base._base.GetFile(0) };
-                if file.is_null() { 
-                    warn!("Raw FormID {} for an armor has no filename. Skipping.", raw_form_id);
+                if file.is_null() {
+                    warn!(
+                        "Raw FormID {} for an armor has no filename. Skipping.",
+                        raw_form_id
+                    );
                     continue;
                 }
                 let filename = unsafe { CStr::from_ptr(&(*file).fileName as *const i8) };
@@ -268,7 +291,7 @@ impl Outfit {
 
 pub struct ActorAssignments {
     pub current: Option<UncasedString>,
-    pub state_based: HashMap<StateType, UncasedString>,
+    pub state_based: HashedMap<StateType, UncasedString>,
 }
 
 impl Default for ActorAssignments {
@@ -282,8 +305,8 @@ impl Default for ActorAssignments {
 
 pub struct OutfitService {
     pub enabled: bool,
-    pub outfits: HashMap<UncasedString, Outfit>,
-    pub actor_assignments: HashMap<RE_ActorFormID, ActorAssignments>,
+    pub outfits: HashedMap<UncasedString, Outfit>,
+    pub actor_assignments: HashedMap<RE_ActorFormID, ActorAssignments>,
     pub location_switching_enabled: bool,
 }
 
@@ -559,12 +582,7 @@ impl OutfitService {
             .map(|sel| sel.clone())
             .map(|selected| self.set_outfit(Some(selected.as_str()), target));
     }
-    pub fn set_state_outfit(
-        &mut self,
-        location: StateType,
-        target: RE_ActorFormID,
-        name: &str,
-    ) {
+    pub fn set_state_outfit(&mut self, location: StateType, target: RE_ActorFormID, name: &str) {
         if name.is_empty() {
             self.unset_state_outfit(location, target);
             return;
@@ -579,11 +597,7 @@ impl OutfitService {
             .get_mut(&target)
             .map(|assn| assn.state_based.remove(&location));
     }
-    pub fn get_state_outfit_name_c(
-        &self,
-        location: StateType,
-        target: RE_ActorFormID,
-    ) -> String {
+    pub fn get_state_outfit_name_c(&self, location: StateType, target: RE_ActorFormID) -> String {
         self.get_state_outfit_name(location, target)
             .unwrap_or_else(|| String::new())
     }
@@ -592,7 +606,8 @@ impl OutfitService {
         location: StateType,
         target: RE_ActorFormID,
     ) -> Option<String> {
-        let name = self.actor_assignments
+        let name = self
+            .actor_assignments
             .get(&target)?
             .state_based
             .get(&location)?
@@ -606,7 +621,9 @@ impl OutfitService {
         is_in_combat: bool,
         target: RE_ActorFormID,
     ) -> OptionalStateType {
-        if let Some(result) = self.check_location_type(keywords, weather_flags, is_in_combat, target) {
+        if let Some(result) =
+            self.check_location_type(keywords, weather_flags, is_in_combat, target)
+        {
             OptionalStateType {
                 has_value: true,
                 value: result,
@@ -625,9 +642,9 @@ impl OutfitService {
         is_in_combat: bool,
         target: RE_ActorFormID,
     ) -> Option<StateType> {
-        let kw_map: HashSet<_> = keywords.into_iter().collect();
+        let kw_map: HashedSet<_> = keywords.into_iter().collect();
         let actor_assn = &self.actor_assignments.get(&target)?.state_based;
-        
+
         macro_rules! check_location {
             ($variant:expr, $check_code:expr) => {
                 if actor_assn.contains_key(&$variant) && ($check_code) {
@@ -636,10 +653,7 @@ impl OutfitService {
             };
         }
 
-        check_location!(
-            StateType::Combat,
-            is_in_combat
-        );
+        check_location!(StateType::Combat, is_in_combat);
 
         check_location!(
             StateType::CitySnowy,
@@ -683,7 +697,8 @@ impl OutfitService {
     }
 
     pub fn should_override(&self, target: RE_ActorFormID) -> bool {
-        self.enabled && self
+        self.enabled
+            && self
                 .actor_assignments
                 .get(&target)
                 .map_or(false, |assn| assn.current.is_some())
@@ -772,17 +787,17 @@ impl OutfitService {
 pub mod slot_policy {
     pub use crate::interface::ffi::Policy;
     use commonlibsse::RE_BIPED_OBJECT;
-    use std::collections::HashMap;
+    use hash_hasher::HashedMap;
 
     pub struct Policies {
-        pub slot_policies: HashMap<RE_BIPED_OBJECT, Policy>,
+        pub slot_policies: HashedMap<RE_BIPED_OBJECT, Policy>,
         pub blanket_slot_policy: Policy,
     }
 
     impl Policies {
         pub fn standard() -> Self {
             use commonlibsse::RE_BIPED_OBJECTS_BIPED_OBJECT_kShield;
-            let mut policies: HashMap<RE_BIPED_OBJECT, Policy> = Default::default();
+            let mut policies: HashedMap<RE_BIPED_OBJECT, Policy> = Default::default();
             policies.insert(RE_BIPED_OBJECTS_BIPED_OBJECT_kShield, Policy::XEXO);
             Policies {
                 slot_policies: policies,
@@ -825,7 +840,7 @@ impl Policy {
 }
 
 pub mod policy {
-    use std::collections::HashMap;
+    use hash_hasher::HashedMap;
 
     use arrayvec::ArrayVec;
     use lazy_static::lazy_static;
@@ -932,8 +947,9 @@ pub mod policy {
         }, // If only equipped, show equipped. If only outfit, show outfit. If both, show outfit
     ];
 
-    lazy_static!{ 
-        pub static ref METADATA_NAME_LUT: HashMap<&'static str, &'static Metadata> = build_metadata_name_map();
+    lazy_static! {
+        pub static ref METADATA_NAME_LUT: HashedMap<&'static str, &'static Metadata> =
+            build_metadata_name_map();
     }
 
     #[allow(dead_code)]
@@ -946,11 +962,8 @@ pub mod policy {
         true
     }
 
-    fn build_metadata_name_map() -> HashMap<&'static str, &'static Metadata> {
-        METADATA
-            .iter()
-            .map(|m| (m.code, m))
-            .collect()
+    fn build_metadata_name_map() -> HashedMap<&'static str, &'static Metadata> {
+        METADATA.iter().map(|m| (m.code, m)).collect()
     }
 
     pub fn policy_with_code_c(code: &str) -> OptionalPolicy {
@@ -975,7 +988,9 @@ pub mod policy {
             .collect()
     }
 
-    pub fn list_available_policies(allow_advanced: bool) -> ArrayVec<&'static Metadata, METADATA_COUNT> {
+    pub fn list_available_policies(
+        allow_advanced: bool,
+    ) -> ArrayVec<&'static Metadata, METADATA_COUNT> {
         let mut filtered: ArrayVec<_, METADATA_COUNT> = METADATA
             .iter()
             .filter(|p| allow_advanced || !p.advanced)
