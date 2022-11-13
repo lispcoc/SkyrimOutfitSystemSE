@@ -8,4 +8,5 @@ namespace RE {
 
 namespace OutfitSystem {
     bool RegisterPapyrus(RE::BSScript::IVirtualMachine* registry);
+    bool RegisterEvents();
 }

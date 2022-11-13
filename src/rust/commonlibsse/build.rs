@@ -24,6 +24,7 @@ fn main() {
         .opaque_type("RE::BSTSingleton.*")
         .opaque_type("RE::BSTSmartPointer.*")
         .opaque_type("RE::BSTPointerAndFlags.*")
+        .allowlist_type("RE::TESDataHandler")
         .allowlist_file("include/customize.hpp")
         .allowlist_type("RE::TESObjectARMO")
         .allowlist_type("RE::PlayerCharacter")

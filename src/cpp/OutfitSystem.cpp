@@ -120,13 +120,12 @@ namespace OutfitSystem {
         }
         return converted_result;
     }
-    void RefreshArmorFor(RE::BSScript::IVirtualMachine* registry,
-                         std::uint32_t stackId,
-                         RE::StaticFunctionTag*,
-                         RE::Actor* target) {
-        LogExit exitPrint("RefreshArmorFor"sv);
-        ERROR_AND_RETURN_IF(target == nullptr, "Cannot refresh armor on a None RE::Actor.", registry, stackId);
-        auto pm = target->GetActorRuntimeData().currentProcess;
+    // Refreshes the armor for the given actor.
+    // *It will acquire the AAOS lock at part of the refresh!*
+    void refreshArmorFor(RE::Actor* actor) {
+        if (!actor) return;
+        LOG(info, "Armor Refresh for {}", actor->GetDisplayFullName());
+        auto pm = actor->GetActorRuntimeData().currentProcess;
         if (pm) {
             //
             // "SetEquipFlag" tells the process manager that the RE::Actor's
@@ -137,8 +136,16 @@ namespace OutfitSystem {
             //
             // NOTE: AIProcess is also called as RE::ActorProcessManager
             RE::AIProcessAugments::SetEquipFlag(pm, RE::AIProcessAugments::Flag::kUnk01);
-            RE::AIProcessAugments::UpdateEquipment(pm, target);
+            RE::AIProcessAugments::UpdateEquipment(pm, actor);
         }
+    }
+    void RefreshArmorFor(RE::BSScript::IVirtualMachine* registry,
+                         std::uint32_t stackId,
+                         RE::StaticFunctionTag*,
+                         RE::Actor* target) {
+        LogExit exitPrint("RefreshArmorFor"sv);
+        ERROR_AND_RETURN_IF(target == nullptr, "Cannot refresh armor on a None RE::Actor.", registry, stackId);
+        refreshArmorFor(target);
     }
     void RefreshArmorForAllConfiguredActors(RE::BSScript::IVirtualMachine* registry,
                                             std::uint32_t stackId,
@@ -151,19 +158,7 @@ namespace OutfitSystem {
         for (auto& actor_form : actors) {
             auto actor = RE::Actor::LookupByID<RE::Actor>(actor_form);
             if (!actor) continue;
-            auto pm = actor->GetActorRuntimeData().currentProcess;
-            if (pm) {
-                //
-                // "SetEquipFlag" tells the process manager that the RE::Actor's
-                // equipment has changed, and that their ArmorAddons should
-                // be updated. If you need to find it in Skyrim Special, you
-                // should see a call near the start of EquipManager's func-
-                // tion to equip an item.
-                //
-                // NOTE: AIProcess is also called as RE::ActorProcessManager
-                RE::AIProcessAugments::SetEquipFlag(pm, RE::AIProcessAugments::Flag::kUnk01);
-                RE::AIProcessAugments::UpdateEquipment(pm, actor);
-            }
+            refreshArmorFor(actor);
         }
     }
 
@@ -872,48 +867,51 @@ namespace OutfitSystem {
 
                                            bool value) {
         LogExit exitPrint("SetLocationBasedAutoSwitchEnabled"sv);
-        outfit_service_get_mut_singleton_ptr()->inner().set_location_based_switching_enabled(value);
+        outfit_service_get_mut_singleton_ptr()->inner().set_state_based_switching_enabled(value);
     }
     bool GetLocationBasedAutoSwitchEnabled(RE::BSScript::IVirtualMachine* registry,
                                            std::uint32_t stackId,
                                            RE::StaticFunctionTag*) {
         LogExit exitPrint("GetLocationBasedAutoSwitchEnabled"sv);
-        return outfit_service_get_singleton_ptr()->inner().get_location_based_switching_enabled();
+        return outfit_service_get_singleton_ptr()->inner().get_state_based_switching_enabled();
     }
-    std::vector<std::uint32_t> GetAutoSwitchLocationArray(RE::BSScript::IVirtualMachine* registry,
+    std::vector<std::uint32_t> GetAutoSwitchStateArray(RE::BSScript::IVirtualMachine* registry,
                                                           std::uint32_t stackId,
                                                           RE::StaticFunctionTag*) {
-        LogExit exitPrint("GetAutoSwitchLocationArray"sv);
+        LogExit exitPrint("GetAutoSwitchStateArray"sv);
         std::vector<std::uint32_t> result;
-        for (LocationType i : {
-                 LocationType::World,
-                 LocationType::WorldSnowy,
-                 LocationType::WorldRainy,
-                 LocationType::City,
-                 LocationType::CitySnowy,
-                 LocationType::CityRainy,
-                 LocationType::Town,
-                 LocationType::TownSnowy,
-                 LocationType::TownRainy,
-                 LocationType::Dungeon,
-                 LocationType::DungeonSnowy,
-                 LocationType::DungeonRainy}) {
+        for (StateType i : {
+                 StateType::Combat,
+                 StateType::World,
+                 StateType::WorldSnowy,
+                 StateType::WorldRainy,
+                 StateType::City,
+                 StateType::CitySnowy,
+                 StateType::CityRainy,
+                 StateType::Town,
+                 StateType::TownSnowy,
+                 StateType::TownRainy,
+                 StateType::Dungeon,
+                 StateType::DungeonSnowy,
+                 StateType::DungeonRainy}) {
             result.push_back(std::uint32_t(i));
         }
         return result;
     }
-    std::optional<LocationType> identifyLocation(const OutfitService& service, RE::BGSLocation* location, RE::TESWeather* weather) {
-        LogExit exitPrint("identifyLocation"sv);
-        // Just a helper function to classify a location.
-        // TODO: Think of a better place than this since we're not exposing it to Papyrus.
+    std::optional<StateType> identifyStateType(const OutfitService& service, RE::Actor* actor) {
+        LogExit exitPrint("identifyStateType"sv);
+        if (!actor) return std::nullopt;
+        auto is_in_combat = actor->IsInCombat();
+        auto location = actor->GetCurrentLocation();
+        auto sky = RE::Sky::GetSingleton();
 
         // Collect weather information.
         WeatherFlags weather_flags;
-        if (weather) {
-            weather_flags.snowy = weather->data.flags.any(RE::TESWeather::WeatherDataFlag::kSnow);
-            weather_flags.rainy = weather->data.flags.any(RE::TESWeather::WeatherDataFlag::kRainy);
+        if (sky) {
+            weather_flags.snowy = sky->IsSnowing();
+            weather_flags.rainy = sky->IsRaining();
         }
-
+        LOG(debug, "Identifying state for {}: rain: {}, snow: {}, loc: {:x}, combat: {}", actor->GetDisplayFullName(), weather_flags.rainy, weather_flags.snowy, (uintptr_t) location, is_in_combat);
         // Collect location keywords
         rust::Vec<rust::String> keywords;
         keywords.reserve(20);
@@ -931,81 +929,107 @@ namespace OutfitSystem {
             }
             location = location->parentLoc;
         }
-        auto result = service.check_location_type_c(keywords, weather_flags, RE::PlayerCharacter::GetSingleton()->GetFormID());
+        auto result = service.check_location_type_c(keywords, weather_flags, is_in_combat, actor->GetFormID());
         if (result.has_value) {
             return result.value;
         } else {
             return std::nullopt;
         }
     }
-    std::uint32_t IdentifyLocationType(RE::BSScript::IVirtualMachine* registry,
-                                       std::uint32_t stackId,
-                                       RE::StaticFunctionTag*,
-
-                                       RE::BGSLocation* location_skse,
-                                       RE::TESWeather* weather_skse) {
-        LogExit exitPrint("IdentifyLocationType"sv);
+    std::uint32_t IdentifyStateType(RE::BSScript::IVirtualMachine* registry,
+                                    std::uint32_t stackId,
+                                    RE::StaticFunctionTag*,
+                                    RE::Actor* actor) {
+        LogExit exitPrint("IdentifyStateType"sv);
         // NOTE: Identify the location for Papyrus. In the event no location is identified, we lie to Papyrus and say "World".
         //       Therefore, Papyrus cannot assume that locations returned have an outfit assigned, at least not for "World".
         auto service = outfit_service_get_singleton_ptr();
-        return static_cast<std::uint32_t>(identifyLocation(
-            service->inner(),
-            (RE::BGSLocation*) location_skse,
-            (RE::TESWeather*) weather_skse).value_or(LocationType::World));
+        if (!actor) return static_cast<std::uint32_t>(StateType::World);
+        return static_cast<std::uint32_t>(identifyStateType(service->inner(), actor).value_or(StateType::World));
     }
-    void SetOutfitUsingLocation(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
-                                RE::Actor* actor,
-                                RE::BGSLocation* location_skse,
-                                RE::TESWeather* weather_skse) {
-        LogExit exitPrint("SetOutfitUsingLocation"sv);
+    void setOutfitUsingState(OutfitService& service, RE::Actor* actor) {
+        LogExit exitPrint("setOutfitUsingState"sv);
         // NOTE: Location can be NULL.
-        auto service = outfit_service_get_mut_singleton_ptr();
-        if (!actor)
-            return;
-        if (service->inner().get_location_based_switching_enabled()) {
-            auto location = identifyLocation(service->inner(), location_skse, weather_skse);
+        if (!actor) return;
+        if (service.get_state_based_switching_enabled()) {
+            auto state = identifyStateType(service, actor);
             // Debug notifications for location classification.
             /*
-            const char* locationName = locationTypeStrings[static_cast<std::uint32_t>(location)];
+            const char* locationName = StateTypeStrings[static_cast<std::uint32_t>(location)];
             char message[100];
             sprintf_s(message, "SOS: This location is a %s.", locationName);
             RE::DebugNotification(message, nullptr, false);
             */
-            if (location.has_value()) {
-                service->inner().set_outfit_using_location(location.value(), actor->GetFormID());
+            if (state.has_value()) {
+                service.set_outfit_using_state(state.value(), actor->GetFormID());
             }
         }
     }
-    void SetLocationOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
+    void SetOutfitUsingState(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*, RE::Actor* actor) {
+        LogExit exitPrint("SetOutfitUsingState"sv);
+        // NOTE: Location can be NULL.
+        auto service = outfit_service_get_mut_singleton_ptr();
+        if (!actor) return;
+        setOutfitUsingState(service->inner(), actor);
+    }
+    void setOutfitUsingStateForAllConfiguredActors(OutfitService& service) {
+        LogExit exitPrint("setOutfitUsingStateForAllConfiguredActors"sv);
+        rust::Vec<std::uint32_t> actors = service.list_actors(); 
+        for (auto& actor_form : actors) {
+            auto actor = RE::Actor::LookupByID<RE::Actor>(actor_form);
+            if (!actor) continue;
+            setOutfitUsingState(service, actor);
+        }
+    }
+    void SetOutfitUsingStateForAllConfiguredActors(RE::BSScript::IVirtualMachine* registry,
+                                            std::uint32_t stackId,
+                                            RE::StaticFunctionTag*) {
+        LogExit exitPrint("SetOutfitUsingStateForAllConfiguredActors"sv);
+        auto service = outfit_service_get_mut_singleton_ptr();
+        setOutfitUsingStateForAllConfiguredActors(service->inner());
+    }
+    void NotifyCombatStateChanged(RE::BSScript::IVirtualMachine* registry,
+                                    std::uint32_t stackId,
+                                    RE::StaticFunctionTag*,
+                                    RE::Actor* actor) {
+        LogExit exitPrint("NotifyCombatStateChanged"sv);
+        if (!actor) return;
+        {
+            LOG(debug, "Script notification of combat change for {}", actor->GetDisplayFullName());
+            OutfitSystem::setOutfitUsingState(outfit_service_get_mut_singleton_ptr()->inner(), actor);
+        }
+        OutfitSystem::refreshArmorFor(actor);
+    }
+    void SetStateOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                            RE::Actor* actor,
                            std::uint32_t location,
                            RE::BSFixedString name) {
-        LogExit exitPrint("SetLocationOutfit"sv);
+        LogExit exitPrint("SetStateOutfit"sv);
         if (!actor)
             return;
         if (strcmp(name.data(), "") == 0) {
             // Location outfit assignment is never allowed to be empty string. Use unset instead.
             return;
         }
-        outfit_service_get_mut_singleton_ptr()->inner().set_location_outfit(LocationType(location), actor->GetFormID(), name.data());
+        outfit_service_get_mut_singleton_ptr()->inner().set_state_outfit(StateType(location), actor->GetFormID(), name.data());
     }
-    void UnsetLocationOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
+    void UnsetStateOutfit(RE::BSScript::IVirtualMachine* registry, std::uint32_t stackId, RE::StaticFunctionTag*,
                              RE::Actor* actor,
                              std::uint32_t location) {
-        LogExit exitPrint("UnsetLocationOutfit"sv);
+        LogExit exitPrint("UnsetStateOutfit"sv);
         if (!actor)
             return;
-        return outfit_service_get_mut_singleton_ptr()->inner().unset_location_outfit(LocationType(location), actor->GetFormID());
+        return outfit_service_get_mut_singleton_ptr()->inner().unset_state_outfit(StateType(location), actor->GetFormID());
     }
-    RE::BSFixedString GetLocationOutfit(RE::BSScript::IVirtualMachine* registry,
+    RE::BSFixedString GetStateOutfit(RE::BSScript::IVirtualMachine* registry,
                                         std::uint32_t stackId,
                                         RE::StaticFunctionTag*,
                                         RE::Actor* actor,
                                         std::uint32_t location) {
-        LogExit exitPrint("GetLocationOutfit"sv);
+        LogExit exitPrint("GetStateOutfit"sv);
         if (!actor)
             return RE::BSFixedString("");
-        auto outfit = outfit_service_get_singleton_ptr()->inner().get_location_outfit_name_c(LocationType(location), actor->GetFormID());
+        auto outfit = outfit_service_get_singleton_ptr()->inner().get_state_outfit_name_c(StateType(location), actor->GetFormID());
         if (!outfit.empty()) {
             return RE::BSFixedString(outfit.c_str());
         } else {
@@ -1272,29 +1296,37 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
         "SkyrimOutfitSystemNativeFuncs",
         GetLocationBasedAutoSwitchEnabled);
     registry->RegisterFunction(
-        "GetAutoSwitchLocationArray",
+        "GetAutoSwitchStateArray",
         "SkyrimOutfitSystemNativeFuncs",
-        GetAutoSwitchLocationArray);
+        GetAutoSwitchStateArray);
     registry->RegisterFunction(
-        "IdentifyLocationType",
+        "IdentifyStateType",
         "SkyrimOutfitSystemNativeFuncs",
-        IdentifyLocationType);
+        IdentifyStateType);
     registry->RegisterFunction(
-        "SetOutfitUsingLocation",
+        "SetOutfitUsingState",
         "SkyrimOutfitSystemNativeFuncs",
-        SetOutfitUsingLocation);
+        SetOutfitUsingState);
     registry->RegisterFunction(
-        "SetLocationOutfit",
+        "SetOutfitUsingStateForAllConfiguredActors",
         "SkyrimOutfitSystemNativeFuncs",
-        SetLocationOutfit);
+        SetOutfitUsingStateForAllConfiguredActors);
     registry->RegisterFunction(
-        "UnsetLocationOutfit",
+        "NotifyCombatStateChanged",
         "SkyrimOutfitSystemNativeFuncs",
-        UnsetLocationOutfit);
+        NotifyCombatStateChanged);
     registry->RegisterFunction(
-        "GetLocationOutfit",
+        "SetStateOutfit",
         "SkyrimOutfitSystemNativeFuncs",
-        GetLocationOutfit);
+        SetStateOutfit);
+    registry->RegisterFunction(
+        "UnsetStateOutfit",
+        "SkyrimOutfitSystemNativeFuncs",
+        UnsetStateOutfit);
+    registry->RegisterFunction(
+        "GetStateOutfit",
+        "SkyrimOutfitSystemNativeFuncs",
+        GetStateOutfit);
     registry->RegisterFunction(
         "ExportSettings",
         "SkyrimOutfitSystemNativeFuncs",
@@ -1304,5 +1336,67 @@ bool OutfitSystem::RegisterPapyrus(RE::BSScript::IVirtualMachine* registry) {
         "SkyrimOutfitSystemNativeFuncs",
         ImportSettings);
 
+    return true;
+}
+
+// Event Subscriptions
+
+class CombatStartSubscription: public RE::BSTEventSink<RE::TESCombatEvent>, public RE::BSTEventSink<RE::TESDeathEvent> {
+    RE::BSEventNotifyControl ProcessEvent(const RE::TESCombatEvent* a_event, RE::BSTEventSource<RE::TESCombatEvent>* a_eventSource) override {
+        if (!a_event) return RE::BSEventNotifyControl::kContinue;
+        if (a_event->actor.get() && a_event->targetActor.get()) {
+            LOG(debug, "Combat state {}: {} -> {}", a_event->newState.underlying(), a_event->actor->GetDisplayFullName(), a_event->targetActor->GetDisplayFullName());
+        } else {
+            LOG(debug, "Combat state {}: {:x} -> {:x}", a_event->newState.underlying(), (uintptr_t)a_event->actor.get(), (uintptr_t)a_event->targetActor.get());
+        }
+        std::array<RE::Actor*, 3> relevantActors{nullptr};
+        {
+            auto service = outfit_service_get_mut_singleton_ptr();
+            if (a_event->actor.get() && service->inner().should_override(a_event->actor->GetFormID())) {
+                relevantActors[0] = a_event->actor->As<RE::Actor>();
+            }
+            if (a_event->targetActor.get() && service->inner().should_override(a_event->targetActor->GetFormID())) {
+                relevantActors[1] = a_event->targetActor->As<RE::Actor>();
+            }
+            // For some reason, we don't get notifications about the PC ending combat, so we always check the PC.
+            if (service->inner().should_override(RE::PlayerCharacter::GetSingleton()->GetFormID())) {
+                relevantActors[2] = RE::PlayerCharacter::GetSingleton();
+            }
+            for (auto actor : relevantActors) {
+                if (actor) {
+                    LOG(debug, "New combat state for {} ({}): {}", actor->GetDisplayFullName(), (uintptr_t) actor, a_event->newState.underlying());
+                    OutfitSystem::setOutfitUsingState(service->inner(), actor);
+                }
+            }
+        }
+        // This last step requires the AAOS lock to be released
+        for (auto actor : relevantActors) {
+            if (actor) {
+                OutfitSystem::refreshArmorFor(actor);
+            }
+        }
+        return RE::BSEventNotifyControl::kContinue;
+    }
+    RE::BSEventNotifyControl ProcessEvent(const RE::TESDeathEvent* a_event, RE::BSTEventSource<RE::TESDeathEvent>* a_eventSource) override {
+        LOG(debug, "Character died. Checking for PC combat state");
+        bool shouldOverride;
+        {
+            auto service = outfit_service_get_mut_singleton_ptr();
+            shouldOverride = service->inner().should_override(RE::PlayerCharacter::GetSingleton()->GetFormID());
+            if (shouldOverride) {
+                OutfitSystem::setOutfitUsingState(service->inner(), RE::PlayerCharacter::GetSingleton());
+            }
+        }
+        if (shouldOverride) {
+            OutfitSystem::refreshArmorFor(RE::PlayerCharacter::GetSingleton());
+        }
+        return RE::BSEventNotifyControl::kContinue;
+    }
+};
+
+bool OutfitSystem::RegisterEvents() {
+    auto* combatSubscription = new CombatStartSubscription();
+    RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESCombatEvent>(combatSubscription);
+    RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESDeathEvent>(combatSubscription);
     return true;
 }

@@ -93,11 +93,14 @@ Actor[]  Function ListActors() Global Native
 
          Function SetLocationBasedAutoSwitchEnabled (Bool abEnabled) Global Native
 Bool     Function GetLocationBasedAutoSwitchEnabled () Global Native
-Int[]    Function GetAutoSwitchLocationArray () Global Native
-Int      Function IdentifyLocationType (Location alLocation, Weather awWeather) Global Native
-         Function SetOutfitUsingLocation (Actor actor, Location alLocation, Weather awWeather) Global Native
-         Function SetLocationOutfit (Actor actor, Int aiLocationType, String asOutfitName) Global Native
-         Function UnsetLocationOutfit (Actor actor, Int aiLocationType) Global Native
-String   Function GetLocationOutfit (Actor actor, Int aiLocationType) Global Native
+Int[]    Function GetAutoSwitchStateArray () Global Native
+Int      Function IdentifyStateType (Actor actor) Global Native
+         Function SetOutfitUsingState (Actor actor) Global Native
+         Function SetOutfitUsingStateForAllConfiguredActors () Global Native
+         Function SetStateOutfit (Actor actor, Int aiStateType, String asOutfitName) Global Native
+         Function UnsetStateOutfit (Actor actor, Int aiStateType) Global Native
+String   Function GetStateOutfit (Actor actor, Int aiStateType) Global Native
 Bool     Function ExportSettings () Global Native
 Bool     Function ImportSettings () Global Native
+
+         Function NotifyCombatStateChanged (Actor actor) Global Native

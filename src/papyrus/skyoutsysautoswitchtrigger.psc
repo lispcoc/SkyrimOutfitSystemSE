@@ -5,8 +5,8 @@ Event OnLocationChange(Location akOldLoc, Location akNewLoc)
     ; Debug.Trace("SOS: Running OnLocationChange")
     GoToState("Waiting")
     Utility.Wait(10.0)
-    SkyrimOutfitSystemNativeFuncs.SetOutfitUsingLocation(Game.GetPlayer(), Game.GetPlayer().GetCurrentLocation(), Weather.GetCurrentWeather())
-    SkyrimOutfitSystemNativeFuncs.RefreshArmorFor(Game.GetPlayer())
+    SkyrimOutfitSystemNativeFuncs.SetOutfitUsingStateForAllConfiguredActors()
+    SkyrimOutfitSystemNativeFuncs.RefreshArmorForAllConfiguredActors()
     GoToState("Listening")
 endEvent
 EndState
