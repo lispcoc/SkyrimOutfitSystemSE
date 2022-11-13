@@ -51,6 +51,7 @@ Event OnConfigOpen()
    RefreshCache()
 EndEvent
 Event OnConfigClose()
+   SkyrimOutfitSystemNativeFuncs.SetOutfitUsingStateForAllConfiguredActors()
    SkyrimOutfitSystemNativeFuncs.RefreshArmorForAllConfiguredActors()
    ResetOutfitBrowser()
    ResetOutfitEditor()
