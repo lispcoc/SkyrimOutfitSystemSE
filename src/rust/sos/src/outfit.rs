@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::{
     interface::ffi::{
         OptionalPolicy, OptionalStateType, StateType, TESObjectARMOPtr, WeatherFlags,
@@ -305,7 +306,7 @@ impl Default for ActorAssignments {
 
 pub struct OutfitService {
     pub enabled: bool,
-    pub outfits: HashedMap<UncasedString, Outfit>,
+    pub outfits: HashMap<UncasedString, Outfit>,
     pub actor_assignments: HashedMap<RE_ActorFormID, ActorAssignments>,
     pub location_switching_enabled: bool,
 }
