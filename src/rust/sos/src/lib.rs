@@ -2,10 +2,10 @@ mod helpers;
 mod interface;
 mod logging;
 pub mod outfit;
-mod persistence;
-pub mod strings;
 mod panicking;
+mod persistence;
 mod settings;
+pub mod strings;
 use lazy_static::lazy_static;
 use parking_lot::RwLock;
 
@@ -75,7 +75,9 @@ pub extern "C" fn plugin_main(skse: *const SKSE_LoadInterface) -> bool {
 #[no_mangle]
 #[allow(non_upper_case_globals)]
 pub extern "C" fn messaging_callback(message: *mut SKSE_MessagingInterface_Message) {
-    if message.is_null() { return }
+    if message.is_null() {
+        return;
+    }
     let message_type = unsafe { (*message).type_ };
     match message_type {
         SKSE_MessagingInterface_kPostLoad => {}
@@ -93,7 +95,8 @@ pub extern "C" fn messaging_callback(message: *mut SKSE_MessagingInterface_Messa
 }
 
 lazy_static! {
-    pub static ref OUTFIT_SERVICE_SINGLETON: RwLock<OutfitService> = RwLock::new(OutfitService::new());
+    pub static ref OUTFIT_SERVICE_SINGLETON: RwLock<OutfitService> =
+        RwLock::new(OutfitService::new());
 }
 
 extern "C" {

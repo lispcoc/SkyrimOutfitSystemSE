@@ -1,8 +1,8 @@
 use crate::outfit::{policy::*, *};
-use crate::OUTFIT_SERVICE_SINGLETON;
-use crate::strings::*;
 use crate::settings::SETTINGS;
-use parking_lot::{RwLockWriteGuard, RwLockReadGuard};
+use crate::strings::*;
+use crate::OUTFIT_SERVICE_SINGLETON;
+use parking_lot::{RwLockReadGuard, RwLockWriteGuard};
 
 #[cxx::bridge]
 pub mod ffi {
@@ -126,12 +126,7 @@ pub mod ffi {
         fn list_actors(self: &OutfitService) -> Vec<u32>;
         fn set_state_based_switching_enabled(self: &mut OutfitService, setting: bool);
         fn set_outfit_using_state(self: &mut OutfitService, location: StateType, target: u32);
-        fn set_state_outfit(
-            self: &mut OutfitService,
-            location: StateType,
-            target: u32,
-            name: &str,
-        );
+        fn set_state_outfit(self: &mut OutfitService, location: StateType, target: u32, name: &str);
         fn get_state_based_switching_enabled(self: &OutfitService) -> bool;
         fn unset_state_outfit(self: &mut OutfitService, location: StateType, target: u32);
         fn get_state_outfit_name_c(
@@ -190,7 +185,7 @@ fn settings_extra_logging_enabled() -> bool {
 }
 
 struct OutfitSystemReadMutex {
-    inner: RwLockReadGuard<'static, OutfitService>
+    inner: RwLockReadGuard<'static, OutfitService>,
 }
 
 impl OutfitSystemReadMutex {
@@ -200,7 +195,7 @@ impl OutfitSystemReadMutex {
 }
 
 struct OutfitSystemWriteMutex {
-    inner: RwLockWriteGuard<'static, OutfitService>
+    inner: RwLockWriteGuard<'static, OutfitService>,
 }
 
 impl OutfitSystemWriteMutex {
@@ -209,11 +204,14 @@ impl OutfitSystemWriteMutex {
     }
 }
 
-
 fn outfit_service_get_singleton_ptr() -> Box<OutfitSystemReadMutex> {
-    Box::new(OutfitSystemReadMutex { inner: OUTFIT_SERVICE_SINGLETON.read() })
+    Box::new(OutfitSystemReadMutex {
+        inner: OUTFIT_SERVICE_SINGLETON.read(),
+    })
 }
 
 fn outfit_service_get_mut_singleton_ptr() -> Box<OutfitSystemWriteMutex> {
-    Box::new(OutfitSystemWriteMutex { inner: OUTFIT_SERVICE_SINGLETON.write() })
+    Box::new(OutfitSystemWriteMutex {
+        inner: OUTFIT_SERVICE_SINGLETON.write(),
+    })
 }

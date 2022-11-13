@@ -1,8 +1,8 @@
-use std::ffi::{CString};
-use std::ptr::null_mut;
 use literal_cstr::c;
-use winapi::um::winuser::{MessageBoxA, MB_OK};
+use std::ffi::CString;
+use std::ptr::null_mut;
 use winapi::um::processthreadsapi::ExitProcess;
+use winapi::um::winuser::{MessageBoxA, MB_OK};
 
 pub fn setup_panic() {
     std::panic::set_hook(Box::new(|info| {
@@ -27,7 +27,8 @@ pub fn setup_panic() {
 
 /// A helper function to quickly show a message box. If `msg` cannot be converted to a CString (due to NULL bytes), a default message is shown.
 pub fn quick_msg_box<S: AsRef<str>>(msg: S) {
-    let message = CString::new(msg.as_ref()).unwrap_or_else(|_| c!("<Could not render error message.>").to_owned());
+    let message = CString::new(msg.as_ref())
+        .unwrap_or_else(|_| c!("<Could not render error message.>").to_owned());
     let title = c!("Skyrim Outfit System Critical Error");
     unsafe {
         MessageBoxA(null_mut(), message.as_ptr(), title.as_ptr(), MB_OK);
