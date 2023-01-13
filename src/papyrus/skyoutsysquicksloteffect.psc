@@ -34,7 +34,7 @@ Event OnEffectStart(Actor akCaster, Actor akTarget)
       SkyrimOutfitSystemNativeFuncs.RefreshArmorFor(Game.GetPlayer())
    Endif
    If StringUtil.Substring(result, 0, 8) == "[SELECT]"
-      result = StringUtil.Substring(result, 9, 0)
+      result = StringUtil.Substring(result, 8, 0)
       SkyrimOutfitSystemNativeFuncs.SetSelectedOutfit(Game.GetPlayer(), result)
       Debug.Notification(result + " : SELECT")
       ; Update the autoswitch slot if
