@@ -1,7 +1,7 @@
 Scriptname SkyOutSysQuickslotEffect extends activemagiceffect
 
 Event OnEffectStart(Actor akCaster, Actor akTarget)
-   String sCurrentOutfit = SkyrimOutfitSystemNativeFuncs.GetSelectedOutfit()
+   String sCurrentOutfit = SkyrimOutfitSystemNativeFuncs.GetSelectedOutfit(Game.GetPlayer())
    String[] sLMenuItems = SkyrimOutfitSystemNativeFuncs.ListOutfits(favoritesOnly = true)
    sLMenuItems = SkyrimOutfitSystemNativeFuncs.NaturalSort_ASCII(sLMenuItems)
    UIListMenu menu = UIExtensions.GetMenu("UIListMenu") as UIListMenu
@@ -30,7 +30,7 @@ Event OnEffectStart(Actor akCaster, Actor akTarget)
    Endif
    If result == "[NO OUTFIT]"
       result = ""
-      SkyrimOutfitSystemNativeFuncs.SetSelectedOutfit(result)
+      SkyrimOutfitSystemNativeFuncs.SetSelectedOutfit(Game.GetPlayer(), result)
       SkyrimOutfitSystemNativeFuncs.RefreshArmorFor(Game.GetPlayer())
    Endif
    If StringUtil.Substring(result, 0, 8) == "[SELECT]"
