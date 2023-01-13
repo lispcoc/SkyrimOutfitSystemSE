@@ -36,6 +36,7 @@ Event OnEffectStart(Actor akCaster, Actor akTarget)
    If StringUtil.Substring(result, 0, 8) == "[SELECT]"
       result = StringUtil.Substring(result, 9, 0)
       SkyrimOutfitSystemNativeFuncs.SetSelectedOutfit(Game.GetPlayer(), result)
+      Debug.Notification(result + " : SELECT")
       ; Update the autoswitch slot if
       ; 1) autoswitching is enabled,
       ; 2) the current location has an outfit assigned already, and
@@ -48,9 +49,10 @@ Event OnEffectStart(Actor akCaster, Actor akTarget)
       SkyrimOutfitSystemNativeFuncs.RefreshArmorFor(Game.GetPlayer())
    Endif
    If StringUtil.Substring(result, 0, 11) == "[OVERWRITE]"
-      result = StringUtil.Substring(result, 12, 0)
+      result = StringUtil.Substring(result, 11, 0)
       Armor[] kList = SkyrimOutfitSystemNativeFuncs.GetWornItems(Game.GetPlayer())
       SkyrimOutfitSystemNativeFuncs.OverwriteOutfit(result, kList)
       SkyrimOutfitSystemNativeFuncs.RefreshArmorFor(Game.GetPlayer())
+      Debug.Notification(result + " : OVERWRITE")
    Endif
 EndEvent
